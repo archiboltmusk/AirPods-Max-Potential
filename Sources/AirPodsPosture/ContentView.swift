@@ -19,6 +19,7 @@ public struct ContentView: View {
         case timeline = "Biometric Timeline"
         case stretches = "Neck Stretches & PT"
         case vitality = "Biohacking & Vitality"
+        case sleepLab = "Overnight Sleep Lab"
         
         // SECTION 3: LABS & INTELLIGENCE
         case pro3Suite = "AirPods Pro 3 Suite"
@@ -45,6 +46,7 @@ public struct ContentView: View {
             case .timeline: return "chart.xyaxis.line"
             case .stretches: return "figure.mind.and.body"
             case .vitality: return "heart.text.square.fill"
+            case .sleepLab: return "moon.stars.fill"
             case .pro3Suite: return "sparkles.tv.fill"
             case .openSourceLab: return "sparkles.rectangle.stack.fill"
             case .sensors: return "earbuds.case.fill"
@@ -67,6 +69,7 @@ public struct ContentView: View {
             case .timeline: return .orange
             case .stretches: return .teal
             case .vitality: return .pink
+            case .sleepLab: return .indigo
             case .pro3Suite: return .purple
             case .openSourceLab: return .purple
             case .sensors: return .indigo
@@ -109,6 +112,7 @@ public struct ContentView: View {
                             sidebarRow(.timeline)
                             sidebarRow(.stretches)
                             sidebarRow(.vitality)
+                            sidebarRow(.sleepLab)
                         }
                         
                         // SECTION 3: LABS & INTELLIGENCE
@@ -274,6 +278,8 @@ public struct ContentView: View {
                         StretchCoachView(motion: motion)
                     case .vitality:
                         BiohackingVitalityView()
+                    case .sleepLab:
+                        OvernightSleepRecoveryView()
                         
                     // 3. LABS & INTELLIGENCE
                     case .pro3Suite:
