@@ -6,6 +6,9 @@ public struct Apple360HeroShowcaseView: View {
     @ObservedObject var respiratory = AcousticRespiratoryEngine.shared
     @ObservedObject var calibrator = AutonomousAutoCalibrator.shared
     
+    // Earwear selection stored persistently
+    @AppStorage("studioEarwearStyle") private var earwearStyleRaw: String = EarwearStyle.airPodsPro.rawValue
+    
     // Inertial Orbit Drag State
     @State private var dragOffset: CGSize = .zero
     @State private var manualYawOffset: Double = 0.0
@@ -16,6 +19,10 @@ public struct Apple360HeroShowcaseView: View {
     
     public init() {}
     
+    private var currentEarwear: EarwearStyle {
+        EarwearStyle(rawValue: earwearStyleRaw) ?? .airPodsPro
+    }
+    
     private var effectivePitch: Double {
         isInteracting ? (motion.deltaPitch + manualPitchOffset) : motion.deltaPitch
     }
@@ -25,7 +32,7 @@ public struct Apple360HeroShowcaseView: View {
     }
     
     public var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 22) {
             // Hero Title Banner (Apple Keynote Style)
             VStack(spacing: 6) {
                 Text("AIRPODS SPATIAL KINEMATICS")
@@ -49,31 +56,32 @@ public struct Apple360HeroShowcaseView: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 580)
             }
-            .padding(.top, 12)
+            .padding(.top, 10)
             
             // Central 360° Interactive 3D Showcase Stage
             ZStack {
                 // Ambient Radial Glow
                 RadialGradient(
                     gradient: Gradient(colors: [
-                        motion.postureState == .optimal ? Color.cyan.opacity(0.18) :
-                        (motion.postureState == .warning ? Color.orange.opacity(0.18) : Color.red.opacity(0.18)),
+                        motion.postureState == .optimal ? Color.cyan.opacity(0.14) :
+                        (motion.postureState == .warning ? Color.orange.opacity(0.14) : Color.red.opacity(0.14)),
                         Color.clear
                     ]),
                     center: .center,
                     startRadius: 20,
                     endRadius: 260
                 )
-                .frame(height: 380)
+                .frame(height: 390)
                 
-                // 3D Anatomical Human Face View
+                // 3D Anatomical Human Face View with Precision Earwear Alignment
                 HumanFace3DView(
                     pitch: effectivePitch,
                     roll: motion.deltaRoll,
                     yaw: effectiveYaw,
-                    postureScore: motion.postureScore
+                    postureScore: motion.postureScore,
+                    earwearStyle: currentEarwear
                 )
-                .frame(height: 380)
+                .frame(height: 390)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .gesture(
                     DragGesture(minimumDistance: 2)
@@ -106,6 +114,27 @@ public struct Apple360HeroShowcaseView: View {
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5))
+                        
+                        Spacer()
+                        
+                        // Apple-Standard Floating Earwear Mode Pill Switcher
+                        HStack(spacing: 3) {
+                            ForEach(EarwearStyle.allCases) { style in
+                                EarwearPillButton(
+                                    style: style,
+                                    isSelected: currentEarwear == style,
+                                    action: {
+                                        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                                            earwearStyleRaw = style.rawValue
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        .padding(3)
                         .background(.ultraThinMaterial)
                         .clipShape(Capsule())
                         .overlay(Capsule().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5))
@@ -245,5 +274,28 @@ struct ShowcaseCard: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .appleGlass(cornerRadius: 18, opacity: 0.4)
+    }
+}
+
+struct EarwearPillButton: View {
+    let style: EarwearStyle
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: style.icon)
+                    .font(.system(size: 10))
+                Text(style.rawValue)
+                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .foregroundColor(isSelected ? .white : .secondary)
+            .background(isSelected ? Color.accentColor.opacity(0.85) : Color.clear)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
