@@ -4,6 +4,7 @@ import Vision
 import Combine
 import CoreMotion
 import simd
+import AppKit
 
 /// Sentinel Optical Continuity Engine.
 /// Maintains unbroken cervical posture tracking when AirPods are charging in their case
@@ -16,15 +17,31 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
     @Published public var isRunning: Bool = false
     @Published public var isCameraAuthorized: Bool = false
     @Published public var faceDetected: Bool = false
+    @Published public var faceTrackingConfidence: Double = 0.0 // 0.0 - 1.0
     @Published public var currentCameraName: String = "FaceTime HD Camera"
     @Published public var opticalFps: Int = 0
+    @Published public var normalizedFaceBox: CGRect = .zero
     
-    // Biomechanical Posture Metrics (Calculated via Computer Vision)
+    // Calibrated Posture Metrics (Deltas relative to Neutral Upright Baseline)
     @Published public var facePitch: Double = 0.0
     @Published public var faceRoll: Double = 0.0
     @Published public var faceYaw: Double = 0.0
     
-    // Cranial Translation (The AirPods Blind Spot: Forward Head Craning / Turtle Neck in cm)
+    // Raw Angles Before Calibration
+    @Published public var rawPitch: Double = 0.0
+    @Published public var rawRoll: Double = 0.0
+    @Published public var rawYaw: Double = 0.0
+    
+    // Calibration State (Just like Spatial Calibration!)
+    @Published public var isCalibrated: Bool = false
+    @Published public var baselinePitch: Double = 0.0
+    @Published public var baselineRoll: Double = 0.0
+    @Published public var baselineYaw: Double = 0.0
+    @Published public var baselinePupilDistance: Double = 0.0
+    @Published public var baselineFacialRatio: Double = 0.85
+    @Published public var calibrationTimestamp: Date? = nil
+    
+    // Cranial Translation (Forward Head Craning / Turtle Neck in cm)
     @Published public var forwardCraningCm: Double = 0.0
     @Published public var craningSeverity: String = "Optimal Alignment"
     
@@ -41,13 +58,9 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
     }
     
     // Internal AVFoundation & Vision Stack
-    nonisolated(unsafe) private let captureSession = AVCaptureSession()
+    nonisolated(unsafe) public let captureSession = AVCaptureSession()
     nonisolated(unsafe) private let videoOutput = AVCaptureVideoDataOutput()
     private let captureQueue = DispatchQueue(label: "com.airpodsiq.opticalsentinel", qos: .userInteractive)
-    
-    // Calibration baseline for pupil distance (neutral screen distance)
-    private var baselinePupilDistance: Double = 0.0
-    private var isCalibrated: Bool = false
     
     // Blink detection state
     private var blinkTimestamps: [Date] = []
@@ -55,6 +68,7 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
     private var lastBlinkDate: Date = Date()
     private var fpsCounter: Int = 0
     private var lastFpsTimestamp: Date = Date()
+    private var stableFrameCount: Int = 0
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -71,11 +85,12 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             self.isCameraAuthorized = true
+            setupCaptureSession()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
                 Task { @MainActor in
                     self?.isCameraAuthorized = granted
-                    if granted && self?.autoFallbackEnabled == true {
+                    if granted {
                         self?.setupCaptureSession()
                     }
                 }
@@ -87,16 +102,37 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
         }
     }
     
-    private func setupCaptureSession() {
+    public func setupCaptureSession() {
         guard isCameraAuthorized else { return }
         
         captureQueue.async { [weak self] in
             guard let self = self else { return }
-            self.captureSession.beginConfiguration()
-            self.captureSession.sessionPreset = .vga640x480 // Low overhead, 30fps ANE-optimized
+            if self.captureSession.isRunning { return }
             
-            // Discover front-facing camera (FaceTime HD / Studio Display / Continuity Camera)
-            let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+            self.captureSession.beginConfiguration()
+            self.captureSession.sessionPreset = .vga640x480
+            
+            // Remove existing inputs/outputs if re-configuring
+            for input in self.captureSession.inputs {
+                self.captureSession.removeInput(input)
+            }
+            for output in self.captureSession.outputs {
+                self.captureSession.removeOutput(output)
+            }
+            
+            // Discover best available camera (Front-facing, Continuity Camera, or default webcam)
+            let discovery = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [
+                    .builtInWideAngleCamera,
+                    .external,
+                    .continuityCamera
+                ],
+                mediaType: .video,
+                position: .unspecified
+            )
+            
+            let device = discovery.devices.first(where: { $0.position == .front })
+                ?? discovery.devices.first(where: { !$0.isSuspended })
                 ?? AVCaptureDevice.default(for: .video)
             
             if let dev = device, let input = try? AVCaptureDeviceInput(device: dev) {
@@ -125,21 +161,19 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
     // MARK: - Autonomous In-Case Handoff Sentinel
     
     private func setupAirPodsHandoffListener() {
-        // Watch MotionManager for AirPods connection state
         Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 let motion = MotionManager.shared
-                
-                let airPodsActive = motion.isConnected && motion.activeDataSource.contains("AirPods")
+                let airPodsActive = motion.isConnected && !motion.isSimulated && motion.activeDataSource.contains("AirPods")
                 
                 if airPodsActive {
-                    // AirPods are connected & streaming from ears; put camera to sleep to save power
-                    if self.isRunning {
+                    // AirPods are active in-ear; sleep camera to save energy
+                    if self.isRunning && !self.isManualSentinelActive {
                         self.stopSentinel()
                     }
                 } else {
-                    // AirPods are disconnected or docked in case!
+                    // AirPods are in case or disconnected; engage optical fallback
                     if self.autoFallbackEnabled && !self.isRunning && self.isCameraAuthorized {
                         self.startSentinel()
                     }
@@ -148,8 +182,14 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
         }
     }
     
-    public func startSentinel() {
-        guard isCameraAuthorized, !isRunning else { return }
+    public var isManualSentinelActive: Bool = false
+    
+    public func startSentinel(manual: Bool = false) {
+        guard isCameraAuthorized else { return }
+        if manual { isManualSentinelActive = true }
+        if self.captureSession.inputs.isEmpty {
+            self.setupCaptureSession()
+        }
         
         captureQueue.async { [weak self] in
             guard let self = self else { return }
@@ -163,6 +203,7 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
     }
     
     public func stopSentinel() {
+        isManualSentinelActive = false
         guard isRunning else { return }
         captureQueue.async { [weak self] in
             guard let self = self else { return }
@@ -172,15 +213,40 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
             Task { @MainActor in
                 self.isRunning = false
                 self.faceDetected = false
+                self.normalizedFaceBox = .zero
             }
         }
     }
     
+    // MARK: - Spatial-Style Neutral Calibration
+    
+    /// Calibrates current head orientation as 0.0° neutral upright,
+    /// storing baseline pitch, roll, yaw, pupillary distance, and facial proportion ratio.
     public func calibrateNeutralBaseline() {
-        self.isCalibrated = false
+        guard faceDetected else { return }
+        
+        baselinePitch = rawPitch
+        baselineRoll = rawRoll
+        baselineYaw = rawYaw
+        baselinePupilDistance = currentPupilDistance
+        baselineFacialRatio = currentFacialRatio
+        isCalibrated = true
+        calibrationTimestamp = Date()
+        
+        // Zero out current metrics immediately
+        facePitch = 0.0
+        faceRoll = 0.0
+        faceYaw = 0.0
+        forwardCraningCm = 0.0
+        craningSeverity = "Optimal Alignment"
+        
+        NSSound(named: "Hero")?.play()
     }
     
-    // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate (Apple Neural Engine Vision Loop)
+    private var currentPupilDistance: Double = 0.0
+    private var currentFacialRatio: Double = 0.85
+    
+    // MARK: - Vision Processing Loop (Apple Neural Engine)
     
     nonisolated public func captureOutput(
         _ output: AVCaptureOutput,
@@ -195,13 +261,14 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
                   let face = results.first else {
                 Task { @MainActor in
                     self?.faceDetected = false
+                    self?.faceTrackingConfidence = 0.0
                 }
                 return
             }
             self.processFaceObservation(face)
         }
         
-        // Optimize for speed and low CPU utilization
+        request.revision = VNDetectFaceLandmarksRequestRevision3
         request.preferBackgroundProcessing = true
         
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
@@ -211,49 +278,58 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
     private nonisolated func processFaceObservation(_ face: VNFaceObservation) {
         guard let landmarks = face.landmarks else { return }
         
-        // 1. Calculate Face Roll via Pupil Angle
         var calculatedRoll: Double = 0.0
         var pupilDistance: Double = 0.0
-        
-        if let leftEye = landmarks.leftEye, let rightEye = landmarks.rightEye {
-            let leftCenter = leftEye.normalizedPoints.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
-            let lCount = CGFloat(max(1, leftEye.normalizedPoints.count))
-            let lPupil = CGPoint(x: leftCenter.x / lCount, y: leftCenter.y / lCount)
-            
-            let rightCenter = rightEye.normalizedPoints.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
-            let rCount = CGFloat(max(1, rightEye.normalizedPoints.count))
-            let rPupil = CGPoint(x: rightCenter.x / rCount, y: rightCenter.y / rCount)
-            
-            let dx = rPupil.x - lPupil.x
-            let dy = rPupil.y - lPupil.y
-            calculatedRoll = Double(atan2(dy, dx) * 180.0 / .pi)
-            pupilDistance = Double(hypot(dx, dy))
-        }
-        
-        // 2. Calculate Face Pitch & Yaw via Nose / Chin / Eye Triangle
         var calculatedPitch: Double = 0.0
         var calculatedYaw: Double = 0.0
+        var facialRatio: Double = 0.85
         
-        if let nose = landmarks.nose, let chin = landmarks.outerLips {
-            let nosePoints = nose.normalizedPoints
-            let chinPoints = chin.normalizedPoints
+        // 1. Roll & Pupillary Distance via Eye Pupils
+        if let leftEye = landmarks.leftEye, let rightEye = landmarks.rightEye {
+            let leftPoints = leftEye.normalizedPoints
+            let rightPoints = rightEye.normalizedPoints
             
-            if let noseTip = nosePoints.last, let chinCenter = chinPoints.first {
-                // Pitch correlates with nose-to-chin vertical spacing
-                let noseChinDy = abs(chinCenter.y - noseTip.y)
-                let expectedDy: CGFloat = 0.14
-                let pitchDeviation = Double((expectedDy - noseChinDy) / expectedDy) * 42.0
-                calculatedPitch = pitchDeviation
-            }
-            
-            // Yaw correlates with horizontal nose displacement from face bounding-box center
-            if let noseCrest = nosePoints.first {
-                let faceCenter = face.boundingBox.midX
-                calculatedYaw = Double((noseCrest.x - faceCenter) * 85.0)
+            if !leftPoints.isEmpty && !rightPoints.isEmpty {
+                let lMid = leftPoints.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
+                let lPupil = CGPoint(x: lMid.x / CGFloat(leftPoints.count), y: lMid.y / CGFloat(leftPoints.count))
+                
+                let rMid = rightPoints.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
+                let rPupil = CGPoint(x: rMid.x / CGFloat(rightPoints.count), y: rMid.y / CGFloat(rightPoints.count))
+                
+                let dx = rPupil.x - lPupil.x
+                let dy = rPupil.y - lPupil.y
+                calculatedRoll = Double(atan2(dy, dx) * 180.0 / .pi)
+                pupilDistance = Double(hypot(dx, dy))
+                
+                // 2. Scale-Invariant Vertical Facial Ratio for Pitch
+                if let nose = landmarks.nose, let chin = landmarks.outerLips {
+                    let nosePoints = nose.normalizedPoints
+                    let chinPoints = chin.normalizedPoints
+                    
+                    if let noseTip = nosePoints.last, let chinCenter = chinPoints.first {
+                        let eyeY = (lPupil.y + rPupil.y) * 0.5
+                        let upperDist = abs(noseTip.y - eyeY)
+                        let lowerDist = max(0.001, abs(chinCenter.y - noseTip.y))
+                        
+                        facialRatio = Double(upperDist / lowerDist)
+                        
+                        // Convert ratio to angular pitch deviation
+                        // When looking down (slouch), nose moves down closer to chin: upperDist expands, lowerDist shrinks, ratio rises
+                        let deltaRatio = facialRatio - 0.85
+                        calculatedPitch = deltaRatio * 52.0
+                    }
+                    
+                    // 3. Yaw via Nose Crest vs Eye Midpoint
+                    if let noseCrest = nosePoints.first {
+                        let eyeMidX = (lPupil.x + rPupil.x) * 0.5
+                        let horizontalOffset = Double(noseCrest.x - eyeMidX)
+                        calculatedYaw = horizontalOffset * 110.0
+                    }
+                }
             }
         }
         
-        // 3. Eye Aspect Ratio (EAR) & Blink Analysis
+        // 4. Eye Aspect Ratio (EAR) for Blinking & PERCLOS
         var currentEAR: Double = 0.32
         if let leftEye = landmarks.leftEye, leftEye.normalizedPoints.count >= 6 {
             let pts = leftEye.normalizedPoints
@@ -263,13 +339,54 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
             currentEAR = Double(num / max(0.001, den))
         }
         
-        // Dispatch biomechanical state to MainActor
+        // Extract Sendable primitives before crossing actor boundary
+        let faceConfidence = Double(face.confidence)
+        let faceBox = face.boundingBox
+        
+        // Dispatch to MainActor
         Task { @MainActor in
             self.faceDetected = true
-            self.faceRoll = calculatedRoll
-            self.facePitch = calculatedPitch
-            self.faceYaw = calculatedYaw
+            self.faceTrackingConfidence = faceConfidence
+            self.normalizedFaceBox = faceBox
+            self.currentPupilDistance = pupilDistance
+            self.currentFacialRatio = facialRatio
+            
+            // Raw Angles
+            self.rawPitch = calculatedPitch
+            self.rawRoll = calculatedRoll
+            self.rawYaw = calculatedYaw
             self.eyeAspectRatio = currentEAR
+            
+            // Auto-calibrate on first 30 frames if not yet calibrated
+            if !self.isCalibrated {
+                self.stableFrameCount += 1
+                if self.stableFrameCount >= 25 {
+                    self.calibrateNeutralBaseline()
+                }
+            }
+            
+            // Calibrated Angles (Just like Spatial Audio!)
+            if self.isCalibrated {
+                self.facePitch = self.rawPitch - self.baselinePitch
+                self.faceRoll = self.rawRoll - self.baselineRoll
+                self.faceYaw = self.rawYaw - self.baselineYaw
+                
+                // Forward Head Craning in cm
+                let deltaD = max(0.0, pupilDistance - self.baselinePupilDistance)
+                self.forwardCraningCm = deltaD * 85.0
+                
+                if self.forwardCraningCm > 6.0 {
+                    self.craningSeverity = "Severe Turtle Neck (+6cm)"
+                } else if self.forwardCraningCm > 3.0 {
+                    self.craningSeverity = "Mild Forward Crane (+3cm)"
+                } else {
+                    self.craningSeverity = "Optimal Alignment"
+                }
+            } else {
+                self.facePitch = self.rawPitch
+                self.faceRoll = self.rawRoll
+                self.faceYaw = self.rawYaw
+            }
             
             // Update FPS
             self.fpsCounter += 1
@@ -280,25 +397,7 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
                 self.lastFpsTimestamp = now
             }
             
-            // Forward Head Craning ("Turtle Neck" Metric)
-            if !self.isCalibrated || self.baselinePupilDistance <= 0.001 {
-                self.baselinePupilDistance = pupilDistance
-                self.isCalibrated = true
-            }
-            
-            let deltaD = pupilDistance - self.baselinePupilDistance
-            let computedCraneCm = deltaD * 85.0 // Scaled to cm forward from neutral
-            self.forwardCraningCm = max(0.0, computedCraneCm)
-            
-            if self.forwardCraningCm > 6.0 {
-                self.craningSeverity = "Severe Turtle Neck (+6cm)"
-            } else if self.forwardCraningCm > 3.0 {
-                self.craningSeverity = "Mild Forward Crane (+3cm)"
-            } else {
-                self.craningSeverity = "Optimal Alignment"
-            }
-            
-            // Blink rate detection
+            // Blink monitoring
             if currentEAR < 0.20 && !self.isEyeClosed {
                 self.isEyeClosed = true
                 self.blinkTimestamps.append(now)
@@ -307,7 +406,6 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
                 self.isEyeClosed = false
             }
             
-            // Clean rolling 60s blink history
             self.blinkTimestamps.removeAll { now.timeIntervalSince($0) > 60.0 }
             self.blinkRateBPM = self.blinkTimestamps.count
             
@@ -317,13 +415,12 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
                 self.screenApneaAlert = nil
             }
             
-            // If AirPods are in case and optical fallback is active, stream into MotionManager!
+            // Stream into MotionManager when AirPods are docked in case
             let motion = MotionManager.shared
             if !motion.isConnected || motion.activeDataSource.contains("Optical") {
-                // Synthesize orientation quaternion from Euler angles
-                let pRad = calculatedPitch * .pi / 180.0
-                let rRad = calculatedRoll * .pi / 180.0
-                let yRad = calculatedYaw * .pi / 180.0
+                let pRad = self.facePitch * .pi / 180.0
+                let rRad = self.faceRoll * .pi / 180.0
+                let yRad = self.faceYaw * .pi / 180.0
                 
                 let cr = cos(rRad * 0.5), sr = sin(rRad * 0.5)
                 let cp = cos(pRad * 0.5), sp = sin(pRad * 0.5)
@@ -332,7 +429,7 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
                 let qw = cr * cp * cy + sr * sp * sy
                 let qx = sr * cp * cy - cr * sp * sy
                 let qy = cr * sp * cy + sr * cp * sy
-                let qz = cr * cp * sy - sr * sp * cy
+                let qz = cr * cp * sy - sr * cy * sp
                 let quat = simd_quatd(ix: qx, iy: qy, iz: qz, r: qw)
                 
                 motion.processIncomingSample(

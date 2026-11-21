@@ -321,6 +321,12 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         savePreferences()
         playFeedbackSound("Hero")
         SyntheticEarHapticEngine.shared.playSuccessChirp()
+        
+        // Also calibrate Optical Webcam Sentinel to neutral upright baseline if active
+        if OpticalContinuitySentinel.shared.isRunning {
+            OpticalContinuitySentinel.shared.calibrateNeutralBaseline()
+        }
+        
         DynamicIslandNotchHaloManager.shared.triggerExpansion(message: "Calibrated: Locked to Upright Baseline", autoDismissSeconds: 3.0)
         return true
     }
