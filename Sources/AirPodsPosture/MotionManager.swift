@@ -587,6 +587,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         MultiDisplaySpatialGridMapper.shared.update(yaw: deltaYaw)
         ProceduralBinauralSoundscapeEngine.shared.updatePostureModulation(postureScore: postureScore)
         FaceTimeHeadReactionsManager.shared.checkReactionGestures(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+        StudentStudySuiteEngine.shared.processStudyGestures(pitch: deltaPitch, roll: deltaRoll)
     }
     
     private func detectGestures(pitch: Double, yaw: Double) {

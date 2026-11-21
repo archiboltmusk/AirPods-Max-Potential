@@ -39,6 +39,7 @@ public final class DrowsinessGuard: ObservableObject {
             lastIncidentDate = now
             drowsinessIncidentCount += 1
             alertMessage = "Micro-sleep detected! Take a 5-minute movement break or grab water."
+            StudentStudySuiteEngine.shared.notifyMicroSleepCaught()
             
             MotionManager.shared.playFeedbackSound("Hero")
             NotificationManager.shared.sendBreakNotification()

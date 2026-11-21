@@ -2,6 +2,7 @@ import Foundation
 
 public enum PostureProfile: String, CaseIterable, Identifiable, Codable {
     case standardDesk = "Standard Desk"
+    case libraryLaptop = "Library & Dorm Laptop"
     case readingPaperwork = "Reading & Paperwork"
     case standingDesk = "Standing Desk"
     case relaxedRecline = "Relaxed Recline"
@@ -11,6 +12,7 @@ public enum PostureProfile: String, CaseIterable, Identifiable, Codable {
     public var icon: String {
         switch self {
         case .standardDesk: return "desktopcomputer"
+        case .libraryLaptop: return "graduationcap.fill"
         case .readingPaperwork: return "book.closed"
         case .standingDesk: return "figure.stand"
         case .relaxedRecline: return "chair.lounge"
@@ -21,6 +23,8 @@ public enum PostureProfile: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .standardDesk:
             return "Optimized for laptop or desktop monitor typing with 12° forward tolerance."
+        case .libraryLaptop:
+            return "Optimized for students studying on flat library tables without a stand: tolerates healthy -16° downward eye view while protecting against severe neck collapse (>18°)."
         case .readingPaperwork:
             return "Relaxed 24° forward tolerance for looking down at notebooks, books, or desk documents."
         case .standingDesk:
@@ -33,6 +37,7 @@ public enum PostureProfile: String, CaseIterable, Identifiable, Codable {
     public var defaultPitchThreshold: Double {
         switch self {
         case .standardDesk: return 12.0
+        case .libraryLaptop: return 18.0
         case .readingPaperwork: return 24.0
         case .standingDesk: return 10.0
         case .relaxedRecline: return 20.0
@@ -42,6 +47,7 @@ public enum PostureProfile: String, CaseIterable, Identifiable, Codable {
     public var defaultRollThreshold: Double {
         switch self {
         case .standardDesk: return 10.0
+        case .libraryLaptop: return 11.0
         case .readingPaperwork: return 14.0
         case .standingDesk: return 8.0
         case .relaxedRecline: return 12.0

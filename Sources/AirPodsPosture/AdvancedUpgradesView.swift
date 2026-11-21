@@ -1,6 +1,7 @@
 import SwiftUI
 
 public struct AdvancedUpgradesView: View {
+    @ObservedObject var student = StudentStudySuiteEngine.shared
     @ObservedObject var spaces = SpatialSpacesManager.shared
     @ObservedObject var breathing = ResonanceBreathingCoach.shared
     @ObservedObject var binaural = BinauralBeatsEngine.shared
@@ -44,6 +45,97 @@ public struct AdvancedUpgradesView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
+                    }
+                }
+                
+                // 0. Student & Academic Study Hub
+                AdvancedCard(
+                    title: "Student & Academic Study Hub (Anki, Slides & Cramming Guard)",
+                    subtitle: "Hands-free study gestures for Anki & PDF lecture slides, 40Hz Gamma super-learning, and all-nighter micro-sleep detector.",
+                    icon: "graduationcap.fill",
+                    accentColor: .purple
+                ) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        // Gesture Toggle & Status
+                        HStack {
+                            Toggle("Hands-Free Flashcard & Lecture Slide Gestures", isOn: $student.isHandsFreeStudyGesturesEnabled)
+                                .toggleStyle(.switch)
+                                .font(.subheadline.bold())
+                            Spacer()
+                            Text("\(student.cardsFlippedCount) Flips")
+                                .font(.caption.bold())
+                                .foregroundColor(.purple)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.purple.opacity(0.12))
+                                .cornerRadius(6)
+                        }
+                        
+                        Text("• Quick Nod Down: Spacebar (Flip Anki Card / Next Slide)\n• Head Tilt Right: Right Arrow (Answer 'Good' / Next)\n• Head Tilt Left: Left Arrow (Answer 'Again' / Prev)\nStudy effortlessly while holding an Apple Pencil, iPad, or notebook without reaching for the trackpad.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        
+                        Divider()
+                        
+                        // Super-Learning Audio Engine
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("Super-Learning Binaural Wave Frequency:")
+                                    .font(.caption.bold())
+                                Spacer()
+                                Button(action: {
+                                    student.toggleStudyAudio()
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: student.isStudyAudioPlaying ? "stop.fill" : "play.fill")
+                                        Text(student.isStudyAudioPlaying ? "Stop Audio" : "Play Study Wave")
+                                    }
+                                    .font(.caption.bold())
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(student.isStudyAudioPlaying ? Color.red.opacity(0.15) : Color.purple.opacity(0.15))
+                                    .foregroundColor(student.isStudyAudioPlaying ? .red : .purple)
+                                    .cornerRadius(6)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            
+                            Picker("", selection: $student.selectedStudyFrequency) {
+                                ForEach(StudentStudySuiteEngine.StudyWaveFrequency.allCases) { freq in
+                                    Text(freq.rawValue).tag(freq)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        }
+                        
+                        Divider()
+                        
+                        // Cramming & Drowsiness Mode
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("All-Nighter Micro-Sleep Guard")
+                                    .font(.caption.bold())
+                                Text("Detects head-drop and startle-jerk kinetic signatures when nodding off at your desk.")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Toggle("", isOn: $student.isCrammingModeActive)
+                                .toggleStyle(.switch)
+                        }
+                        
+                        if let alert = student.drowsinessAlertBanner {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                Text(alert)
+                                    .font(.caption.bold())
+                                    .foregroundColor(.orange)
+                            }
+                            .padding(8)
+                            .background(Color.orange.opacity(0.12))
+                            .cornerRadius(8)
+                        }
                     }
                 }
                 
