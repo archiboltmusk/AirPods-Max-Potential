@@ -63,6 +63,8 @@ cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
     <string>AirPods Posture uses Bluetooth to detect connected AirPods Max and AirPods Pro.</string>
     <key>NSBluetoothPeripheralUsageDescription</key>
     <string>AirPods Posture connects to AirPods motion sensors to track head orientation.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>AirPods Posture uses FaceTime HD / Continuity Camera on-device Apple Neural Engine facial pose estimation to maintain unbroken posture tracking when your AirPods are charging in their case.</string>
 </dict>
 </plist>
 EOF

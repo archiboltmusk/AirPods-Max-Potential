@@ -5,6 +5,7 @@ public struct Apple360HeroShowcaseView: View {
     @ObservedObject var motion = MotionManager.shared
     @ObservedObject var respiratory = AcousticRespiratoryEngine.shared
     @ObservedObject var calibrator = AutonomousAutoCalibrator.shared
+    @ObservedObject var sentinel = OpticalContinuitySentinel.shared
     
     // Earwear selection stored persistently
     @AppStorage("studioEarwearStyle") private var earwearStyleRaw: String = EarwearStyle.airPodsPro.rawValue
@@ -103,14 +104,14 @@ public struct Apple360HeroShowcaseView: View {
                 // Top Overlay Badges
                 VStack {
                     HStack {
-                        // Live State Badge
+                        // Live State Badge (Supports AirPods 60Hz IMU & Optical Sentinel Handoff)
                         HStack(spacing: 6) {
                             Circle()
-                                .fill(isInteracting ? Color.yellow : Color.green)
+                                .fill(isInteracting ? Color.yellow : (sentinel.isRunning ? Color.orange : Color.green))
                                 .frame(width: 8, height: 8)
-                            Text(isInteracting ? "360° Turntable Mode (Release to Snap)" : "Live IMU Synced (60Hz)")
+                            Text(isInteracting ? "360° Turntable Mode" : (sentinel.isRunning ? "⚡️ In Case • 👁️ Optical Sentinel (\(sentinel.opticalFps) FPS)" : "Live IMU Synced (60Hz)"))
                                 .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                .foregroundColor(isInteracting ? .yellow : .green)
+                                .foregroundColor(isInteracting ? .yellow : (sentinel.isRunning ? .orange : .green))
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
@@ -179,14 +180,61 @@ public struct Apple360HeroShowcaseView: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
                     
+                    // Forward Craning Alert
+                    if sentinel.isRunning && sentinel.forwardCraningCm > 4.5 {
+                        HStack(spacing: 8) {
+                            Image(systemName: "tortoise.fill")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 12))
+                            Text("Forward Head Crane: +\(String(format: "%.1f", sentinel.forwardCraningCm))cm (Turtle Neck)")
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundColor(.orange)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.85))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().strokeBorder(Color.orange.opacity(0.4), lineWidth: 1))
+                        .shadow(color: Color.orange.opacity(0.25), radius: 8)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    }
+                    
+                    // Screen Apnea / Dry Eye Warning
+                    if let apnea = sentinel.screenApneaAlert {
+                        HStack(spacing: 8) {
+                            Image(systemName: "eye.trianglebadge.exclamationmark")
+                                .foregroundColor(.cyan)
+                                .font(.system(size: 12))
+                            Text(apnea)
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundColor(.cyan)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.85))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().strokeBorder(Color.cyan.opacity(0.4), lineWidth: 1))
+                        .shadow(color: Color.cyan.opacity(0.25), radius: 8)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    }
+                    
                     Spacer()
                     
                     // Bottom Angle HUD Strip
-                    HStack(spacing: 24) {
+                    HStack(spacing: 18) {
                         HeroMetricPill(title: "Pitch", value: "\(Int(effectivePitch))°", color: .cyan)
                         HeroMetricPill(title: "Roll", value: "\(Int(motion.deltaRoll))°", color: .purple)
                         HeroMetricPill(title: "Yaw", value: "\(Int(effectiveYaw))°", color: .blue)
                         HeroMetricPill(title: "Breathing", value: "\(respiratory.breathsPerMinute) BPM", color: .indigo)
+                        
+                        if sentinel.isRunning {
+                            HeroMetricPill(
+                                title: "Forward Crane",
+                                value: String(format: "+%.1fcm", sentinel.forwardCraningCm),
+                                color: sentinel.forwardCraningCm > 4.0 ? .red : .teal
+                            )
+                            HeroMetricPill(title: "Blinks", value: "\(sentinel.blinkRateBPM) BPM", color: .purple)
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)

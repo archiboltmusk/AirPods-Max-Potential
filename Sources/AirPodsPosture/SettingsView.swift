@@ -4,6 +4,7 @@ public struct SettingsView: View {
     @ObservedObject var motion: MotionManager
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
     @ObservedObject var breakTimer = ErgonomicBreakTimer.shared
+    @ObservedObject var sentinel = OpticalContinuitySentinel.shared
     
     let availableSounds = ["Tink", "Ping", "Hero", "Pop", "Submarine", "Basso", "Funk", "Glass"]
     
@@ -50,6 +51,11 @@ public struct SettingsView: View {
                 
                 Toggle("Auto-Drift Posture Compensation", isOn: $motion.autoDriftCorrection)
                 Text("Applies a subtle exponential moving filter to compensate for headphones gently slipping on hair/ears over 4+ hours of continuous wear.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("FaceTime HD Optical Sentinel (AirPods In-Case Fallback)", isOn: $sentinel.autoFallbackEnabled)
+                Text("Autonomous on-device Apple Neural Engine facial pose estimation keeps monitoring neck posture and turtle-neck craning while your AirPods charge. Shuts down automatically when AirPods re-enter the ear.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
