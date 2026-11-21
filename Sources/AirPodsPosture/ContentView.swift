@@ -104,6 +104,23 @@ public struct ContentView: View {
                                 // Interactive 24h Apple Fitness Spline Scrubber
                                 BiometricTimelineScrubberView()
                                 
+                                // Slouch-Proof Calibration Interlock Alert
+                                if let interlock = motion.calibrationInterlockAlert {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "hand.raised.fill")
+                                            .foregroundColor(.yellow)
+                                        Text(interlock)
+                                            .font(.subheadline.bold())
+                                            .foregroundColor(.yellow)
+                                    }
+                                    .padding(12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.yellow.opacity(0.15))
+                                    .cornerRadius(10)
+                                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.yellow.opacity(0.3), lineWidth: 1))
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                                }
+                                
                                 // Bottom Action Strip
                                 HStack(spacing: 12) {
                                     Button(action: {

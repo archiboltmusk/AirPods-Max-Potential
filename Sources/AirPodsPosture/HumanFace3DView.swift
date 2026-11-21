@@ -102,50 +102,71 @@ public struct HumanFace3DView: NSViewRepresentable {
             headAssembly.addChildNode(fallbackHead)
         }
         
-        // 4. Photorealistic AirPods Pro 2 Fitted on the Ears
+        // 4. Photorealistic AirPods Pro 2 Snugly Nested in the Ears
         let podMaterial = SCNMaterial()
         podMaterial.lightingModel = .physicallyBased
-        podMaterial.diffuse.contents = NSColor.white
-        podMaterial.metalness.contents = 0.85
-        podMaterial.roughness.contents = 0.15
+        podMaterial.diffuse.contents = NSColor(white: 0.98, alpha: 1.0)
+        podMaterial.metalness.contents = 0.18
+        podMaterial.roughness.contents = 0.12
         
-        // Left AirPod Pro 2
+        let siliconeMaterial = SCNMaterial()
+        siliconeMaterial.lightingModel = .physicallyBased
+        siliconeMaterial.diffuse.contents = NSColor(white: 0.88, alpha: 1.0)
+        siliconeMaterial.roughness.contents = 0.65
+        
+        // Left AirPod Pro 2 (Fitted inside Left Ear Concha)
         let leftAirPod = SCNNode()
-        let leftBody = SCNNode(geometry: SCNSphere(radius: 0.18))
+        let leftBody = SCNNode(geometry: SCNSphere(radius: 0.13))
         leftBody.geometry?.materials = [podMaterial]
-        let leftStem = SCNNode(geometry: SCNCylinder(radius: 0.05, height: 0.44))
+        
+        let leftTip = SCNNode(geometry: SCNCone(topRadius: 0.04, bottomRadius: 0.09, height: 0.10))
+        leftTip.geometry?.materials = [siliconeMaterial]
+        leftTip.position = SCNVector3(x: 0.08, y: 0, z: 0) // Points inward into left ear canal
+        leftTip.eulerAngles = SCNVector3(x: 0, y: 0, z: -.pi / 2.0)
+        
+        let leftStem = SCNNode(geometry: SCNCylinder(radius: 0.038, height: 0.36))
         leftStem.geometry?.materials = [podMaterial]
-        leftStem.position = SCNVector3(x: 0, y: -0.22, z: 0.04)
-        leftStem.eulerAngles = SCNVector3(x: 0.35, y: 0, z: 0)
+        leftStem.position = SCNVector3(x: 0, y: -0.17, z: 0.05)
+        leftStem.eulerAngles = SCNVector3(x: 0.32, y: 0, z: 0)
+        
         leftAirPod.addChildNode(leftBody)
+        leftAirPod.addChildNode(leftTip)
         leftAirPod.addChildNode(leftStem)
-        leftAirPod.position = SCNVector3(x: -1.22, y: 0.02, z: -0.15)
-        leftAirPod.eulerAngles = SCNVector3(x: 0, y: 0, z: 0.2)
+        leftAirPod.position = SCNVector3(x: -0.98, y: -0.68, z: -0.06)
+        leftAirPod.eulerAngles = SCNVector3(x: 0.15, y: -0.22, z: 0.18)
         headAssembly.addChildNode(leftAirPod)
         
-        // Right AirPod Pro 2
+        // Right AirPod Pro 2 (Fitted inside Right Ear Concha)
         let rightAirPod = SCNNode()
-        let rightBody = SCNNode(geometry: SCNSphere(radius: 0.18))
+        let rightBody = SCNNode(geometry: SCNSphere(radius: 0.13))
         rightBody.geometry?.materials = [podMaterial]
-        let rightStem = SCNNode(geometry: SCNCylinder(radius: 0.05, height: 0.44))
+        
+        let rightTip = SCNNode(geometry: SCNCone(topRadius: 0.04, bottomRadius: 0.09, height: 0.10))
+        rightTip.geometry?.materials = [siliconeMaterial]
+        rightTip.position = SCNVector3(x: -0.08, y: 0, z: 0) // Points inward into right ear canal
+        rightTip.eulerAngles = SCNVector3(x: 0, y: 0, z: .pi / 2.0)
+        
+        let rightStem = SCNNode(geometry: SCNCylinder(radius: 0.038, height: 0.36))
         rightStem.geometry?.materials = [podMaterial]
-        rightStem.position = SCNVector3(x: 0, y: -0.22, z: 0.04)
-        rightStem.eulerAngles = SCNVector3(x: 0.35, y: 0, z: 0)
+        rightStem.position = SCNVector3(x: 0, y: -0.17, z: 0.05)
+        rightStem.eulerAngles = SCNVector3(x: 0.32, y: 0, z: 0)
+        
         rightAirPod.addChildNode(rightBody)
+        rightAirPod.addChildNode(rightTip)
         rightAirPod.addChildNode(rightStem)
-        rightAirPod.position = SCNVector3(x: 1.22, y: 0.02, z: -0.15)
-        rightAirPod.eulerAngles = SCNVector3(x: 0, y: 0, z: -0.2)
+        rightAirPod.position = SCNVector3(x: 0.98, y: -0.68, z: -0.06)
+        rightAirPod.eulerAngles = SCNVector3(x: 0.15, y: 0.22, z: -0.18)
         headAssembly.addChildNode(rightAirPod)
         
         // 5. Luminescent Posture Halo (Aura of Neutral Lordosis)
-        let haloGeo = SCNTorus(ringRadius: 1.15, pipeRadius: 0.035)
+        let haloGeo = SCNTorus(ringRadius: 1.05, pipeRadius: 0.026)
         haloGeo.firstMaterial?.lightingModel = .constant
         haloGeo.firstMaterial?.diffuse.contents = NSColor.cyan
         haloGeo.firstMaterial?.emission.contents = NSColor.cyan
         
         let haloNode = SCNNode(geometry: haloGeo)
         haloNode.name = "humanHaloNode"
-        haloNode.position = SCNVector3(x: 0, y: 1.45, z: -0.1)
+        haloNode.position = SCNVector3(x: 0, y: 1.25, z: 0.0)
         haloNode.eulerAngles = SCNVector3(x: 0.15, y: 0, z: 0)
         headAssembly.addChildNode(haloNode)
         

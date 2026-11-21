@@ -117,8 +117,8 @@ public struct Apple360HeroShowcaseView: View {
                             calibrator.triggerInstantDoubleNodCalibration()
                         }) {
                             HStack(spacing: 5) {
-                                Image(systemName: "scope")
-                                Text("Auto-Zero")
+                                Image(systemName: "sparkles")
+                                Text("Slouch-Proof Zero")
                             }
                             .font(.system(size: 11, weight: .medium))
                             .padding(.horizontal, 10)
@@ -130,6 +130,25 @@ public struct Apple360HeroShowcaseView: View {
                         .buttonStyle(.plain)
                     }
                     .padding(16)
+                    
+                    // Slouch-Proof Interlock Warning Banner
+                    if let interlock = motion.calibrationInterlockAlert {
+                        HStack(spacing: 8) {
+                            Image(systemName: "hand.raised.fill")
+                                .foregroundColor(.yellow)
+                                .font(.system(size: 12))
+                            Text(interlock)
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundColor(.yellow)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.85))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().strokeBorder(Color.yellow.opacity(0.4), lineWidth: 1))
+                        .shadow(color: Color.yellow.opacity(0.25), radius: 8)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    }
                     
                     Spacer()
                     

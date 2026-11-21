@@ -60,9 +60,9 @@ public final class AutonomousAutoCalibrator: ObservableObject {
         let medianRoll = sortedRolls[sortedRolls.count / 2]
         
         // Guard against calibrating into an intentional slouch:
-        // Only adapt baseline if median pitch is within reasonable ergonomic upright bounds (-15° to +10°)
-        guard medianPitch > -15.0 && medianPitch < 12.0 && abs(medianRoll) < 12.0 else {
-            autoCalibrationStatus = "Holding Baseline (Gaze outside ergonomic window: \(Int(medianPitch))°)"
+        // Only adapt baseline if median pitch is strictly within true anatomical upright bounds (-6.0° to +7.0°)
+        guard medianPitch > -6.0 && medianPitch < 7.0 && abs(medianRoll) < 5.0 else {
+            autoCalibrationStatus = "Slouch Detected (\(Int(medianPitch))°): Baseline Held to True Upright"
             return
         }
         
@@ -70,7 +70,7 @@ public final class AutonomousAutoCalibrator: ObservableObject {
         if let g = gravity {
             // Earth gravity standard on vertical desk sitting: g.y should be near 0, g.z should be near -1.0
             let gravityTilt = asin(max(-1.0, min(1.0, g.y))) * 180.0 / .pi
-            if abs(gravityTilt) < 20.0 {
+            if abs(gravityTilt) < 18.0 {
                 calibrationConfidence = min(1.0, calibrationConfidence + 0.02)
             }
         }
@@ -81,28 +81,24 @@ public final class AutonomousAutoCalibrator: ObservableObject {
             motion.qBaseline = currentQuat
             motion.isCalibrated = true
             lastAutoCalibratedTime = Date()
-            autoCalibrationStatus = "Auto-Locked: Initialized from Earth Gravity Mode"
+            autoCalibrationStatus = "🟢 Auto-Locked: Aligned to True Earth Gravity"
             SyntheticEarHapticEngine.shared.playSuccessChirp()
         } else {
             // Subtle adaptive Slerp pull (0.002 factor) so alignment adapts as posture shifts
             motion.qBaseline = simd_slerp(motion.qBaseline, currentQuat, 0.002)
             lastAutoCalibratedTime = Date()
-            autoCalibrationStatus = "Auto-Aligned (Confidence: \(Int(calibrationConfidence * 100))%)"
+            autoCalibrationStatus = "🟢 Slouch-Proof Auto-Centered (Gravity Confidence: \(Int(calibrationConfidence * 100))%)"
         }
     }
     
     public func triggerInstantDoubleNodCalibration() {
-        let motion = MotionManager.shared
-        let currentQuat = simd_quatd(ix: motion.quatX, iy: motion.quatY, iz: motion.quatZ, r: motion.quatW)
-        motion.qBaseline = currentQuat
-        motion.isCalibrated = true
-        motion.deltaPitch = 0
-        motion.deltaRoll = 0
-        motion.deltaYaw = 0
-        lastAutoCalibratedTime = Date()
-        calibrationConfidence = 1.0
-        autoCalibrationStatus = "Instant Recalibration via Double-Nod Gesture"
-        motion.playFeedbackSound("Hero")
-        SyntheticEarHapticEngine.shared.playSuccessChirp()
+        let success = MotionManager.shared.calibrateCurrentPosture()
+        if success {
+            lastAutoCalibratedTime = Date()
+            calibrationConfidence = 1.0
+            autoCalibrationStatus = "🟢 Instant Recalibration via Double-Nod"
+        } else {
+            autoCalibrationStatus = "⚠️ Recalibration Blocked: Chin is tilted. Sit upright."
+        }
     }
 }

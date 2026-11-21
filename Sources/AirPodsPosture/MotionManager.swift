@@ -84,6 +84,10 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     @Published public var lastPacketDate: Date? = nil
     @Published public var lastErrorMessage: String? = nil
     
+    // Slouch-Proof Safety Interlock
+    @Published public var calibrationInterlockAlert: String? = nil
+    @Published public var isInterlockActive: Bool = false
+    
     // Calibrated baseline quaternion & Euler
     public var qBaseline: simd_quatd = simd_quatd(ix: 0, iy: 0, iz: 0, r: 1)
     @Published public var isCalibrated: Bool = false
@@ -274,7 +278,32 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         postureState = .disconnected
     }
     
-    public func calibrateCurrentPosture() {
+    @discardableResult
+    public func calibrateCurrentPosture(force: Bool = false) -> Bool {
+        // Evaluate raw anatomical orientation relative to gravity/world
+        let rawEuler = QuaternionMath.euler(from: simd_quatd(ix: quatX, iy: quatY, iz: quatZ, r: quatW))
+        let currentPitch = rawEuler.pitch
+        let currentRoll = rawEuler.roll
+        
+        // Strict Slouch-Proof Interlock:
+        // Prevent user from calibrating in a slouch (head down < -6.5° or tilted back > +10° or rolled > 6°)
+        if !force && (currentPitch < -6.5 || currentPitch > 10.0 || abs(currentRoll) > 6.0) {
+            let direction = currentPitch < -6.5 ? "looking down (\(Int(currentPitch))°)" : (currentPitch > 10.0 ? "tilted backward (\(Int(currentPitch))°)" : "tilted sideways (\(Int(currentRoll))°)")
+            isInterlockActive = true
+            calibrationInterlockAlert = "⚠️ Slouch-Proof Interlock: Rejected calibration while head is \(direction). Please sit upright with eyes level."
+            SyntheticEarHapticEngine.shared.playGentleDoubleTap()
+            DynamicIslandNotchHaloManager.shared.triggerExpansion(message: "Calibration Blocked: Sit Upright (Chin Level)", autoDismissSeconds: 4.5)
+            
+            // Auto-clear alert after 5 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+                self?.isInterlockActive = false
+                self?.calibrationInterlockAlert = nil
+            }
+            return false
+        }
+        
+        isInterlockActive = false
+        calibrationInterlockAlert = nil
         let currentQuat = simd_quatd(ix: quatX, iy: quatY, iz: quatZ, r: quatW)
         qBaseline = currentQuat
         isCalibrated = true
@@ -286,6 +315,9 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         warningProgress = 0.0
         savePreferences()
         playFeedbackSound("Hero")
+        SyntheticEarHapticEngine.shared.playSuccessChirp()
+        DynamicIslandNotchHaloManager.shared.triggerExpansion(message: "Calibrated: Locked to Upright Baseline", autoDismissSeconds: 3.0)
+        return true
     }
     
     public func toggleSimulation() {

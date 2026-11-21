@@ -73,6 +73,23 @@ public struct MenuBarView: View {
             .background(Color.cyan.opacity(0.08))
             .cornerRadius(4)
             
+            // Slouch-Proof Safety Interlock Warning
+            if let alert = motion.calibrationInterlockAlert {
+                HStack(spacing: 6) {
+                    Image(systemName: "hand.raised.fill")
+                        .foregroundColor(.yellow)
+                        .font(.caption2)
+                    Text(alert)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.yellow)
+                        .lineLimit(2)
+                }
+                .padding(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.yellow.opacity(0.15))
+                .cornerRadius(6)
+            }
+            
             // Smart Meeting Guard notice
             if audioMonitor.isMicrophoneInUse {
                 HStack(spacing: 6) {
