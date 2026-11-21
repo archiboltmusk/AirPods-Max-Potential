@@ -3,7 +3,22 @@ import SwiftUI
 public struct PostureVisualizerView: View {
     @ObservedObject var motion: MotionManager
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
-    @State private var use3DSpineView: Bool = true
+    
+    enum VisualizerRigMode: String, CaseIterable, Identifiable {
+        case agamemnon = "Agamemnon Odyssey Spine"
+        case anatomical = "Metal Anatomical Rig"
+        case avatar = "2.5D Spatial Head"
+        var id: String { rawValue }
+        var icon: String {
+            switch self {
+            case .agamemnon: return "shield.lefthalf.filled"
+            case .anatomical: return "cube.transparent.fill"
+            case .avatar: return "person.crop.circle"
+            }
+        }
+    }
+    
+    @State private var selectedRigMode: VisualizerRigMode = .agamemnon
     
     public init(motion: MotionManager) {
         self.motion = motion
@@ -98,15 +113,28 @@ public struct PostureVisualizerView: View {
                 .background(Color(NSColor.controlBackgroundColor))
                 .clipShape(Capsule())
                 
-                // Toggle between 3D Anatomical Spine & 2.5D Avatar
-                Button(action: {
-                    use3DSpineView.toggle()
-                }) {
-                    Image(systemName: use3DSpineView ? "cube.transparent.fill" : "person.crop.circle")
-                        .foregroundColor(.accentColor)
+                // Rig Mode Menu Picker (Agamemnon Odyssey vs Anatomical vs 2.5D)
+                Menu {
+                    ForEach(VisualizerRigMode.allCases) { mode in
+                        Button(action: {
+                            selectedRigMode = mode
+                        }) {
+                            Label(mode.rawValue, systemImage: mode.icon)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: selectedRigMode.icon)
+                            .foregroundColor(.yellow)
+                        Text(selectedRigMode == .agamemnon ? "Agamemnon" : (selectedRigMode == .anatomical ? "Metal 3D" : "2.5D"))
+                            .font(.caption.bold())
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.yellow.opacity(0.15))
+                    .cornerRadius(8)
                 }
-                .buttonStyle(.bordered)
-                .help("Toggle 3D Anatomical Vertebrae Rig")
+                .help("Select 3D Kinematic Visualizer Rig")
             }
             
             // Grace Period Warning Bar
@@ -133,8 +161,53 @@ public struct PostureVisualizerView: View {
                 .cornerRadius(8)
             }
             
-            // 3D Animated Head & AirPods Avatar OR Anatomical Spine Model
-            if use3DSpineView {
+            // Dynamic 3D Rig Rendering based on selectedRigMode
+            switch selectedRigMode {
+            case .agamemnon:
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color.yellow.opacity(0.35), Color.orange.opacity(0.15), .clear],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1.5
+                                )
+                        )
+                        .shadow(color: Color.yellow.opacity(0.15), radius: 15)
+                    
+                    AgamemnonOdysseySpineView(
+                        pitch: motion.deltaPitch,
+                        roll: motion.deltaRoll,
+                        yaw: motion.deltaYaw,
+                        postureScore: motion.postureScore
+                    )
+                    
+                    VStack {
+                        HStack {
+                            HStack(spacing: 6) {
+                                Image(systemName: "shield.fill")
+                                    .foregroundColor(.yellow)
+                                Text("Agamemnon Odyssey Spine: Mycenaean Gold & Aegean Disc Rig")
+                                    .font(.caption2.bold())
+                                    .foregroundColor(.primary)
+                            }
+                            Spacer()
+                            Text(motion.postureScore >= 80 ? "Heroic Alignment (Odyssey Core: 100%)" : "Titan Compression Detected")
+                                .font(.caption2.bold())
+                                .foregroundColor(motion.postureScore >= 80 ? .green : .orange)
+                        }
+                        .padding(14)
+                        Spacer()
+                    }
+                }
+                .frame(height: 270)
+                
+            case .anatomical:
                 ZStack {
                     RoundedRectangle(cornerRadius: 16)
                         .fill(.ultraThinMaterial)
@@ -165,12 +238,13 @@ public struct PostureVisualizerView: View {
                     }
                 }
                 .frame(height: 250)
-            } else {
-            ZStack {
-                // Radar Rings
-                Circle()
-                    .stroke(statusColor.opacity(0.15), lineWidth: 32)
-                    .frame(width: 220, height: 220)
+                
+            case .avatar:
+                ZStack {
+                    // Radar Rings
+                    Circle()
+                        .stroke(statusColor.opacity(0.15), lineWidth: 32)
+                        .frame(width: 220, height: 220)
                 
                 Circle()
                     .stroke(statusColor.opacity(0.3), lineWidth: 2)
