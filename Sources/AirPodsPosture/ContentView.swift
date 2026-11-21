@@ -40,6 +40,10 @@ public struct ContentView: View {
     
     public var body: some View {
         ZStack {
+            // Metal Shader Live Fluid Chromatic Canvas
+            FluidChromaticCanvasView(postureScore: motion.postureScore)
+                .opacity(0.85)
+            
             NavigationSplitView {
                 List(TabItem.allCases, selection: $selectedTab) { tab in
                     NavigationLink(value: tab) {
@@ -82,6 +86,9 @@ public struct ContentView: View {
                         ScrollView {
                             VStack(spacing: 16) {
                                 PostureVisualizerView(motion: motion)
+                                
+                                // Interactive 24-Hour Biomechanical Heatmap Scrub Bar
+                                BiomechanicalHeatmapView()
                                 
                                 // Bottom Action Strip
                                 HStack(spacing: 12) {
