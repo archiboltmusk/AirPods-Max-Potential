@@ -4,6 +4,9 @@ public struct MenuBarView: View {
     @ObservedObject var motion: MotionManager
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
     @ObservedObject var breakTimer = ErgonomicBreakTimer.shared
+    @ObservedObject var calibrator = AutonomousAutoCalibrator.shared
+    @ObservedObject var binaural = ProceduralBinauralSoundscapeEngine.shared
+    @ObservedObject var miniDesk = FloatingMiniDeskCompanionManager.shared
     let openDashboard: () -> Void
     
     public init(motion: MotionManager, openDashboard: @escaping () -> Void) {
@@ -54,6 +57,21 @@ public struct MenuBarView: View {
                     .foregroundColor(motion.postureScore > 80 ? .green : (motion.postureScore > 60 ? .orange : .red))
             }
             .padding(.bottom, 2)
+            
+            // Auto-Calibration status
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .foregroundColor(.cyan)
+                    .font(.caption2)
+                Text(calibrator.autoCalibrationStatus)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+            .padding(.vertical, 3)
+            .padding(.horizontal, 6)
+            .background(Color.cyan.opacity(0.08))
+            .cornerRadius(4)
             
             // Smart Meeting Guard notice
             if audioMonitor.isMicrophoneInUse {
@@ -131,11 +149,47 @@ public struct MenuBarView: View {
             
             Divider()
             
+            // Upgraded Features Quick Bar
+            Group {
+                Button(action: {
+                    miniDesk.toggleCompanion()
+                }) {
+                    Label(miniDesk.isCompanionVisible ? "Hide Mini Desk Companion" : "Show Mini 3D Companion Orb", systemImage: "person.crop.circle")
+                }
+                
+                Menu {
+                    Button(binaural.isPlaying ? "Stop Waves" : "Start Synthesizer") {
+                        binaural.togglePlay()
+                    }
+                    Divider()
+                    ForEach(BinauralWaveFrequency.allCases) { wave in
+                        Button(action: {
+                            binaural.selectedWave = wave
+                            if binaural.isPlaying {
+                                binaural.togglePlay()
+                                binaural.togglePlay()
+                            }
+                        }) {
+                            HStack {
+                                Text(wave.rawValue)
+                                if binaural.selectedWave == wave {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    Label(binaural.isPlaying ? "Binaural: Active (\(binaural.selectedWave.rawValue.prefix(11)))" : "Binaural Focus Waves", systemImage: "waveform")
+                }
+            }
+            
+            Divider()
+            
             // Primary Quick Actions
             Button(action: {
-                motion.calibrateCurrentPosture()
+                calibrator.triggerInstantDoubleNodCalibration()
             }) {
-                Label("Calibrate Neutral Upright", systemImage: "scope")
+                Label("Auto-Align Calibration (or Double-Nod)", systemImage: "scope")
             }
             .disabled(!motion.isConnected)
             
@@ -172,6 +226,6 @@ public struct MenuBarView: View {
             }
         }
         .padding(14)
-        .frame(width: 290)
+        .frame(width: 310)
     }
 }

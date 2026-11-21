@@ -57,9 +57,9 @@ public final class WindowSnapManager: ObservableObject {
         let f = screen.visibleFrame
         
         var x = f.origin.x
-        var y = f.origin.y
+        let y = f.origin.y
         var w = f.size.width
-        var h = f.size.height
+        let h = f.size.height
         
         switch position {
         case "left":

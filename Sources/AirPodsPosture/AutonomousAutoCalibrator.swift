@@ -59,6 +59,13 @@ public final class AutonomousAutoCalibrator: ObservableObject {
         let sortedRolls = calmRollHistory.sorted()
         let medianRoll = sortedRolls[sortedRolls.count / 2]
         
+        // Guard against calibrating into an intentional slouch:
+        // Only adapt baseline if median pitch is within reasonable ergonomic upright bounds (-15° to +10°)
+        guard medianPitch > -15.0 && medianPitch < 12.0 && abs(medianRoll) < 12.0 else {
+            autoCalibrationStatus = "Holding Baseline (Gaze outside ergonomic window: \(Int(medianPitch))°)"
+            return
+        }
+        
         // If gravity is available, check anatomical ear insertion tilt
         if let g = gravity {
             // Earth gravity standard on vertical desk sitting: g.y should be near 0, g.z should be near -1.0

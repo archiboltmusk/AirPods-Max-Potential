@@ -75,4 +75,38 @@ public final class AudioEnvironmentMonitor: ObservableObject {
             self.meetingAppDetected = inUse
         }
     }
+    
+    public func toggleMute() {
+        var inputDeviceID = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            0,
+            nil,
+            &size,
+            &inputDeviceID
+        )
+        guard status == noErr && inputDeviceID != 0 else { return }
+        
+        var muteAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyMute,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        
+        var isMuted: UInt32 = 0
+        var muteSize = UInt32(MemoryLayout<UInt32>.size)
+        
+        if AudioObjectGetPropertyData(inputDeviceID, &muteAddress, 0, nil, &muteSize, &isMuted) == noErr {
+            var newMute: UInt32 = (isMuted == 0) ? 1 : 0
+            AudioObjectSetPropertyData(inputDeviceID, &muteAddress, 0, nil, muteSize, &newMute)
+        }
+    }
 }

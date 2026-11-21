@@ -8,7 +8,10 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "AirPodsPosture"
+            name: "AirPodsPosture",
+            resources: [
+                .process("Resources")
+            ]
         )
     ]
 )

@@ -442,6 +442,8 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         CervicalKeypressWheelManager.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
         AcousticRespiratoryEngine.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
         MultiDisplaySpatialGridMapper.shared.update(yaw: deltaYaw)
+        ProceduralBinauralSoundscapeEngine.shared.updatePostureModulation(postureScore: postureScore)
+        FaceTimeHeadReactionsManager.shared.checkReactionGestures(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
             return
         }
         
@@ -511,6 +513,8 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         CervicalKeypressWheelManager.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
         AcousticRespiratoryEngine.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
         MultiDisplaySpatialGridMapper.shared.update(yaw: deltaYaw)
+        ProceduralBinauralSoundscapeEngine.shared.updatePostureModulation(postureScore: postureScore)
+        FaceTimeHeadReactionsManager.shared.checkReactionGestures(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
     }
     
     private func detectGestures(pitch: Double, yaw: Double) {

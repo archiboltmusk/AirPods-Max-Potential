@@ -141,6 +141,56 @@ public struct FeaturesHubView: View {
             color: .blue,
             summary: "Recognizes the unique biomechanical signature of drinking water (+22° to +58° backward pitch held for >2.2s) to track daily fluid intake automatically.",
             technicalDetails: "Eliminates false-positive slouch warnings while logging glasses and fluid volume throughout your workday."
+        ),
+        FeatureItem(
+            id: "binaural_synthesizer",
+            title: "Procedural Binaural Focus Soundscapes",
+            category: "Audio Experience",
+            status: .active,
+            icon: "waveform.badge.magnifyingglass",
+            color: .purple,
+            summary: "Pure procedural 40Hz Gamma and 14Hz Beta wave synthesis directly in CoreAudio. Frequencies dynamically sharpen when sitting upright.",
+            technicalDetails: "Zero external audio files required. Two pure sine wave oscillators in stereo with calibrated frequency difference, dynamically modulated by real-time posture score."
+        ),
+        FeatureItem(
+            id: "mini_companion",
+            title: "Floating 3D Mini Desk Companion (PiP)",
+            category: "Visual Biofeedback",
+            status: .active,
+            icon: "person.crop.circle.dashed",
+            color: .cyan,
+            summary: "Lightweight floating glass orb displaying a miniature live 3D head model and glowing posture halo on your desktop.",
+            technicalDetails: "Hardware-accelerated SceneKit viewport in an NSPanel floating layer with click-through and drag capabilities."
+        ),
+        FeatureItem(
+            id: "respiratory_apnea",
+            title: "Acoustic Respiratory & Screen Apnea Guard",
+            category: "Health & Recovery",
+            status: .active,
+            icon: "lungs.fill",
+            color: .indigo,
+            summary: "Detects screen apnea (unconscious breath holding during intense focus) and computes live respiratory rate using micro-accelerations.",
+            technicalDetails: "High-pass and band-pass filtering in the 0.15-0.45 Hz human breathing band across Z-axis kinetic energy."
+        ),
+        FeatureItem(
+            id: "flow_gating",
+            title: "Typing Flow-State Alert Gating",
+            category: "Productivity",
+            status: .active,
+            icon: "keyboard",
+            color: .yellow,
+            summary: "Automatically suppresses intrusive posture alerts during high-speed typing bursts (>45 WPM) to preserve creative flow.",
+            technicalDetails: "Calculates instantaneous typing cadence via NSEvent global monitor; defers slouch notifications until typing pause."
+        ),
+        FeatureItem(
+            id: "auto_calibrator",
+            title: "Zero-Touch Autonomous Gravity Calibration",
+            category: "Ergonomics",
+            status: .active,
+            icon: "sparkles",
+            color: .green,
+            summary: "Eliminates manual calibration forever. Calibrates neutral spine attitude autonomously via Earth gravity decomposition and statistical gaze clustering.",
+            technicalDetails: "Analyzes calm-window sensor variances (<4 deg/s gyro energy) and aligns ear insertion vectors with Earth's gravity vector."
         )
     ]
     
