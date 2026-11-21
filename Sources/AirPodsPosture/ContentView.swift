@@ -7,22 +7,29 @@ public struct ContentView: View {
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
     @State private var selectedTab: TabItem = .showcase
     
-    // MARK: - Streamlined Apple HIG 4-Section Navigation
+    // MARK: - Gold-Standard Apple HIG 4-Section Complete Architecture
     public enum TabItem: String, CaseIterable, Identifiable {
-        // Section 1: Studio & Manifesto
+        // SECTION 1: EXPERIENCE & STUDIO
         case showcase = "Apple 360° Studio"
         case humanManifesto = "HUMAN.md Manifesto"
         
-        // Section 2: Ergonomics & Health
-        case posture = "Posture & Fatigue"
-        case stretches = "Guided Mobility & PT"
+        // SECTION 2: BIOMETRICS & RADAR
+        case posture = "Posture Monitor"
+        case radar = "Spatial 360° Radar"
+        case timeline = "Biometric Timeline"
+        case stretches = "Neck Stretches & PT"
         
-        // Section 3: Innovations & Labs
-        case openSourceLab = "Open-Source Labs"
-        case sensors = "Sensors & Hardware"
-        case featuresHub = "Advanced Features Hub"
+        // SECTION 3: LABS & INTELLIGENCE
+        case openSourceLab = "Peer Open-Source Labs"
+        case sensors = "AirPods Pro Sensors"
+        case upgrades = "Power Upgrades"
+        case advanced = "Spatial Intelligence"
+        case elite = "Elite Labs"
         
-        // Section 4: System
+        // SECTION 4: ECOSYSTEM & AUDIT
+        case ecosystem = "Ecosystem Bridges"
+        case audit = "Loophole & Tech Audit"
+        case potential = "AirPods Potential Hub"
         case settings = "Settings & Appearance"
         
         public var id: String { rawValue }
@@ -32,11 +39,38 @@ public struct ContentView: View {
             case .showcase: return "headphones.circle.fill"
             case .humanManifesto: return "book.pages.fill"
             case .posture: return "figure.walk.motion"
+            case .radar: return "dot.radiowaves.left.and.right"
+            case .timeline: return "chart.xyaxis.line"
             case .stretches: return "figure.mind.and.body"
             case .openSourceLab: return "sparkles.rectangle.stack.fill"
             case .sensors: return "earbuds.case.fill"
-            case .featuresHub: return "wand.and.stars.inverse"
+            case .upgrades: return "sparkles.square.filled.on.square"
+            case .advanced: return "wand.and.stars.inverse"
+            case .elite: return "crown.fill"
+            case .ecosystem: return "applewatch.and.arrow.forward"
+            case .audit: return "checkmark.shield.fill"
+            case .potential: return "sparkles"
             case .settings: return "gearshape.fill"
+            }
+        }
+        
+        public var iconColor: Color {
+            switch self {
+            case .showcase: return .cyan
+            case .humanManifesto: return HumanCinemaDesignSystem.Palette.vermilion
+            case .posture: return .green
+            case .radar: return .blue
+            case .timeline: return .orange
+            case .stretches: return .teal
+            case .openSourceLab: return .purple
+            case .sensors: return .indigo
+            case .upgrades: return .yellow
+            case .advanced: return .cyan
+            case .elite: return .yellow
+            case .ecosystem: return .green
+            case .audit: return .orange
+            case .potential: return .pink
+            case .settings: return .gray
             }
         }
     }
@@ -55,51 +89,42 @@ public struct ContentView: View {
             
             NavigationSplitView {
                 List(selection: $selectedTab) {
-                    // SECTION 1: STUDIO & MANIFESTO
-                    Section("STUDIO & MANIFESTO") {
-                        NavigationLink(value: TabItem.showcase) {
-                            Label(TabItem.showcase.rawValue, systemImage: TabItem.showcase.icon)
-                        }
-                        NavigationLink(value: TabItem.humanManifesto) {
-                            Label(TabItem.humanManifesto.rawValue, systemImage: TabItem.humanManifesto.icon)
-                        }
+                    // SECTION 1: EXPERIENCE & STUDIO
+                    Section("EXPERIENCE & STUDIO") {
+                        sidebarRow(.showcase)
+                        sidebarRow(.humanManifesto)
                     }
                     
-                    // SECTION 2: ERGONOMICS & HEALTH
-                    Section("ERGONOMICS & HEALTH") {
-                        NavigationLink(value: TabItem.posture) {
-                            Label(TabItem.posture.rawValue, systemImage: TabItem.posture.icon)
-                        }
-                        NavigationLink(value: TabItem.stretches) {
-                            Label(TabItem.stretches.rawValue, systemImage: TabItem.stretches.icon)
-                        }
+                    // SECTION 2: BIOMETRICS & RADAR
+                    Section("BIOMETRICS & RADAR") {
+                        sidebarRow(.posture)
+                        sidebarRow(.radar)
+                        sidebarRow(.timeline)
+                        sidebarRow(.stretches)
                     }
                     
-                    // SECTION 3: INNOVATIONS & LABS
-                    Section("INNOVATIONS & LABS") {
-                        NavigationLink(value: TabItem.openSourceLab) {
-                            Label(TabItem.openSourceLab.rawValue, systemImage: TabItem.openSourceLab.icon)
-                        }
-                        NavigationLink(value: TabItem.sensors) {
-                            Label(TabItem.sensors.rawValue, systemImage: TabItem.sensors.icon)
-                        }
-                        NavigationLink(value: TabItem.featuresHub) {
-                            Label(TabItem.featuresHub.rawValue, systemImage: TabItem.featuresHub.icon)
-                        }
+                    // SECTION 3: LABS & INTELLIGENCE
+                    Section("LABS & INTELLIGENCE") {
+                        sidebarRow(.openSourceLab)
+                        sidebarRow(.sensors)
+                        sidebarRow(.upgrades)
+                        sidebarRow(.advanced)
+                        sidebarRow(.elite)
                     }
                     
-                    // SECTION 4: SYSTEM
-                    Section("SYSTEM") {
-                        NavigationLink(value: TabItem.settings) {
-                            Label(TabItem.settings.rawValue, systemImage: TabItem.settings.icon)
-                        }
+                    // SECTION 4: ECOSYSTEM & AUDIT
+                    Section("ECOSYSTEM & AUDIT") {
+                        sidebarRow(.ecosystem)
+                        sidebarRow(.audit)
+                        sidebarRow(.potential)
+                        sidebarRow(.settings)
                     }
                 }
                 .navigationTitle("AirPodsIQ")
                 .listStyle(.sidebar)
-                .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
+                .navigationSplitViewColumnWidth(min: 230, ideal: 255, max: 295)
                 
-                // Sidebar Footer: Connection & Audio Status
+                // Sidebar Footer: Live Hardware Connection Indicator
                 VStack(alignment: .leading, spacing: 6) {
                     Divider()
                     
@@ -128,6 +153,7 @@ public struct ContentView: View {
             } detail: {
                 Group {
                     switch selectedTab {
+                    // 1. STUDIO & MANIFESTO
                     case .showcase:
                         ScrollView {
                             Apple360HeroShowcaseView()
@@ -136,6 +162,7 @@ public struct ContentView: View {
                     case .humanManifesto:
                         HumanManifestoShowcaseView()
                         
+                    // 2. BIOMETRICS & RADAR
                     case .posture:
                         ScrollView {
                             VStack(spacing: 20) {
@@ -222,19 +249,38 @@ public struct ContentView: View {
                             }
                             .padding(20)
                         }
-                        
+                    case .radar:
+                        ScrollView {
+                            SpatialSoundstageRadarView()
+                                .padding(.vertical, 16)
+                        }
+                    case .timeline:
+                        ScrollView {
+                            BiometricTimelineScrubberView()
+                                .padding(24)
+                        }
                     case .stretches:
                         StretchCoachView(motion: motion)
                         
+                    // 3. LABS & INTELLIGENCE
                     case .openSourceLab:
                         OpenSourceUpgradesView()
-                        
                     case .sensors:
                         AirPodsProSensorsView()
+                    case .upgrades:
+                        UpgradesSuiteView()
+                    case .advanced:
+                        AdvancedUpgradesView()
+                    case .elite:
+                        EliteUpgradesView()
                         
-                    case .featuresHub:
+                    // 4. ECOSYSTEM & AUDIT
+                    case .ecosystem:
+                        EcosystemBridgesView()
+                    case .audit:
+                        AuditAndLoopholesView()
+                    case .potential:
                         FeaturesHubView(motion: motion)
-                        
                     case .settings:
                         SettingsView(motion: motion)
                     }
@@ -328,6 +374,20 @@ public struct ContentView: View {
                 .transition(.opacity)
             }
         }
-        .frame(minWidth: 920, minHeight: 640)
+        .frame(minWidth: 980, minHeight: 660)
+    }
+    
+    @ViewBuilder
+    private func sidebarRow(_ tab: TabItem) -> some View {
+        NavigationLink(value: tab) {
+            HStack(spacing: 8) {
+                Image(systemName: tab.icon)
+                    .foregroundColor(tab.iconColor)
+                    .font(.system(size: 14))
+                    .frame(width: 20, alignment: .center)
+                Text(tab.rawValue)
+                    .font(.system(size: 13, weight: .medium))
+            }
+        }
     }
 }
