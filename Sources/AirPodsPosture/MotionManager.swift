@@ -436,6 +436,10 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         NeuralPoseClassifier.shared.classify(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, accel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ), rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ))
         CervicalGameEngine.shared.updateHeadPitch(pitch: deltaPitch)
         AppleWatchBridgeManager.shared.updateThoracicKinematics(airpodsPitch: deltaPitch)
+        OcclusionAudioTransparencyManager.shared.update(rotRateX: rotRateX, rotRateY: rotRateY, rotRateZ: rotRateZ, userAccelZ: userAccelZ)
+        DisplayDistanceGuardManager.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ)
+        MicroNapSleepApneaDetector.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
+        CervicalKeypressWheelManager.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
             return
         }
         
@@ -496,6 +500,10 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         NeuralPoseClassifier.shared.classify(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, accel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ), rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ))
         CervicalGameEngine.shared.updateHeadPitch(pitch: deltaPitch)
         AppleWatchBridgeManager.shared.updateThoracicKinematics(airpodsPitch: deltaPitch)
+        OcclusionAudioTransparencyManager.shared.update(rotRateX: rotRateX, rotRateY: rotRateY, rotRateZ: rotRateZ, userAccelZ: userAccelZ)
+        DisplayDistanceGuardManager.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ)
+        MicroNapSleepApneaDetector.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
+        CervicalKeypressWheelManager.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
     }
     
     private func detectGestures(pitch: Double, yaw: Double) {

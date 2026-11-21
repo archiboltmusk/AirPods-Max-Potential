@@ -48,6 +48,14 @@ public final class SpatialSpacesManager: ObservableObject {
         }
     }
     
+    public func switchSpace(direction: String) {
+        if direction == "left" {
+            triggerSpaceSwitch(left: true)
+        } else {
+            triggerSpaceSwitch(left: false)
+        }
+    }
+    
     private func triggerSpaceSwitch(left: Bool) {
         let src = CGEventSource(stateID: .hidSystemState)
         let keyCode: CGKeyCode = left ? 123 : 124 // 123 = Left Arrow, 124 = Right Arrow
