@@ -21,6 +21,11 @@ mkdir -p "$RESOURCES_DIR"
 # Copy binary
 cp "$DIR/.build/release/AirPodsPosture" "$MACOS_DIR/"
 
+# Copy Resources
+if [ -d "$DIR/Sources/AirPodsPosture/Resources" ]; then
+    cp -R "$DIR/Sources/AirPodsPosture/Resources/"* "$RESOURCES_DIR/"
+fi
+
 # Create PkgInfo
 echo -n "APPL????" > "$CONTENTS_DIR/PkgInfo"
 
