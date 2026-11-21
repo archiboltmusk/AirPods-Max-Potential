@@ -8,6 +8,9 @@ public struct BiohackingVitalityView: View {
     @ObservedObject var symptom = AcousticSymptomSentinel.shared
     @ObservedObject var circadian = CircadianMelatoninShield.shared
     @ObservedObject var vocal = VocalStrainCoach.shared
+    @ObservedObject var displayFocus = MultiDisplayFocusManager.shared
+    @ObservedObject var sleepBruxism = NightBruxismSleepSentry.shared
+    @ObservedObject var pacer = SpeechCadencePacer.shared
     
     public init() {}
     
@@ -400,6 +403,106 @@ public struct BiohackingVitalityView: View {
                             Text(alert)
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.orange)
+                        }
+                    }
+                }
+                
+                // 8. Multi-Display Spatial Focus & Active Screen Auto-Detect
+                VitalityCard(
+                    title: "Multi-Display Spatial Focus Tracker",
+                    subtitle: "Uses yaw kinematics to identify which physical monitor your gaze is currently anchored on.",
+                    icon: "macwindow.on.rectangle",
+                    accentColor: .cyan
+                ) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(displayFocus.focusStatus)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.cyan)
+                                Text("Dwell: \(Int(displayFocus.dwellTimeOnActiveDisplay))s on current screen • \(displayFocus.focusSwitchesToday) head switches today")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Toggle("", isOn: $displayFocus.isEnabled)
+                                .toggleStyle(.switch)
+                        }
+                    }
+                }
+                
+                // 9. Nocturnal Bruxism & Sleep Jaw Clenching Sentry
+                VitalityCard(
+                    title: "Nocturnal Bruxism & Sleep Jaw Sentry",
+                    subtitle: "Night-time masseter micro-vibration logging for users wearing AirPods Pro in bed.",
+                    icon: "bed.double.fill",
+                    accentColor: .indigo
+                ) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(sleepBruxism.sentryReportSummary)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(sleepBruxism.morningTmjRiskScore > 40 ? .orange : .indigo)
+                                Text("Clench Events: \(sleepBruxism.nocturnalClenchBoutsCount) • Total: \(Int(sleepBruxism.totalClenchDurationSeconds))s • Morning TMJ Risk: \(sleepBruxism.morningTmjRiskScore)%")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            if sleepBruxism.isSleepModeActive {
+                                Button(action: { sleepBruxism.toggleSleepSentry() }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "moon.fill")
+                                        Text("Stop Sleep Sentry")
+                                    }
+                                    .font(.system(size: 11, weight: .semibold))
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
+                            } else {
+                                Button(action: { sleepBruxism.toggleSleepSentry() }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "moon.zzz")
+                                        Text("Start Sleep Sentry")
+                                    }
+                                    .font(.system(size: 11, weight: .semibold))
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
+                        }
+                    }
+                }
+                
+                // 10. Speech Cadence & Presentation Pacer
+                VitalityCard(
+                    title: "Speech Cadence & Presentation Pacer",
+                    subtitle: "Real-time speaking rate monitoring with breath pause reminders during key meetings.",
+                    icon: "mic.badge.waveform.fill",
+                    accentColor: .orange
+                ) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(pacer.cadenceStatus)
+                                    .font(.system(size: 12, weight: .bold))
+                                Text(pacer.pacingGuidance)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            HStack(spacing: 4) {
+                                Text("\(pacer.estimatedWPM)")
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundColor(.orange)
+                                Text("WPM")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.orange.opacity(0.12))
+                            .clipShape(Capsule())
                         }
                     }
                 }
