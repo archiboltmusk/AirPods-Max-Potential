@@ -5,7 +5,8 @@ import AppKit
 public final class DynamicIslandNotchHaloManager: ObservableObject {
     public static let shared = DynamicIslandNotchHaloManager()
     
-    @Published public var isEnabled: Bool = true
+    // Disabled by default to prevent screen obstruction
+    @Published public var isEnabled: Bool = false
     @Published public var isExpanded: Bool = false
     @Published public var expansionMessage: String = ""
     
@@ -13,19 +14,31 @@ public final class DynamicIslandNotchHaloManager: ObservableObject {
     private var dismissTimer: Timer?
     
     private init() {
-        setupWindow()
+        // Do NOT automatically display or construct the floating window on launch
     }
     
     public func toggleEnabled() {
-        isEnabled.toggle()
         if isEnabled {
-            haloPanel?.orderFront(nil)
+            dismissAndDisablePermanently()
         } else {
-            haloPanel?.orderOut(nil)
+            isEnabled = true
+            setupWindow()
+            haloPanel?.orderFront(nil)
         }
     }
     
+    public func dismissAndDisablePermanently() {
+        isEnabled = false
+        isExpanded = false
+        dismissTimer?.invalidate()
+        dismissTimer = nil
+        haloPanel?.orderOut(nil)
+        haloPanel?.close()
+        haloPanel = nil
+    }
+    
     public func setupWindow() {
+        guard isEnabled else { return }
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.frame
         
@@ -52,10 +65,6 @@ public final class DynamicIslandNotchHaloManager: ObservableObject {
         let rootView = DynamicIslandPillView(manager: self)
         panel.contentView = NSHostingView(rootView: rootView)
         self.haloPanel = panel
-        
-        if isEnabled {
-            panel.orderFront(nil)
-        }
     }
     
     public func triggerExpansion(message: String, autoDismissSeconds: Double = 4.0) {

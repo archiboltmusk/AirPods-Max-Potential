@@ -39,6 +39,14 @@ public struct SettingsView: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
                 
+                Toggle("Camera Notch Ambient HUD Pill", isOn: Binding(
+                    get: { DynamicIslandNotchHaloManager.shared.isEnabled },
+                    set: { _ in DynamicIslandNotchHaloManager.shared.toggleEnabled() }
+                ))
+                Text("Optional floating status capsule under the display notch. Disabled by default to keep your screen completely unobstructed.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
                 Toggle("Smart Meeting Guard (Mute during Zoom / Calls)", isOn: $motion.muteInMeetings)
                 Text("Monitors macOS microphone state in real-time. Automatically silences audio chimes during meetings, calls, or screen recordings so you are never interrupted.")
                     .font(.caption2)
