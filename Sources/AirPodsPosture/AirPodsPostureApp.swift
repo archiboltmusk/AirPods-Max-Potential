@@ -16,7 +16,7 @@ struct AirPodsPostureApp: App {
             ContentView()
         }
         .windowResizability(.contentMinSize)
-        .defaultSize(width: 1080, height: 740)
+        .defaultSize(width: 1160, height: 780)
 
         MenuBarExtra {
             MenuBarView(motion: motion) {

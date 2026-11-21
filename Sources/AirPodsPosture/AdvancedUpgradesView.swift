@@ -17,106 +17,158 @@ public struct AdvancedUpgradesView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Header
-                HStack {
+                // Header Bar (Apple Studio Style)
+                HStack(alignment: .center, spacing: 14) {
                     Image(systemName: "wand.and.stars.inverse")
-                        .font(.title)
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundColor(.purple)
+                        .frame(width: 38, height: 38)
+                        .background(Color.purple.opacity(0.14))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Next-Gen Spatial & Biometric Intelligence")
-                            .font(.title2.bold())
-                        Text("AirPods Pro 2 spatial canvas, vagus nerve breathwork, drowsiness guard, and app ergonomics")
-                            .font(.subheadline)
+                        Text("Spatial & Biometric Intelligence")
+                            .font(.system(size: 20, weight: .bold))
+                        Text("AirPods Pro 2 spatial canvas, vagus breathwork, drowsiness guard & study tools")
+                            .font(.system(size: 11))
                             .foregroundColor(.secondary)
+                            .lineLimit(1)
                     }
                     
-                    Spacer()
+                    Spacer(minLength: 16)
                     
-                    // Scorecard Export Buttons
+                    // Scorecard Export Buttons with fixed width
                     HStack(spacing: 8) {
                         Button(action: { scorecard.copyToClipboard() }) {
-                            Label("Copy Scorecard", systemImage: "doc.on.doc")
+                            Label("Copy", systemImage: "doc.on.doc")
+                                .font(.system(size: 11, weight: .medium))
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                         
                         Button(action: { scorecard.saveToFile() }) {
                             Label("Export Report", systemImage: "square.and.arrow.down")
+                                .font(.system(size: 11, weight: .semibold))
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                     }
+                    .fixedSize()
                 }
+                .padding(.bottom, 2)
                 
                 // 0. Student & Academic Study Hub
                 AdvancedCard(
-                    title: "Student & Academic Study Hub (Anki, Slides & Cramming Guard)",
-                    subtitle: "Hands-free study gestures for Anki & PDF lecture slides, 40Hz Gamma super-learning, and all-nighter micro-sleep detector.",
+                    title: "Student & Academic Study Hub",
+                    subtitle: "Hands-free Anki & slide gestures, 40Hz Gamma super-learning, and all-nighter sentry.",
                     icon: "graduationcap.fill",
                     accentColor: .purple
                 ) {
                     VStack(alignment: .leading, spacing: 14) {
                         // Gesture Toggle & Status
                         HStack {
-                            Toggle("Hands-Free Flashcard & Lecture Slide Gestures", isOn: $student.isHandsFreeStudyGesturesEnabled)
-                                .toggleStyle(.switch)
-                                .font(.subheadline.bold())
+                            Toggle(isOn: $student.isHandsFreeStudyGesturesEnabled) {
+                                HStack(spacing: 6) {
+                                    Text("Hands-Free Flashcard & Lecture Slide Gestures")
+                                        .font(.subheadline.bold())
+                                    if student.isHandsFreeStudyGesturesEnabled {
+                                        Circle()
+                                            .fill(Color.green)
+                                            .frame(width: 6, height: 6)
+                                    }
+                                }
+                            }
+                            .toggleStyle(.switch)
+                            
                             Spacer()
-                            Text("\(student.cardsFlippedCount) Flips")
-                                .font(.caption.bold())
-                                .foregroundColor(.purple)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.purple.opacity(0.12))
-                                .cornerRadius(6)
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 9, weight: .bold))
+                                Text("\(student.cardsFlippedCount) Flips")
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.purple)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 4)
+                            .background(Color.purple.opacity(0.14))
+                            .clipShape(Capsule())
                         }
                         
-                        Text("• Quick Nod Down: Spacebar (Flip Anki Card / Next Slide)\n• Head Tilt Right: Right Arrow (Answer 'Good' / Next)\n• Head Tilt Left: Left Arrow (Answer 'Again' / Prev)\nStudy effortlessly while holding an Apple Pencil, iPad, or notebook without reaching for the trackpad.")
-                            .font(.caption2)
+                        // 3-Column Apple Gesture Dock
+                        HStack(spacing: 10) {
+                            GestureActionPill(
+                                icon: "arrow.down.to.line.compact",
+                                gesture: "Nod Down",
+                                keyCap: "Space",
+                                action: "Flip Card / Next"
+                            )
+                            GestureActionPill(
+                                icon: "arrow.right.circle.fill",
+                                gesture: "Tilt Right",
+                                keyCap: "→",
+                                action: "Good / Advance"
+                            )
+                            GestureActionPill(
+                                icon: "arrow.left.circle.fill",
+                                gesture: "Tilt Left",
+                                keyCap: "←",
+                                action: "Again / Back"
+                            )
+                        }
+                        
+                        Text("Flip flashcards or advance lecture slides hands-free while taking notes with Apple Pencil.")
+                            .font(.system(size: 11))
                             .foregroundColor(.secondary)
                         
-                        Divider()
+                        Divider().opacity(0.4)
                         
                         // Super-Learning Audio Engine
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text("Super-Learning Binaural Wave Frequency:")
-                                    .font(.caption.bold())
+                                Text("Super-Learning Binaural Frequency:")
+                                    .font(.system(size: 12, weight: .semibold))
                                 Spacer()
                                 Button(action: {
                                     student.toggleStudyAudio()
                                 }) {
-                                    HStack(spacing: 4) {
+                                    HStack(spacing: 5) {
                                         Image(systemName: student.isStudyAudioPlaying ? "stop.fill" : "play.fill")
-                                        Text(student.isStudyAudioPlaying ? "Stop Audio" : "Play Study Wave")
+                                        Text(student.isStudyAudioPlaying ? "Stop Wave" : "Play Study Wave")
                                     }
-                                    .font(.caption.bold())
+                                    .font(.system(size: 11, weight: .bold))
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
-                                    .background(student.isStudyAudioPlaying ? Color.red.opacity(0.15) : Color.purple.opacity(0.15))
+                                    .background(student.isStudyAudioPlaying ? Color.red.opacity(0.15) : Color.purple.opacity(0.18))
                                     .foregroundColor(student.isStudyAudioPlaying ? .red : .purple)
-                                    .cornerRadius(6)
+                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
                             }
                             
+                            // Short, elegant segmented control labels per Apple HIG
                             Picker("", selection: $student.selectedStudyFrequency) {
                                 ForEach(StudentStudySuiteEngine.StudyWaveFrequency.allCases) { freq in
-                                    Text(freq.rawValue).tag(freq)
+                                    Text(freq.shortTitle).tag(freq)
                                 }
                             }
                             .pickerStyle(.segmented)
+                            
+                            // Subtitle explanatory callout
+                            Text(student.selectedStudyFrequency.subtitle)
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
                         }
                         
-                        Divider()
+                        Divider().opacity(0.4)
                         
-                        // Cramming & Drowsiness Mode
+                        // Micro-Sleep Guard
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("All-Nighter Micro-Sleep Guard")
-                                    .font(.caption.bold())
-                                Text("Detects head-drop and startle-jerk kinetic signatures when nodding off at your desk.")
-                                    .font(.caption2)
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("Detects head-drop kinetic signatures when dozing off at your desk.")
+                                    .font(.system(size: 11))
                                     .foregroundColor(.secondary)
                             }
                             Spacer()
@@ -125,16 +177,16 @@ public struct AdvancedUpgradesView: View {
                         }
                         
                         if let alert = student.drowsinessAlertBanner {
-                            HStack {
+                            HStack(spacing: 8) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundColor(.orange)
                                 Text(alert)
-                                    .font(.caption.bold())
+                                    .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(.orange)
                             }
-                            .padding(8)
+                            .padding(10)
                             .background(Color.orange.opacity(0.12))
-                            .cornerRadius(8)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         }
                     }
                 }
@@ -186,10 +238,10 @@ public struct AdvancedUpgradesView: View {
                     icon: "lungs.fill",
                     accentColor: .teal
                 ) {
-                    VStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 14) {
                         Picker("Pattern", selection: $breathing.selectedPattern) {
                             ForEach(BreathingPattern.allCases) { pattern in
-                                Text(pattern.rawValue).tag(pattern)
+                                Text(pattern.shortTitle).tag(pattern)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -212,6 +264,7 @@ public struct AdvancedUpgradesView: View {
                                             .font(.system(.title3, design: .monospaced, weight: .bold))
                                     }
                                 }
+                                .frame(maxWidth: .infinity)
                                 .frame(height: 150)
                                 
                                 HStack {
@@ -228,11 +281,11 @@ public struct AdvancedUpgradesView: View {
                             }
                         } else {
                             HStack {
-                                Text("4-second inhale, 4-second hold, 4-second exhale, 4-second pause to reset parasympathetic nervous system.")
+                                Text(breathing.selectedPattern.detailDescription)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                Spacer()
-                                Button("Start Box Breathing") {
+                                Spacer(minLength: 12)
+                                Button("Start Breathwork") {
                                     breathing.startSession()
                                 }
                                 .buttonStyle(.borderedProminent)
@@ -475,31 +528,71 @@ struct AdvancedCard<Content: View>: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.title3)
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(accentColor)
                     .frame(width: 32, height: 32)
-                    .background(accentColor.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .background(accentColor.opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.headline)
+                        .font(.system(size: 14, weight: .semibold))
                     Text(subtitle)
-                        .font(.caption2)
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
             }
             
             content
-                .padding(.top, 4)
+                .padding(.top, 2)
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.06), lineWidth: 1))
+        .appleGlass(cornerRadius: 16, opacity: 0.35)
+    }
+}
+
+struct GestureActionPill: View {
+    let icon: String
+    let gesture: String
+    let keyCap: String
+    let action: String
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.purple)
+            
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Text(gesture)
+                        .font(.system(size: 11, weight: .bold))
+                    Text(keyCap)
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color.primary.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                }
+                Text(action)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+        )
     }
 }

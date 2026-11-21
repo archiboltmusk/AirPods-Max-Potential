@@ -30,11 +30,21 @@ public final class StudentStudySuiteEngine: ObservableObject {
     @Published public var isStudyAudioPlaying: Bool = false
     
     public enum StudyWaveFrequency: String, CaseIterable, Identifiable {
-        case gamma40Hz = "40Hz Gamma (Working Memory & Encoding)"
-        case alpha10Hz = "10Hz Alpha (Relaxed Reading Flow)"
-        case theta6Hz = "6Hz Theta (Deep Concept Mapping)"
+        case gamma40Hz = "⚡️ 40Hz Gamma"
+        case alpha10Hz = "📖 10Hz Alpha"
+        case theta6Hz = "🔮 6Hz Theta"
         
         public var id: String { rawValue }
+        
+        public var shortTitle: String { rawValue }
+        
+        public var subtitle: String {
+            switch self {
+            case .gamma40Hz: return "Working memory encoding & rapid cognitive synthesis (40 Hz)"
+            case .alpha10Hz: return "Relaxed reading flow, deep focus & comprehension (10 Hz)"
+            case .theta6Hz: return "Subconscious concept mapping & deep visualization (6 Hz)"
+            }
+        }
         
         public var hz: Double {
             switch self {

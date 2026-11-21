@@ -3,11 +3,24 @@ import SwiftUI
 import Combine
 
 public enum BreathingPattern: String, CaseIterable, Identifiable {
-    case boxBreathing = "Box Breathing (4-4-4-4 Focus)"
-    case relaxing478 = "4-7-8 Deep Relaxation"
-    case energizing = "Energizing (4-2-4)"
+    case boxBreathing = "Box (4-4)"
+    case relaxing478 = "4-7-8 Relax"
+    case energizing = "4-2-4 Energy"
     
     public var id: String { rawValue }
+    
+    public var shortTitle: String { rawValue }
+    
+    public var detailDescription: String {
+        switch self {
+        case .boxBreathing:
+            return "4s inhale, 4s hold, 4s exhale, 4s pause to reset parasympathetic nervous system."
+        case .relaxing478:
+            return "4s inhale, 7s hold, 8s exhale to calm acute stress and decelerate heart rate."
+        case .energizing:
+            return "4s inhale, 2s hold, 4s exhale for rapid oxygenation and renewed focus."
+        }
+    }
     
     public var inhaleSeconds: Double {
         switch self {

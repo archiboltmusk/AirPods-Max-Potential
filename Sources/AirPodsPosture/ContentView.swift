@@ -88,46 +88,45 @@ public struct ContentView: View {
             }
             
             NavigationSplitView {
-                List(selection: $selectedTab) {
-                    // SECTION 1: EXPERIENCE & STUDIO
-                    Section("EXPERIENCE & STUDIO") {
-                        sidebarRow(.showcase)
-                        sidebarRow(.humanManifesto)
+                VStack(spacing: 0) {
+                    List(selection: $selectedTab) {
+                        // SECTION 1: EXPERIENCE & STUDIO
+                        Section("EXPERIENCE & STUDIO") {
+                            sidebarRow(.showcase)
+                            sidebarRow(.humanManifesto)
+                        }
+                        
+                        // SECTION 2: BIOMETRICS & RADAR
+                        Section("BIOMETRICS & RADAR") {
+                            sidebarRow(.posture)
+                            sidebarRow(.radar)
+                            sidebarRow(.timeline)
+                            sidebarRow(.stretches)
+                        }
+                        
+                        // SECTION 3: LABS & INTELLIGENCE
+                        Section("LABS & INTELLIGENCE") {
+                            sidebarRow(.openSourceLab)
+                            sidebarRow(.sensors)
+                            sidebarRow(.upgrades)
+                            sidebarRow(.advanced)
+                            sidebarRow(.elite)
+                        }
+                        
+                        // SECTION 4: ECOSYSTEM & AUDIT
+                        Section("ECOSYSTEM & AUDIT") {
+                            sidebarRow(.ecosystem)
+                            sidebarRow(.audit)
+                            sidebarRow(.potential)
+                            sidebarRow(.settings)
+                        }
                     }
+                    .listStyle(.sidebar)
                     
-                    // SECTION 2: BIOMETRICS & RADAR
-                    Section("BIOMETRICS & RADAR") {
-                        sidebarRow(.posture)
-                        sidebarRow(.radar)
-                        sidebarRow(.timeline)
-                        sidebarRow(.stretches)
-                    }
-                    
-                    // SECTION 3: LABS & INTELLIGENCE
-                    Section("LABS & INTELLIGENCE") {
-                        sidebarRow(.openSourceLab)
-                        sidebarRow(.sensors)
-                        sidebarRow(.upgrades)
-                        sidebarRow(.advanced)
-                        sidebarRow(.elite)
-                    }
-                    
-                    // SECTION 4: ECOSYSTEM & AUDIT
-                    Section("ECOSYSTEM & AUDIT") {
-                        sidebarRow(.ecosystem)
-                        sidebarRow(.audit)
-                        sidebarRow(.potential)
-                        sidebarRow(.settings)
-                    }
-                }
-                .navigationTitle("AirPodsIQ")
-                .listStyle(.sidebar)
-                .navigationSplitViewColumnWidth(min: 230, ideal: 255, max: 295)
-                
-                // Sidebar Footer: Live Hardware Connection Indicator
-                VStack(alignment: .leading, spacing: 6) {
                     Divider()
+                        .opacity(0.4)
                     
+                    // Sidebar Footer: Live Hardware Connection Indicator
                     HStack(spacing: 8) {
                         Circle()
                             .fill(motion.isConnected ? Color.green : Color.gray)
@@ -135,21 +134,25 @@ public struct ContentView: View {
                         Text(motion.isConnected ? (motion.isSimulated ? "Demo Simulation" : "AirPods Connected") : "Disconnected")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.secondary)
-                    }
-                    
-                    if audioMonitor.isMicrophoneInUse {
-                        HStack(spacing: 6) {
-                            Image(systemName: "mic.fill")
-                                .foregroundColor(.purple)
-                                .font(.caption2)
-                            Text("Mic Active (Chimes Muted)")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.purple)
+                        
+                        Spacer()
+                        
+                        if audioMonitor.isMicrophoneInUse {
+                            HStack(spacing: 4) {
+                                Image(systemName: "mic.fill")
+                                    .foregroundColor(.purple)
+                                    .font(.caption2)
+                                Text("Mic Active")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.purple)
+                            }
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
                 }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 10)
+                .navigationTitle("AirPodsIQ")
+                .navigationSplitViewColumnWidth(min: 240, ideal: 270, max: 320)
             } detail: {
                 Group {
                     switch selectedTab {
@@ -374,19 +377,18 @@ public struct ContentView: View {
                 .transition(.opacity)
             }
         }
-        .frame(minWidth: 980, minHeight: 660)
+        .frame(minWidth: 1020, minHeight: 680)
     }
     
     @ViewBuilder
     private func sidebarRow(_ tab: TabItem) -> some View {
         NavigationLink(value: tab) {
-            HStack(spacing: 8) {
-                Image(systemName: tab.icon)
-                    .foregroundColor(tab.iconColor)
-                    .font(.system(size: 14))
-                    .frame(width: 20, alignment: .center)
+            Label {
                 Text(tab.rawValue)
                     .font(.system(size: 13, weight: .medium))
+            } icon: {
+                Image(systemName: tab.icon)
+                    .foregroundColor(tab.iconColor)
             }
         }
     }
