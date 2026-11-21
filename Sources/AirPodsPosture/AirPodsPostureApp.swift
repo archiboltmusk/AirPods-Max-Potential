@@ -9,19 +9,23 @@ struct AirPodsPostureApp: App {
     init() {
         // Ensure standard macOS app activation policy
         NSApplication.shared.setActivationPolicy(.regular)
+        // Strictly disable automatic window tabbing
+        NSWindow.allowsAutomaticWindowTabbing = false
     }
 
     var body: some Scene {
-        WindowGroup(id: "main-dashboard") {
+        Window("AirPodsIQ", id: "main-dashboard") {
             ContentView()
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 1160, height: 780)
         .commands {
+            // Disable ⌘N / ⌘T so macOS never spawns extra windows or tabs
+            CommandGroup(replacing: .newItem) {}
+            
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates...") {
-                    NSApp.activate(ignoringOtherApps: true)
-                    openWindow(id: "main-dashboard")
+                    activateMainWindow()
                     AppUpdateManager.shared.checkForUpdates()
                 }
             }
@@ -29,8 +33,7 @@ struct AirPodsPostureApp: App {
 
         MenuBarExtra {
             MenuBarView(motion: motion) {
-                NSApp.activate(ignoringOtherApps: true)
-                openWindow(id: "main-dashboard")
+                activateMainWindow()
             }
         } label: {
             HStack(spacing: 3) {
@@ -45,5 +48,14 @@ struct AirPodsPostureApp: App {
             }
         }
         .menuBarExtraStyle(.window)
+    }
+    
+    private func activateMainWindow() {
+        NSApp.activate(ignoringOtherApps: true)
+        if let existing = NSApp.windows.first(where: { !($0 is NSPanel) && $0.canBecomeMain }) {
+            existing.makeKeyAndOrderFront(nil)
+        } else {
+            openWindow(id: "main-dashboard")
+        }
     }
 }
