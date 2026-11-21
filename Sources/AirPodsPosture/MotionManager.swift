@@ -555,6 +555,8 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         ProgressiveScreenBlurManager.shared.update(postureState: postureState, deltaPitch: deltaPitch)
         CervicalRepCounterEngine.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
         HeadShortcutsActionRunner.shared.processMotion(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, userAccelY: userAccelY)
+        DualDirectionPosturalEngine.shared.update(pitch: deltaPitch, dt: 1.0 / 60.0)
+        HourlyFatigueProfiler.shared.recordMonitoredSecond(dt: 1.0 / 60.0)
         NotchHUDManager.shared.update(postureState: postureState)
         SpatialAudioBiofeedback.shared.updateSlouchMuffle(deltaPitch: deltaPitch, threshold: pitchThreshold)
         MultiMonitorGuard.shared.update(deltaYaw: deltaYaw)
@@ -631,6 +633,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     public func triggerSlouchAlert() {
         NotificationManager.shared.sendSlouchNotification(pitch: deltaPitch, roll: deltaRoll)
         SystemAudioVoiceAlertEngine.shared.triggerSlouchNudge(pitchDeviation: deltaPitch)
+        HourlyFatigueProfiler.shared.recordAlert()
         
         guard soundAlertsEnabled else { return }
         if muteInMeetings && AudioEnvironmentMonitor.shared.isMicrophoneInUse {

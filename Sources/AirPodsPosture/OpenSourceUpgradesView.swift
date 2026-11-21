@@ -17,10 +17,14 @@ public struct OpenSourceUpgradesView: View {
     @ObservedObject var voiceAlert = SystemAudioVoiceAlertEngine.shared
     @ObservedObject var coreAudio = CoreAudioDeviceMonitor.shared
     @ObservedObject var historyStore = RollingPostureHistoryStore.shared
+    @ObservedObject var dualDirection = DualDirectionPosturalEngine.shared
+    @ObservedObject var fatigueProfiler = HourlyFatigueProfiler.shared
 
-    @State private var selectedSubtab: UpgradeTab = .dorsoBlur
+    @State private var selectedSubtab: UpgradeTab = .slouchGuardSuite
+    @State private var exportStatusMessage: String? = nil
 
     public enum UpgradeTab: String, CaseIterable, Identifiable {
+        case slouchGuardSuite = "SlouchGuard Dual & Fatigue"
         case dorsoBlur = "Dorso Screen Blur"
         case crafterGlyph = "Crafter Spine Glyph"
         case airPostureReps = "AirPosture PT Reps"
@@ -30,6 +34,7 @@ public struct OpenSourceUpgradesView: View {
         public var id: String { rawValue }
         public var icon: String {
             switch self {
+            case .slouchGuardSuite: return "figure.walk.arrival"
             case .dorsoBlur: return "sun.max.trianglebadge.exclamationmark"
             case .crafterGlyph: return "figure.seated.side"
             case .airPostureReps: return "repeat.circle.fill"
@@ -87,6 +92,8 @@ public struct OpenSourceUpgradesView: View {
 
                 // Tab Content
                 switch selectedSubtab {
+                case .slouchGuardSuite:
+                    slouchGuardSection
                 case .dorsoBlur:
                     dorsoScreenBlurSection
                 case .crafterGlyph:
@@ -101,6 +108,209 @@ public struct OpenSourceUpgradesView: View {
             }
             .padding(20)
         }
+    }
+
+    // MARK: - 0. SlouchGuard Dual-Direction & Diurnal Fatigue
+    private var slouchGuardSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            CardHeader(
+                title: "Dual-Direction Slouch vs Lounge & Diurnal Fatigue",
+                badge: "KaranSud/slouchguard",
+                badgeColor: .indigo,
+                desc: "Differentiates forward slouch (text neck) from backward lounge (chair slump / lumbar collapse). Tracks 24-hour diurnal fatigue patterns to isolate your peak slump hour."
+            )
+
+            // Current Direction Badge
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Live Biomechanical Alignment:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(dualDirection.currentDirection == .optimal ? Color.green : (dualDirection.currentDirection == .forwardSlouch ? Color.red : Color.purple))
+                            .frame(width: 10, height: 10)
+                        Text(dualDirection.currentDirection.rawValue)
+                            .font(.headline)
+                            .foregroundColor(dualDirection.currentDirection == .optimal ? .green : (dualDirection.currentDirection == .forwardSlouch ? .red : .purple))
+                    }
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("Active Corrections:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("\(dualDirection.correctionsCount) resets")
+                        .font(.system(.body, design: .rounded, weight: .bold))
+                }
+            }
+            .padding(14)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(12)
+
+            // Slouch vs Lounge Metrics Cards
+            HStack(spacing: 14) {
+                // Forward Slouch
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "arrow.down.forward.circle.fill")
+                            .foregroundColor(.red)
+                        Text("Forward Slouch")
+                            .font(.subheadline.bold())
+                    }
+                    Text("Head dropping forward toward screen (Pitch < -\(Int(dualDirection.forwardSlouchThreshold))°)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+
+                    HStack {
+                        Text("\(dualDirection.forwardSlouchCount) events")
+                            .font(.system(.headline, design: .rounded))
+                        Spacer()
+                        Text(String(format: "%.1fm", dualDirection.totalSlouchSeconds / 60.0))
+                            .font(.caption.bold())
+                            .foregroundColor(.red)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.red.opacity(0.08))
+                .cornerRadius(12)
+
+                // Backward Lounge
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "arrow.up.backward.circle.fill")
+                            .foregroundColor(.purple)
+                        Text("Backward Lounge")
+                            .font(.subheadline.bold())
+                    }
+                    Text("Slumping back into chair backrest (Pitch > +\(Int(dualDirection.backwardLoungeThreshold))°)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+
+                    HStack {
+                        Text("\(dualDirection.backwardLoungeCount) events")
+                            .font(.system(.headline, design: .rounded))
+                        Spacer()
+                        Text(String(format: "%.1fm", dualDirection.totalLoungeSeconds / 60.0))
+                            .font(.caption.bold())
+                            .foregroundColor(.purple)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.purple.opacity(0.08))
+                .cornerRadius(12)
+            }
+
+            // Slouch vs Lounge Split Ratio Bar
+            VStack(alignment: .leading, spacing: 6) {
+                let split = dualDirection.slouchVsLoungeSplit
+                HStack {
+                    Text("Postural Bias Ratio:")
+                        .font(.subheadline.bold())
+                    Spacer()
+                    Text("\(Int(split.slouchPercent))% Forward  •  \(Int(split.loungePercent))% Backward")
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+
+                GeometryReader { geo in
+                    HStack(spacing: 3) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.red)
+                            .frame(width: max(4, geo.size.width * CGFloat(split.slouchPercent / 100.0)))
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.purple)
+                            .frame(width: max(4, geo.size.width * CGFloat(split.loungePercent / 100.0)))
+                    }
+                }
+                .frame(height: 8)
+            }
+            .padding(14)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(12)
+
+            // 24-Hour Diurnal Fatigue Profiler
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("24-Hour Diurnal Fatigue Distribution")
+                            .font(.headline)
+                        Text("Peak Slump Window: \(fatigueProfiler.peakFatigueHourString)")
+                            .font(.caption.bold())
+                            .foregroundColor(.orange)
+                    }
+                    Spacer()
+
+                    Button(action: {
+                        if let url = fatigueProfiler.exportCSV() {
+                            exportStatusMessage = "CSV exported to \(url.lastPathComponent)"
+                            NSWorkspace.shared.activateFileViewerSelecting([url])
+                        }
+                    }) {
+                        Label("Export CSV", systemImage: "arrow.down.doc")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+
+                if let status = exportStatusMessage {
+                    Text(status)
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                }
+
+                // 24-Hour Bar Chart
+                HStack(alignment: .bottom, spacing: 3) {
+                    ForEach(0..<24, id: \.self) { h in
+                        let sec = fatigueProfiler.hourlyPoorSeconds[h]
+                        let maxSec = max(1.0, fatigueProfiler.hourlyPoorSeconds.max() ?? 1.0)
+                        let heightNorm = min(1.0, sec / maxSec)
+
+                        VStack(spacing: 3) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(h == fatigueProfiler.peakFatigueHour ? Color.orange : (sec > 0 ? Color.blue : Color.primary.opacity(0.1)))
+                                .frame(height: max(4, CGFloat(heightNorm) * 60))
+
+                            Text(h % 3 == 0 ? "\(h)" : "")
+                                .font(.system(size: 8))
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .frame(height: 75)
+                .padding(.top, 6)
+
+                // Conversational AI Prompt / Stats Button
+                HStack {
+                    Button(action: {
+                        let summary = fatigueProfiler.generateConversationalSummary()
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(summary, forType: .string)
+                        exportStatusMessage = "Summary copied to clipboard!"
+                    }) {
+                        Label("Copy Daily Posture Summary", systemImage: "doc.on.doc")
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.caption.bold())
+                    .foregroundColor(.accentColor)
+
+                    Spacer()
+
+                    Text("Stats saved to ~/Library/Application Support/AirPodsIQ/stats/")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(16)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(12)
+        }
+        .padding(18)
+        .background(Color(NSColor.windowBackgroundColor))
+        .cornerRadius(16)
     }
 
     // MARK: - 1. Dorso Progressive Screen Blur & Radial Vignette
