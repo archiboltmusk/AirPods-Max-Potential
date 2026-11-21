@@ -12,6 +12,7 @@ public struct ContentView: View {
         case upgrades = "Power Upgrades"
         case advanced = "Spatial Intelligence"
         case elite = "Elite Labs"
+        case ecosystem = "Ecosystem Bridges"
         case audit = "Loophole Audit"
         case stretches = "Neck Stretches"
         case potential = "AirPods Potential"
@@ -26,6 +27,7 @@ public struct ContentView: View {
             case .upgrades: return "sparkles.square.filled.on.square"
             case .advanced: return "wand.and.stars.inverse"
             case .elite: return "crown.fill"
+            case .ecosystem: return "applewatch.and.arrow.forward"
             case .audit: return "checkmark.shield"
             case .stretches: return "figure.mind.and.body"
             case .potential: return "sparkles"
@@ -140,6 +142,8 @@ public struct ContentView: View {
                         AdvancedUpgradesView()
                     case .elite:
                         EliteUpgradesView()
+                    case .ecosystem:
+                        EcosystemBridgesView()
                     case .audit:
                         AuditAndLoopholesView()
                     case .stretches:
