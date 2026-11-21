@@ -97,6 +97,7 @@ public struct ContentView: View {
                 }
                 .navigationTitle("AirPodsIQ")
                 .listStyle(.sidebar)
+                .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
                 
                 // Sidebar Footer: Connection & Audio Status
                 VStack(alignment: .leading, spacing: 6) {
@@ -327,6 +328,6 @@ public struct ContentView: View {
                 .transition(.opacity)
             }
         }
-        .frame(minWidth: 820, minHeight: 600)
+        .frame(minWidth: 920, minHeight: 640)
     }
 }
