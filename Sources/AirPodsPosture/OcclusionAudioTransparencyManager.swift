@@ -42,10 +42,7 @@ public final class OcclusionAudioTransparencyManager: ObservableObject {
                 isChewingDetected = true
                 masticationEventsCount += 1
                 lastMasticationTime = now
-                statusMessage = "Mastication / Chewing Active (Occlusion Relieved)"
-                
-                // Mute slouch chimes while eating to prevent false positive annoyance
-                MotionManager.shared.snooze(minutes: 5)
+                statusMessage = "Mastication / Chewing Active"
             }
         } else {
             if let last = lastMasticationTime, now.timeIntervalSince(last) > 3.0 {
