@@ -5,20 +5,22 @@ public struct PostureVisualizerView: View {
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
     
     enum VisualizerRigMode: String, CaseIterable, Identifiable {
-        case agamemnon = "Agamemnon Odyssey Spine"
+        case humanFace = "3D Human Face & AirPods"
         case anatomical = "Metal Anatomical Rig"
+        case agamemnon = "Agamemnon Odyssey"
         case avatar = "2.5D Spatial Head"
         var id: String { rawValue }
         var icon: String {
             switch self {
-            case .agamemnon: return "shield.lefthalf.filled"
+            case .humanFace: return "face.smiling"
             case .anatomical: return "cube.transparent.fill"
+            case .agamemnon: return "shield.lefthalf.filled"
             case .avatar: return "person.crop.circle"
             }
         }
     }
     
-    @State private var selectedRigMode: VisualizerRigMode = .agamemnon
+    @State private var selectedRigMode: VisualizerRigMode = .humanFace
     
     public init(motion: MotionManager) {
         self.motion = motion
@@ -113,7 +115,7 @@ public struct PostureVisualizerView: View {
                 .background(Color(NSColor.controlBackgroundColor))
                 .clipShape(Capsule())
                 
-                // Rig Mode Menu Picker (Agamemnon Odyssey vs Anatomical vs 2.5D)
+                // Rig Mode Menu Picker (Human Face vs Anatomical vs Agamemnon vs 2.5D)
                 Menu {
                     ForEach(VisualizerRigMode.allCases) { mode in
                         Button(action: {
@@ -125,13 +127,13 @@ public struct PostureVisualizerView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: selectedRigMode.icon)
-                            .foregroundColor(.yellow)
-                        Text(selectedRigMode == .agamemnon ? "Agamemnon" : (selectedRigMode == .anatomical ? "Metal 3D" : "2.5D"))
+                            .foregroundColor(.cyan)
+                        Text(selectedRigMode == .humanFace ? "3D Human Face" : (selectedRigMode == .anatomical ? "Metal 3D" : (selectedRigMode == .agamemnon ? "Agamemnon" : "2.5D")))
                             .font(.caption.bold())
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color.yellow.opacity(0.15))
+                    .background(Color.cyan.opacity(0.15))
                     .cornerRadius(8)
                 }
                 .help("Select 3D Kinematic Visualizer Rig")
@@ -163,6 +165,50 @@ public struct PostureVisualizerView: View {
             
             // Dynamic 3D Rig Rendering based on selectedRigMode
             switch selectedRigMode {
+            case .humanFace:
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color.cyan.opacity(0.35), Color.blue.opacity(0.15), .clear],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1.5
+                                )
+                        )
+                        .shadow(color: Color.cyan.opacity(0.15), radius: 15)
+                    
+                    HumanFace3DView(
+                        pitch: motion.deltaPitch,
+                        roll: motion.deltaRoll,
+                        yaw: motion.deltaYaw,
+                        postureScore: motion.postureScore
+                    )
+                    
+                    VStack {
+                        HStack {
+                            HStack(spacing: 6) {
+                                Image(systemName: "face.smiling.fill")
+                                    .foregroundColor(.cyan)
+                                Text("3D Studio Portrait: Human Head & AirPods Pro 2 Rig")
+                                    .font(.caption2.bold())
+                                    .foregroundColor(.primary)
+                            }
+                            Spacer()
+                            Text(motion.postureScore >= 80 ? "Optimal Neutral Alignment" : "Forward Neck Flexion")
+                                .font(.caption2.bold())
+                                .foregroundColor(motion.postureScore >= 80 ? .green : .orange)
+                        }
+                        .padding(14)
+                        Spacer()
+                    }
+                }
+                .frame(height: 270)
+                
             case .agamemnon:
                 ZStack {
                     RoundedRectangle(cornerRadius: 18)
