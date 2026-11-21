@@ -14,6 +14,10 @@ public struct SettingsView: View {
     
     public var body: some View {
         Form {
+            Section(header: Text("Software Updates & Release Channel").font(.headline)) {
+                SoftwareUpdateCardView()
+            }
+            
             Section(header: Text("Posture Profiles & Presets").font(.headline)) {
                 Picker("Active Profile", selection: $motion.activeProfile) {
                     ForEach(PostureProfile.allCases) { profile in

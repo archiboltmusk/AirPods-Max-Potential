@@ -17,6 +17,15 @@ struct AirPodsPostureApp: App {
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 1160, height: 780)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates...") {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: "main-dashboard")
+                    AppUpdateManager.shared.checkForUpdates()
+                }
+            }
+        }
 
         MenuBarExtra {
             MenuBarView(motion: motion) {

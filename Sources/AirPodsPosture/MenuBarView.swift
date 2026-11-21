@@ -255,6 +255,13 @@ public struct MenuBarView: View {
                 Label("Open Full Dashboard...", systemImage: "macwindow")
             }
             
+            Button(action: {
+                openDashboard()
+                AppUpdateManager.shared.checkForUpdates()
+            }) {
+                Label("Check for Updates...", systemImage: "arrow.triangle.2.circlepath")
+            }
+            
             Divider()
             
             Button(action: {
