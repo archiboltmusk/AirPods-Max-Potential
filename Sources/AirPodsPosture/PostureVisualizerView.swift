@@ -101,6 +101,19 @@ public struct PostureVisualizerView: View {
                     .cornerRadius(8)
                 }
                 
+                // Autonomous Calibration Status Indicator Pill
+                HStack(spacing: 5) {
+                    Image(systemName: "sparkles")
+                        .foregroundColor(.green)
+                    Text("Zero-Touch Auto-Calibration: Active")
+                        .font(.caption2.bold())
+                        .foregroundColor(.primary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.green.opacity(0.12))
+                .cornerRadius(8)
+                
                 // Score Pill
                 HStack(spacing: 5) {
                     Text("Score:")

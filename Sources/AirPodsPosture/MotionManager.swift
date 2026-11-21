@@ -85,7 +85,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     @Published public var lastErrorMessage: String? = nil
     
     // Calibrated baseline quaternion & Euler
-    private var qBaseline: simd_quatd = simd_quatd(ix: 0, iy: 0, iz: 0, r: 1)
+    public var qBaseline: simd_quatd = simd_quatd(ix: 0, iy: 0, iz: 0, r: 1)
     @Published public var isCalibrated: Bool = false
     
     // Relative Posture Deviations (degrees from calibrated baseline)
@@ -362,6 +362,14 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             savePreferences()
         }
         
+        // Autonomous Continuous Statistical Calibration
+        AutonomousAutoCalibrator.shared.processIncomingSample(
+            currentQuat: quat,
+            gravity: gravity,
+            gyroVariance: sqrt(pow(rotRateX, 2) + pow(rotRateY, 2) + pow(rotRateZ, 2)),
+            userEnergy: totalKineticEnergy
+        )
+        
         // Auto-drift compensation: slowly pull baseline toward current if stable
         if autoDriftCorrection {
             let driftFactor = 0.0004
@@ -511,6 +519,12 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
                 lastDetectedGesture = .nod
                 gestureTimestamp = now
                 DictationTriggerManager.shared.recordNod()
+                
+                // If user is slouching or requesting calibration, deliberate nod recalibrates automatically
+                if postureState == .slouching || postureState == .warning {
+                    AutonomousAutoCalibrator.shared.triggerInstantDoubleNodCalibration()
+                }
+                
                 pitchHistory.removeAll()
             }
         } else if (maxYaw - minYaw) > 22.0 && (maxPitch - minPitch) < 10.0 {
