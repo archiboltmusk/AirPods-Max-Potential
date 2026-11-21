@@ -20,7 +20,7 @@ public enum QuaternionMath {
     }
     
     /// Decomposes a quaternion into Euler angles in degrees:
-    /// Yaw: positive = look left
+    /// Yaw: positive = look right, negative = look left
     /// Pitch: positive = look up, negative = look down (slouch)
     /// Roll: positive = tilt head right, negative = tilt head left
     public static func euler(from q: simd_quatd) -> EulerAngles {
@@ -31,7 +31,7 @@ public enum QuaternionMath {
         
         let sinPitch = 2.0 * (y * z + w * x)
         let pitch = asin(clamp(sinPitch))
-        let yaw = atan2(2.0 * (w * z - x * y), 1.0 - 2.0 * (x * x + z * z))
+        let yaw = -atan2(2.0 * (w * z - x * y), 1.0 - 2.0 * (x * x + z * z))
         let roll = atan2(2.0 * (w * y - x * z), 1.0 - 2.0 * (x * x + y * y))
         
         let deg = 180.0 / .pi
