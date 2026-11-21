@@ -424,6 +424,9 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         AcousticPulseEstimator.shared.update(userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
         VocalStrainCoach.shared.update(pitch: deltaPitch, roll: deltaRoll)
         MenuBarSparklineRenderer.shared.addSample(score: postureScore)
+        Spatial3DAnchorManager.shared.updateListenerOrientation(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+        NeuralPoseClassifier.shared.classify(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, accel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ), rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ))
+        CervicalGameEngine.shared.updateHeadPitch(pitch: deltaPitch)
             return
         }
         
@@ -480,6 +483,9 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         AcousticPulseEstimator.shared.update(userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
         VocalStrainCoach.shared.update(pitch: deltaPitch, roll: deltaRoll)
         MenuBarSparklineRenderer.shared.addSample(score: postureScore)
+        Spatial3DAnchorManager.shared.updateListenerOrientation(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+        NeuralPoseClassifier.shared.classify(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, accel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ), rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ))
+        CervicalGameEngine.shared.updateHeadPitch(pitch: deltaPitch)
     }
     
     private func detectGestures(pitch: Double, yaw: Double) {

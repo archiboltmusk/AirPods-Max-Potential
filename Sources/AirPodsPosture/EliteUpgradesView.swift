@@ -374,6 +374,64 @@ public struct EliteUpgradesView: View {
                 .padding()
                 .background(Color(NSColor.controlBackgroundColor))
                 .cornerRadius(12)
+                
+                // 11. Spatial 3D Anchor & Neural Classifier
+                HStack(alignment: .top, spacing: 16) {
+                    // Spatial 3D Anchor
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Image(systemName: "dot.radiowaves.left.and.right")
+                                .foregroundColor(.teal)
+                            Text("11. Spatial Audio 3D Anchor")
+                                .font(.headline)
+                        }
+                        Text("Anchors a subtle virtual audio beacon directly in front of your desk. Your inner ear naturally pulls you upright.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Text(Spatial3DAnchorManager.shared.anchorStatus)
+                            .font(.caption2.bold())
+                            .foregroundColor(.teal)
+                        
+                        Button(Spatial3DAnchorManager.shared.isAnchorActive ? "Mute 3D Anchor" : "Activate 3D Audio Anchor") {
+                            Spatial3DAnchorManager.shared.toggleAnchor()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(12)
+                    
+                    // Neural Pose Classifier
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Image(systemName: "brain.head.profile")
+                                .foregroundColor(.indigo)
+                            Text("12. Neural Pose Classifier")
+                                .font(.headline)
+                        }
+                        Text("Multi-dimensional kinematic classification running on the Apple Neural Engine.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(NeuralPoseClassifier.shared.detectedPose.rawValue)
+                                .font(.headline.bold())
+                                .foregroundColor(.primary)
+                            Text("Confidence: \(Int(NeuralPoseClassifier.shared.confidence * 100))% • Latency: \(String(format: "%.2fms", NeuralPoseClassifier.shared.inferenceLatencyMs))")
+                                .font(.caption2.monospaced())
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(12)
+                }
+                
+                // 13. Cervical Flight Warmup Game
+                CervicalFlappyGameView()
             }
             .padding(24)
         }

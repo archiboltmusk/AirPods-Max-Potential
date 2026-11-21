@@ -1,0 +1,41 @@
+name: Build & Release DMG
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build macOS Universal Bundle
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Build and Package Release App
+        run: |
+          chmod +x build_app.sh
+          ./build_app.sh
+
+      - name: Create DMG Disk Image
+        run: |
+          mkdir -p dmg_root
+          cp -R AirPodsPosture.app dmg_root/
+          ln -s /Applications dmg_root/Applications
+          hdiutil create -volname "AirPodsIQ" -srcfolder dmg_root -ov -format UDZO "AirPodsIQ-${{ github.ref_name }}.dmg"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AirPodsIQ-*.dmg
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

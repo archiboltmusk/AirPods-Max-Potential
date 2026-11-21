@@ -7,6 +7,10 @@ public final class HeadPointerManager: ObservableObject {
     public static let shared = HeadPointerManager()
     
     @Published public var isScrollEnabled: Bool = false
+    public var isEnabled: Bool {
+        get { isScrollEnabled }
+        set { isScrollEnabled = newValue }
+    }
     @Published public var scrollSensitivity: Double = 1.0
     @Published public var activeScrollSpeed: Double = 0.0
     
