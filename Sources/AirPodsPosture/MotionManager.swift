@@ -467,10 +467,15 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
                     if !TypingFlowStateGatingManager.shared.shouldSuppressAlertForFlow() {
                         slouchEventCount += 1
                         triggerSlouchAlert()
+                        SyntheticEarHapticEngine.shared.playTapticClick()
                     }
+                    DynamicIslandNotchHaloManager.shared.updatePosture(postureState: .slouching, deltaPitch: deltaPitch)
                 }
                 postureState = .slouching
             } else {
+                if postureState == .optimal {
+                    SyntheticEarHapticEngine.shared.playGentleDoubleTap()
+                }
                 postureState = .warning
             }
         } else {

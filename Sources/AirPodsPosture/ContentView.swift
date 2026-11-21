@@ -7,7 +7,10 @@ public struct ContentView: View {
     @State private var selectedTab: TabItem = .posture
     
     enum TabItem: String, CaseIterable, Identifiable {
+        case showcase = "Apple 360° Studio"
         case posture = "Posture Monitor"
+        case radar = "Spatial 360° Radar"
+        case timeline = "Biometric Timeline"
         case sensors = "AirPods Pro Sensors"
         case upgrades = "Power Upgrades"
         case advanced = "Spatial Intelligence"
@@ -22,7 +25,10 @@ public struct ContentView: View {
         
         var icon: String {
             switch self {
+            case .showcase: return "headphones.circle.fill"
             case .posture: return "figure.walk.motion"
+            case .radar: return "dot.radiowaves.left.and.right"
+            case .timeline: return "chart.xyaxis.line"
             case .sensors: return "earbuds.case.fill"
             case .upgrades: return "sparkles.square.filled.on.square"
             case .advanced: return "wand.and.stars.inverse"
@@ -82,6 +88,11 @@ public struct ContentView: View {
             } detail: {
                 Group {
                     switch selectedTab {
+                    case .showcase:
+                        ScrollView {
+                            Apple360HeroShowcaseView()
+                                .padding(.vertical, 16)
+                        }
                     case .posture:
                         ScrollView {
                             VStack(spacing: 16) {
@@ -89,6 +100,9 @@ public struct ContentView: View {
                                 
                                 // Interactive 24-Hour Biomechanical Heatmap Scrub Bar
                                 BiomechanicalHeatmapView()
+                                
+                                // Interactive 24h Apple Fitness Spline Scrubber
+                                BiometricTimelineScrubberView()
                                 
                                 // Bottom Action Strip
                                 HStack(spacing: 12) {
@@ -140,6 +154,16 @@ public struct ContentView: View {
                                 .padding(.horizontal, 4)
                             }
                             .padding(18)
+                        }
+                    case .radar:
+                        ScrollView {
+                            SpatialSoundstageRadarView()
+                                .padding(.vertical, 16)
+                        }
+                    case .timeline:
+                        ScrollView {
+                            BiometricTimelineScrubberView()
+                                .padding(24)
                         }
                     case .sensors:
                         AirPodsProSensorsView()

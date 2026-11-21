@@ -82,6 +82,7 @@ public final class AutonomousAutoCalibrator: ObservableObject {
             motion.isCalibrated = true
             lastAutoCalibratedTime = Date()
             autoCalibrationStatus = "Auto-Locked: Initialized from Earth Gravity Mode"
+            SyntheticEarHapticEngine.shared.playSuccessChirp()
         } else {
             // Subtle adaptive Slerp pull (0.002 factor) so alignment adapts as posture shifts
             motion.qBaseline = simd_slerp(motion.qBaseline, currentQuat, 0.002)
@@ -102,5 +103,6 @@ public final class AutonomousAutoCalibrator: ObservableObject {
         calibrationConfidence = 1.0
         autoCalibrationStatus = "Instant Recalibration via Double-Nod Gesture"
         motion.playFeedbackSound("Hero")
+        SyntheticEarHapticEngine.shared.playSuccessChirp()
     }
 }
