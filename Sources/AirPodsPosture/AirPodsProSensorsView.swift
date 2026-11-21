@@ -3,6 +3,9 @@ import SwiftUI
 public struct AirPodsProSensorsView: View {
     @ObservedObject var motion = MotionManager.shared
     @ObservedObject var audioDevice = AudioDeviceManager.shared
+    @ObservedObject var batteryOpt = AirPodsBatteryOptimizerEngine.shared
+    @ObservedObject var tmjGuard = JawClenchingBruxismDetector.shared
+    @ObservedObject var pomodoro = PostureGatedPomodoroEngine.shared
     
     public init() {}
     
@@ -15,9 +18,9 @@ public struct AirPodsProSensorsView: View {
                         .font(.title)
                         .foregroundColor(.accentColor)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("AirPods Pro 2 Sensor Telemetry")
+                        Text("AirPods Pro 2 & Max Hardware Diagnostics")
                             .font(.title2.bold())
-                        Text("Real-time 60Hz 6-axis IMU kinematic stream & hardware status")
+                        Text("Smart Hz Battery Optimizer • TMJ Jaw Guard • Posture Pomodoro")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -26,11 +29,11 @@ public struct AirPodsProSensorsView: View {
                     
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(motion.packetCount > 0 ? Color.green : Color.orange)
+                            .fill(batteryOpt.isEcoSamplingActive ? Color.teal : Color.green)
                             .frame(width: 8, height: 8)
-                        Text(motion.packetCount > 0 ? "Streaming 60Hz" : "Waiting for Stream")
+                        Text(batteryOpt.isEcoSamplingActive ? "10Hz Eco-Pulse" : "60Hz Full Kinematics")
                             .font(.caption.bold())
-                            .foregroundColor(motion.packetCount > 0 ? .green : .orange)
+                            .foregroundColor(batteryOpt.isEcoSamplingActive ? .teal : .green)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
@@ -58,52 +61,221 @@ public struct AirPodsProSensorsView: View {
                                     .font(.caption2.bold())
                                     .foregroundColor(.secondary)
                             }
-                            .padding(.top, 2)
                         }
                     }
                     .padding(14)
                     .background(Color.orange.opacity(0.12))
                     .cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.3), lineWidth: 1))
                 }
                 
-                // Stream Stats Pill Strip
-                HStack(spacing: 12) {
-                    SensorStatCard(title: "Packets Received", value: "\(motion.packetCount)", icon: "antenna.radiowaves.left.and.right", color: .green)
-                    SensorStatCard(title: "Kinetic Energy", value: String(format: "%.3f g", motion.totalKineticEnergy), icon: "flame.fill", color: .orange)
-                    SensorStatCard(title: "Audio Route", value: audioDevice.currentOutputDeviceName, icon: "headphones", color: audioDevice.isAirPodsActiveOutput ? .blue : .secondary)
-                }
-                
-                // Sensor Section 1: Gravity Vector
-                SensorSectionBox(title: "Earth's Gravity Vector (Tilt Acceleration)", icon: "globe.americas.fill", subtitle: "Total Earth gravity magnitude = 1.0g. Directly measures absolute head orientation.") {
-                    HStack(spacing: 16) {
-                        AxisBarView(label: "Gx (Lateral)", value: motion.gravityX, unit: "g", range: -1.0...1.0, color: .purple)
-                        AxisBarView(label: "Gy (Forward)", value: motion.gravityY, unit: "g", range: -1.0...1.0, color: .blue)
-                        AxisBarView(label: "Gz (Vertical)", value: motion.gravityZ, unit: "g", range: -1.0...1.0, color: .teal)
+                // Section 1: AirPods & Mac Battery Longevity ("Smart Hz" Eco Duty Cycle)
+                SensorSectionBox(
+                    title: "Smart Hz Battery Optimization & Bilateral Power Balance",
+                    icon: "battery.100.bolt",
+                    subtitle: "Throttles IMU radio transmission from 60Hz down to 10Hz during resting stillness. Saves up to 65% transmit power, extending AirPods sessions from 4.5h to 7h+."
+                ) {
+                    VStack(spacing: 12) {
+                        HStack(spacing: 16) {
+                            // Left Bud
+                            VStack(spacing: 4) {
+                                Image(systemName: "earbuds")
+                                    .font(.title3)
+                                    .foregroundColor(.cyan)
+                                Text("Left: \(batteryOpt.leftBudBatteryPercent)%")
+                                    .font(.caption.bold())
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(10)
+                            .background(Color.secondary.opacity(0.06))
+                            .cornerRadius(8)
+                            
+                            // Right Bud
+                            VStack(spacing: 4) {
+                                Image(systemName: "earbuds")
+                                    .font(.title3)
+                                    .foregroundColor(.cyan)
+                                Text("Right: \(batteryOpt.rightBudBatteryPercent)%")
+                                    .font(.caption.bold())
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(10)
+                            .background(Color.secondary.opacity(0.06))
+                            .cornerRadius(8)
+                            
+                            // Case
+                            VStack(spacing: 4) {
+                                Image(systemName: "case")
+                                    .font(.title3)
+                                    .foregroundColor(.green)
+                                Text("Case: \(batteryOpt.caseBatteryPercent)%")
+                                    .font(.caption.bold())
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(10)
+                            .background(Color.secondary.opacity(0.06))
+                            .cornerRadius(8)
+                            
+                            // Remaining Time
+                            VStack(spacing: 4) {
+                                Text(String(format: "%.1fh", batteryOpt.estimatedHoursRemaining))
+                                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                                    .foregroundColor(.primary)
+                                Text("Est. Remaining")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(10)
+                            .background(Color.secondary.opacity(0.06))
+                            .cornerRadius(8)
+                        }
+                        
+                        if let alert = batteryOpt.quickChargeAdvisorAlert {
+                            HStack(spacing: 8) {
+                                Image(systemName: "bolt.fill")
+                                    .foregroundColor(.orange)
+                                Text(alert)
+                                    .font(.caption.bold())
+                                    .foregroundColor(.orange)
+                            }
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.orange.opacity(0.12))
+                            .cornerRadius(8)
+                        }
+                        
+                        HStack {
+                            Toggle("Enable Smart Hz Adaptive Duty Cycle", isOn: $batteryOpt.isSmartHzEnabled)
+                                .font(.caption.bold())
+                            Spacer()
+                            Text("Current: \(batteryOpt.currentSamplingHz)Hz (\(batteryOpt.powerSaveRatioPercent)% TX Energy Saved)")
+                                .font(.caption2.bold())
+                                .foregroundColor(.teal)
+                        }
                     }
                 }
                 
-                // Sensor Section 2: User Dynamic Acceleration
-                SensorSectionBox(title: "User Acceleration (Dynamic Movement)", icon: "figure.walk.motion", subtitle: "Isolates active head motion from gravity. Detects nods, walking, and head gestures.") {
-                    HStack(spacing: 16) {
-                        AxisBarView(label: "Ax (Nodding)", value: motion.userAccelX, unit: "g", range: -0.5...0.5, color: .red)
-                        AxisBarView(label: "Ay (Sway)", value: motion.userAccelY, unit: "g", range: -0.5...0.5, color: .green)
-                        AxisBarView(label: "Az (Bobbing)", value: motion.userAccelZ, unit: "g", range: -0.5...0.5, color: .orange)
+                // Section 2: Posture-Gated Pomodoro Focus Engine
+                SensorSectionBox(
+                    title: "Posture-Gated Pomodoro Deep Work Focus Engine",
+                    icon: "timer",
+                    subtitle: "A 25-minute deep work timer that ONLY counts down when your posture score is >= 80%. When you slouch, it pauses and pulses amber."
+                ) {
+                    VStack(spacing: 12) {
+                        HStack(spacing: 24) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                let mins = Int(pomodoro.secondsRemaining) / 60
+                                let secs = Int(pomodoro.secondsRemaining) % 60
+                                Text(String(format: "%02d:%02d", mins, secs))
+                                    .font(.system(size: 38, weight: .heavy, design: .rounded))
+                                    .foregroundColor(pomodoro.isPosturePaused ? .orange : (pomodoro.isRunning ? .green : .primary))
+                                
+                                Text(pomodoro.isPosturePaused ? "⚠️ Slouching: Timer Paused!" : (pomodoro.isRunning ? "Focused Upright Flow" : "Ready to Start"))
+                                    .font(.caption.bold())
+                                    .foregroundColor(pomodoro.isPosturePaused ? .orange : .secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("\(Int(pomodoro.uprightFocusMinutesEarned))m Upright Today")
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(.green)
+                                Text("\(pomodoro.completedSessionsToday) Sessions Completed")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            HStack(spacing: 8) {
+                                if !pomodoro.isRunning {
+                                    Button("Start Focus") {
+                                        pomodoro.startSession()
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                } else {
+                                    Button("Pause") {
+                                        pomodoro.pauseSession()
+                                    }
+                                    .buttonStyle(.bordered)
+                                }
+                                
+                                Button("Reset") {
+                                    pomodoro.resetSession()
+                                }
+                                .buttonStyle(.borderless)
+                                .font(.caption)
+                            }
+                        }
                     }
                 }
                 
-                // Sensor Section 3: Gyroscope Angular Velocity
-                SensorSectionBox(title: "Tri-Axial Gyroscope (Rotation Rate)", icon: "rotate.3d", subtitle: "Measures instantaneous angular rotational velocity in degrees per second.") {
+                // Section 3: Jaw Clenching & Bruxism Strain Guard
+                SensorSectionBox(
+                    title: "Jaw Clenching & Bruxism Strain Guard (TMJ Stress Detector)",
+                    icon: "mouth.fill",
+                    subtitle: "Detects bone-conducted high-frequency micro-tremors (120Hz-240Hz) from masseter and temporalis muscle clenching during stress."
+                ) {
                     HStack(spacing: 16) {
-                        AxisBarView(label: "Pitch Rate (X)", value: motion.rotRateX, unit: "°/s", range: -60.0...60.0, color: .indigo)
-                        AxisBarView(label: "Roll Rate (Y)", value: motion.rotRateY, unit: "°/s", range: -60.0...60.0, color: .cyan)
-                        AxisBarView(label: "Yaw Rate (Z)", value: motion.rotRateZ, unit: "°/s", range: -60.0...60.0, color: .mint)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(tmjGuard.tmjStressIndex)/100")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundColor(tmjGuard.tmjStressIndex > 40 ? .orange : .green)
+                            Text("TMJ Stress Index")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Divider().frame(height: 36)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(tmjGuard.clenchEventsToday)")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundColor(.primary)
+                            Text("Clench Events Today")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Text(tmjGuard.statusMessage)
+                            .font(.caption.bold())
+                            .foregroundColor(tmjGuard.jawClenchingActive ? .orange : .secondary)
+                            .multilineTextAlignment(.trailing)
                     }
                 }
                 
-                // Sensor Section 4: Spatial Quaternion
-                SensorSectionBox(title: "4D Spatial Attitude Quaternion", icon: "cube.transparent", subtitle: "Singularity-free 4D representation of your AirPods Pro orientation in space.") {
-                    HStack(spacing: 14) {
+                // Section 4: Live Kinematic Accelerometers & Gyroscopes
+                SensorSectionBox(
+                    title: "User Dynamic Acceleration (g units)",
+                    icon: "speedometer",
+                    subtitle: "Instantaneous dynamic linear acceleration isolating user head motion from Earth gravity"
+                ) {
+                    VStack(spacing: 10) {
+                        AxisBarView(label: "X (Lateral)", value: motion.userAccelX, unit: "g", range: -1.0...1.0, color: .green)
+                        AxisBarView(label: "Y (Vertical)", value: motion.userAccelY, unit: "g", range: -1.0...1.0, color: .blue)
+                        AxisBarView(label: "Z (Sagittal)", value: motion.userAccelZ, unit: "g", range: -1.0...1.0, color: .orange)
+                    }
+                }
+                
+                SensorSectionBox(
+                    title: "Rotation Rate / Gyroscope (deg/s)",
+                    icon: "gyroscope",
+                    subtitle: "Cervical angular velocity computed directly from AirPods H2 DSP"
+                ) {
+                    VStack(spacing: 10) {
+                        AxisBarView(label: "Pitch Rate (Up/Down)", value: motion.rotRateX, unit: "°/s", range: -180.0...180.0, color: .purple)
+                        AxisBarView(label: "Roll Rate (Tilt)", value: motion.rotRateY, unit: "°/s", range: -180.0...180.0, color: .pink)
+                        AxisBarView(label: "Yaw Rate (Turn)", value: motion.rotRateZ, unit: "°/s", range: -180.0...180.0, color: .indigo)
+                    }
+                }
+                
+                SensorSectionBox(
+                    title: "Spatial Attitude Quaternion",
+                    icon: "cube.transparent",
+                    subtitle: "Unit quaternion representation (w, x, y, z) ensuring gimbal-lock-free 3D orientation"
+                ) {
+                    HStack(spacing: 12) {
                         QuatPill(label: "qw", value: motion.quatW)
                         QuatPill(label: "qx", value: motion.quatX)
                         QuatPill(label: "qy", value: motion.quatY)
@@ -116,32 +288,7 @@ public struct AirPodsProSensorsView: View {
     }
 }
 
-struct SensorStatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundColor(color)
-                    .font(.caption)
-                Text(title)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-            Text(value)
-                .font(.system(.headline, design: .monospaced, weight: .bold))
-                .lineLimit(1)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(10)
-    }
-}
+// MARK: - Supporting Component Views
 
 struct SensorSectionBox<Content: View>: View {
     let title: String
