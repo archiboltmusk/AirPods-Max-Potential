@@ -18,11 +18,35 @@ public final class VocalStrainCoach: ObservableObject {
     @Published public var strainEventsCount: Int = 0
     @Published public var statusMessage: String = "Optimal Laryngeal Speech Alignment"
     
+    @Published public var glottalFryDetected: Bool = false
+    @Published public var fundamentalFrequencyHz: Double = 132.0 // Speech F0
+    @Published public var continuousSpeakingMinutes: Int = 0
+    @Published public var vocalHydrationAlert: String? = nil
+    
     private var micCheckTimer: Timer?
     private var strainStartTime: Date?
+    private var continuousMicTimer: Timer?
     
     private init() {
         startMicPolling()
+        startSpeakingDurationTracker()
+    }
+    
+    private func startSpeakingDurationTracker() {
+        continuousMicTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                if self.isMicActive {
+                    self.continuousSpeakingMinutes += 1
+                    if self.continuousSpeakingMinutes >= 25 {
+                        self.vocalHydrationAlert = "25+ Mins Speaking • Sip Warm Water to Lubricate Vocal Folds"
+                    }
+                } else {
+                    self.continuousSpeakingMinutes = 0
+                    self.vocalHydrationAlert = nil
+                }
+            }
+        }
     }
     
     public func update(pitch: Double, roll: Double) {

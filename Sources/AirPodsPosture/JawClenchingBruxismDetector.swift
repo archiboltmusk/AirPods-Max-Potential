@@ -11,6 +11,7 @@ public final class JawClenchingBruxismDetector: ObservableObject {
     
     @Published public var isEnabled: Bool = true
     @Published public var jawClenchingActive: Bool = false
+    public var isClenchingActive: Bool { jawClenchingActive }
     @Published public var tmjStressIndex: Int = 18 // 0 - 100
     @Published public var clenchEventsToday: Int = 3
     @Published public var statusMessage: String = "Masseter Muscles Relaxed"

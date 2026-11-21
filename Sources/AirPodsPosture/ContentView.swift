@@ -18,6 +18,7 @@ public struct ContentView: View {
         case radar = "Spatial 360° Radar"
         case timeline = "Biometric Timeline"
         case stretches = "Neck Stretches & PT"
+        case vitality = "Biohacking & Vitality"
         
         // SECTION 3: LABS & INTELLIGENCE
         case openSourceLab = "Peer Open-Source Labs"
@@ -42,6 +43,7 @@ public struct ContentView: View {
             case .radar: return "dot.radiowaves.left.and.right"
             case .timeline: return "chart.xyaxis.line"
             case .stretches: return "figure.mind.and.body"
+            case .vitality: return "heart.text.square.fill"
             case .openSourceLab: return "sparkles.rectangle.stack.fill"
             case .sensors: return "earbuds.case.fill"
             case .upgrades: return "sparkles.square.filled.on.square"
@@ -62,6 +64,7 @@ public struct ContentView: View {
             case .radar: return .blue
             case .timeline: return .orange
             case .stretches: return .teal
+            case .vitality: return .pink
             case .openSourceLab: return .purple
             case .sensors: return .indigo
             case .upgrades: return .yellow
@@ -102,6 +105,7 @@ public struct ContentView: View {
                             sidebarRow(.radar)
                             sidebarRow(.timeline)
                             sidebarRow(.stretches)
+                            sidebarRow(.vitality)
                         }
                         
                         // SECTION 3: LABS & INTELLIGENCE
@@ -264,6 +268,8 @@ public struct ContentView: View {
                         }
                     case .stretches:
                         StretchCoachView(motion: motion)
+                    case .vitality:
+                        BiohackingVitalityView()
                         
                     // 3. LABS & INTELLIGENCE
                     case .openSourceLab:

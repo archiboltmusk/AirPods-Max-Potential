@@ -487,7 +487,11 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         let pitchDeviation = abs(deltaPitch)
         let rollDeviation = abs(deltaRoll)
         
-        let isPitchBad = pitchDeviation > pitchThreshold
+        var effectivePitchThreshold = pitchThreshold
+        if CircadianMelatoninShield.shared.isShieldEnabled && CircadianMelatoninShield.shared.isNightModeActive {
+            effectivePitchThreshold = pitchThreshold / CircadianMelatoninShield.shared.eveningPostureThresholdMultiplier
+        }
+        let isPitchBad = pitchDeviation > effectivePitchThreshold
         let isRollBad = rollDeviation > rollThreshold
         
         if isPitchBad || isRollBad {
