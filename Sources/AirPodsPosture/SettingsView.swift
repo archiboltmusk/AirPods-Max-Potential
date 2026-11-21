@@ -2,6 +2,8 @@ import SwiftUI
 
 public struct SettingsView: View {
     @ObservedObject var motion: MotionManager
+    @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
+    @ObservedObject var breakTimer = ErgonomicBreakTimer.shared
     
     let availableSounds = ["Tink", "Ping", "Hero", "Pop", "Submarine", "Basso", "Funk", "Glass"]
     
@@ -11,79 +13,112 @@ public struct SettingsView: View {
     
     public var body: some View {
         Form {
-            Section(header: Text("Ergonomic Calibration & Sensitivity").font(.headline)) {
-                VStack(alignment: .leading, spacing: 12) {
+            Section(header: Text("Posture Profiles & Presets").font(.headline)) {
+                Picker("Active Profile", selection: $motion.activeProfile) {
+                    ForEach(PostureProfile.allCases) { profile in
+                        Text(profile.rawValue).tag(profile)
+                    }
+                }
+                .pickerStyle(.segmented)
+                
+                Text(motion.activeProfile.description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 2)
+            }
+            
+            Section(header: Text("Loophole Defenses & Smart Automation").font(.headline)) {
+                Toggle("Launch at Login (Start with macOS)", isOn: $motion.launchAtLogin)
+                
+                Toggle("Screen Edge Ambient Glow Alert", isOn: Binding(
+                    get: { ScreenGlowManager.shared.isGlowEnabled },
+                    set: { ScreenGlowManager.shared.isGlowEnabled = $0 }
+                ))
+                Text("Subtly pulses a gentle amber or red glow along the border of your display when slouching. Completely silent, click-through, and perfect for meetings and deep focus.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Smart Meeting Guard (Mute during Zoom / Calls)", isOn: $motion.muteInMeetings)
+                Text("Monitors macOS microphone state in real-time. Automatically silences audio chimes during meetings, calls, or screen recordings so you are never interrupted.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Battery Saver Mode (Eco Sampling)", isOn: $motion.batterySaverMode)
+                Text("Dynamically throttles sensor polling in background mode to ~10Hz. Conserves AirPods Max/Pro battery and drops Mac CPU usage below 0.1%.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Auto-Drift Posture Compensation", isOn: $motion.autoDriftCorrection)
+                Text("Applies a subtle exponential moving filter to compensate for headphones gently slipping on hair/ears over 4+ hours of continuous wear.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            Section(header: Text("20-20-20 Ergonomic Eye & Spine Break Timer").font(.headline)) {
+                Toggle("Enable 20-20-20 Rule Reminders", isOn: $breakTimer.isEnabled)
+                
+                if breakTimer.isEnabled {
                     HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Neutral Upright Posture")
-                                .font(.body.bold())
-                            Text(motion.isCalibrated ? "Calibrated (Pitch: \(Int(motion.baselinePitch))°, Roll: \(Int(motion.baselineRoll))°)" : "Not yet calibrated")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        
+                        Text("Interval:")
                         Spacer()
-                        
-                        Button("Calibrate Now") {
-                            motion.calibrateCurrentPosture()
-                        }
-                        .buttonStyle(.borderedProminent)
+                        Text("\(Int(breakTimer.intervalMinutes)) minutes")
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $breakTimer.intervalMinutes, in: 15.0...60.0, step: 5.0)
+                    
+                    HStack {
+                        Text("Time until next break:")
+                        Spacer()
+                        Text(String(format: "%02dm %02ds", Int(breakTimer.secondsRemaining) / 60, Int(breakTimer.secondsRemaining) % 60))
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(.accentColor)
                     }
                     
-                    Text("Sit straight with your eyes naturally level with the top third of your display, then click Calibrate.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Button("Trigger Break Now") {
+                        breakTimer.startBreak()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                .padding(.vertical, 4)
-                
+            }
+            
+            Section(header: Text("Fine-Tuning Sensitivity & Thresholds").font(.headline)) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Forward Slouch Sensitivity (Pitch Threshold)")
+                        Text("Forward Slouch Sensitivity (Pitch)")
                         Spacer()
                         Text("\(Int(motion.pitchThreshold))°")
                             .font(.system(.body, design: .monospaced, weight: .bold))
                     }
-                    Slider(value: $motion.pitchThreshold, in: 6.0...25.0, step: 1.0)
-                    Text("Smaller degrees trigger alerts with less slouching. Recommended: 10° - 14°.")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                    Slider(value: $motion.pitchThreshold, in: 6.0...30.0, step: 1.0)
                 }
-                .padding(.vertical, 4)
                 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Lateral Head Tilt Sensitivity (Roll Threshold)")
+                        Text("Lateral Tilt Sensitivity (Roll)")
                         Spacer()
                         Text("\(Int(motion.rollThreshold))°")
                             .font(.system(.body, design: .monospaced, weight: .bold))
                     }
-                    Slider(value: $motion.rollThreshold, in: 5.0...20.0, step: 1.0)
-                    Text("Detects resting head on hand or leaning sideways on armrests. Recommended: 8° - 12°.")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                    Slider(value: $motion.rollThreshold, in: 5.0...25.0, step: 1.0)
                 }
-                .padding(.vertical, 4)
                 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Grace Period Before Alert")
+                        Text("Grace Period Buffer")
                         Spacer()
                         Text(String(format: "%.1fs", motion.gracePeriodSeconds))
                             .font(.system(.body, design: .monospaced, weight: .bold))
                     }
                     Slider(value: $motion.gracePeriodSeconds, in: 1.0...10.0, step: 0.5)
-                    Text("Prevents alerts when temporarily taking a drink or briefly glancing at keyboard.")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 4)
             }
             
-            Section(header: Text("Feedback & Notifications").font(.headline)) {
+            Section(header: Text("Audio & Feedback Options").font(.headline)) {
                 Toggle("Sound Alert on Slouching", isOn: $motion.soundAlertsEnabled)
                 
                 if motion.soundAlertsEnabled {
-                    Picker("Alert Sound", selection: $motion.alertSoundName) {
+                    Picker("Alert Chime", selection: $motion.alertSoundName) {
                         ForEach(availableSounds, id: \.self) { sound in
                             Text(sound).tag(sound)
                         }
@@ -101,45 +136,38 @@ public struct SettingsView: View {
                 }
             }
             
-            Section(header: Text("Testing & Simulation Mode").font(.headline)) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Toggle("Enable Simulation / Demo Mode", isOn: Binding(
-                        get: { motion.isSimulated },
-                        set: { _ in motion.toggleSimulation() }
-                    ))
-                    
-                    if motion.isSimulated {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Simulated Pitch: \(Int(motion.simulatedPitch))°")
-                                .font(.caption.bold())
-                            Slider(value: $motion.simulatedPitch, in: -35.0...35.0, step: 1.0)
-                            
-                            Text("Simulated Roll: \(Int(motion.simulatedRoll))°")
-                                .font(.caption.bold())
-                            Slider(value: $motion.simulatedRoll, in: -30.0...30.0, step: 1.0)
-                            
-                            Text("Simulated Yaw: \(Int(motion.simulatedYaw))°")
-                                .font(.caption.bold())
-                            Slider(value: $motion.simulatedYaw, in: -45.0...45.0, step: 1.0)
-                            
-                            HStack {
-                                Button("Simulate Good Posture") {
-                                    motion.simulatedPitch = 0
-                                    motion.simulatedRoll = 0
-                                    motion.simulatedYaw = 0
-                                }
-                                Button("Simulate Slouch") {
-                                    motion.simulatedPitch = -18
-                                    motion.simulatedRoll = 4
-                                }
+            Section(header: Text("Testing & Demo Mode").font(.headline)) {
+                Toggle("Enable Simulation Mode", isOn: Binding(
+                    get: { motion.isSimulated },
+                    set: { _ in motion.toggleSimulation() }
+                ))
+                
+                if motion.isSimulated {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Simulated Pitch: \(Int(motion.simulatedPitch))°")
+                            .font(.caption.bold())
+                        Slider(value: $motion.simulatedPitch, in: -35.0...35.0, step: 1.0)
+                        
+                        Text("Simulated Roll: \(Int(motion.simulatedRoll))°")
+                            .font(.caption.bold())
+                        Slider(value: $motion.simulatedRoll, in: -30.0...30.0, step: 1.0)
+                        
+                        HStack {
+                            Button("Simulate Upright") {
+                                motion.simulatedPitch = 0
+                                motion.simulatedRoll = 0
+                                motion.simulatedYaw = 0
                             }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
+                            Button("Simulate Slouch") {
+                                motion.simulatedPitch = -20
+                            }
                         }
-                        .padding(10)
-                        .background(Color.primary.opacity(0.04))
-                        .cornerRadius(8)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
+                    .padding(8)
+                    .background(Color.primary.opacity(0.04))
+                    .cornerRadius(8)
                 }
             }
             

@@ -1,0 +1,5 @@
+.DS_Store
+/.build
+/AirPodsPosture.app
+DerivedData/
+*.xcuserstate

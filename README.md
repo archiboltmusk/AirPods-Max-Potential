@@ -1,120 +1,56 @@
-# AirPods Max Potential (AirPodsIQ)
+# AirPods Max & Pro Potential (AirPodsIQ)
 
-> **Transform your Apple AirPods Max and AirPods Pro into an active ergonomic posture coach, hands-free gesture controller, and health intelligence monitor on macOS.**
-
----
-
-## 💡 Overview
-
-AirPods Max and AirPods Pro are far more than high-fidelity headphones—they contain high-precision **6-axis Inertial Measurement Units (IMUs)** featuring tri-axial accelerometers and gyroscopes capable of streaming continuous 60Hz spatial motion data via Apple's `CoreMotion` framework (`CMHeadphoneMotionManager`).
-
-**AirPodsIQ** is a native macOS application built with **SwiftUI** and **AppKit** that harnesses this hardware to actively track your cervical posture, prevent "text neck" and slouching, guide you through interactive physical therapy neck stretches, and recognize hands-free head gestures.
+> **Transform your Apple AirPods Max and AirPods Pro into an intelligent ergonomic posture sentry, spatial computing canvas, biometric focus monitor, and hands-free Mac controller.**
 
 ---
 
-## 🚀 Key Implemented Features
+## 🚀 Complete Master Feature Suite
 
-### 1. Active 3D Posture & Slouch Guard
-- **Continuous 60Hz Kinematic Tracking**: Reads real-time `pitch` (forward/backward slouch), `roll` (lateral head tilt), and `yaw` (rotation).
-- **Personalized 1-Click Calibration**: Calibrates your unique baseline upright posture when sitting naturally at your desk.
-- **Dynamic 3D Visualizer**: Features an interactive 2.5D/3D avatar wearing AirPods Max that rotates and mimics your head orientation in real-time.
-- **Configurable Slouch Guard**:
-  - Pitch sensitivity threshold (default: $12^\circ$)
-  - Roll lateral tilt threshold (default: $10^\circ$)
-  - Grace period buffer ($1.0 - 10.0\text{s}$) to avoid false alarms when taking a sip of water or glancing down briefly.
-- **Audio & Visual Alerts**: Customizable system sound chimes and macOS status indicators when slouching persists.
-- **Demo / Simulation Mode**: Built-in interactive sliders to test and visualize head movements without requiring connected headphones.
+### 1. 📐 Kinematic Posture & Biomechanical Core
+* **3D SIMD Quaternion Tracking**: Uses exact $4\text{D}$ spatial quaternion inversion ($\mathbf{q}_{\text{baseline}}^{-1} \times \mathbf{q}_{\text{current}}$) to eliminate Euler angle gimbal lock and coordinate flips.
+* **AirPods Pro 2 IMU Telemetry Hub**: Real-time readouts of **Earth's Gravity Vector** ($g_x, g_y, g_z$), **User Dynamic Acceleration** ($a_x, a_y, a_z$), **Gyroscope Rotational Velocity** ($\omega_x, \omega_y, \omega_z$ in $^\circ/\text{s}$), and total kinetic energy.
+* **Thoracic Slump vs Chin-Tilt Disambiguation**: Differentiates between simple neck flexion vs full torso lumbar/thoracic compression using gravity vector projection.
+* **Contextual Ergonomic Profiles**: One-click presets for *Standard Desk*, *Reading & Paperwork* ($24^\circ$ relaxed pitch), *Standing Desk*, and *Relaxed Recline*.
+* **Interactive Guided Neck Mobility Coach**: A 4-stage guided physical therapy routine verifying live angular hold times before granting completion badges.
 
-### 2. Interactive Guided Neck Mobility Coach
-- Real-time physical therapy routine designed to reset cervical spine compression:
-  1. **Ceiling Gaze (Extension)**: Counteracts hunchback slouch by guiding you to $+20^\circ$ pitch.
-  2. **Chin Tuck (Flexion)**: Relieves upper cervical and suboccipital tension.
-  3. **Left/Right Lateral Flexion**: Relieves trapezius and levator scapulae strain.
-  4. **Cervical Rotation**: Restores full range of motion.
-- **Real-Time Hold Verification**: Monitors whether your head is in the target angle zone and counts down hold duration before automatically progressing.
+### 2. 🪟 Spatial Computing & Hands-Free Mac Control
+* **Spatial Virtual Desktops**: Slide between macOS Spaces (`⌃←` / `⌃→`) simply by turning your head past $\pm 28^\circ$ with intelligent hysteresis.
+* **Spatial Head Pointer & Hands-Free Scrolling**: Tilt head down past $12^\circ$ to smoothly scroll documents, websites, or code files down; tilt slightly up to scroll up.
+* **Hands-Free Head Gestures**:
+  - **Double-Nod ("Yes")**: Triggers macOS Dictation / Voice Control.
+  - **Head Shake ("No")**: Dismisses active alerts or cancels prompts.
+* **Walk-Away Mac Screen Auto-Lock**: Instantly pauses Spotify/Apple Music and locks the screen (`SACLockScreenImmediate()`) when you remove your AirPods or walk away.
 
-### 3. Hands-Free Head Gesture Recognition
-- **Nod Detection ("Yes")**: Recognizes vertical head nod oscillations for hands-free actions (e.g., acknowledging an alert or unmuting).
-- **Shake Detection ("No")**: Recognizes horizontal head shake oscillations (e.g., silencing a notification or skipping tracks).
+### 3. 🧠 Cognitive Health, Focus & Biofeedback
+* **Subconscious Spatial Audio Biofeedback**: Connects an audio filter ($800\text{ Hz} \leftrightarrow 20,000\text{ Hz}$) to rolling focus soundscapes. Audio rolls off high frequencies when you slouch and blossoms open into pristine spatial clarity when sitting upright.
+* **Deep Cognitive Flow vs Restlessness Index**: Samples 60 Hz gyroscope variance ($\sigma^2_{\text{gyro}}$) to compute real-time **Focus Flow Scores** and detect cognitive fatigue before burnout.
+* **Neuro-Acoustic Binaural Beats Synthesizer**: Generates true stereo sine waves for **40 Hz Gamma** (Hyper-focus & coding), **10 Hz Alpha** (Relaxed flow), and **6 Hz Theta** (Creativity).
+* **Vagus Nerve Resonance Breathing Coach**: Interactive 4-4-4-4 Box Breathing and 4-7-8 Deep Relaxation pacer with expanding/contracting visual guides.
+* **Micro-Sleep & Drowsiness Guard**: Detects the kinematic signature of nodding off (gradual pitch drop followed by a sudden hypnic jerk) to sound a wake-up sentry alert.
 
-### 4. macOS Menu Bar Extra Integration
-- Runs unobtrusively in your macOS Menu Bar with a live status glyph (🟢 Optimal, 🟡 Drifting, 🔴 Slouching).
-- Quick popup view with posture score, quick calibration, pause/resume, and one-click access to the full dashboard.
-
----
-
-## 🔮 10 Ideas & Architectural Blueprints to Maximize AirPods Potential
-
-Beyond posture tracking, here is a breakdown of 10 high-value features leveraging AirPods sensors on macOS:
-
-| # | Feature | Category | Hardware / APIs | Implementation Architecture |
-|---|---|---|---|---|
-| **1** | **Spatial Audio Posture Biofeedback** | Ergonomics / Audio | `AVAudioEngine`, `AVAudioEnvironmentNode` | Instead of intrusive alert beeps, audio subtly rolls off high frequencies (low-pass filter from 20kHz down to 8kHz) and lowers HRTF elevation when you slouch, creating natural, subconscious biofeedback that encourages you to sit upright. |
-| **2** | **Dual-Monitor Cervical Asymmetry Guard** | Ergonomics | `CMHeadphoneMotionManager.attitude.yaw` | Power users with dual monitors often turn their head $30^\circ$ to the side for hours. By calculating rolling yaw distributions over 45-minute windows, the app detects asymmetric cervical strain and reminds you to center active windows. |
-| **3** | **Walk-Away Mac Screen Auto-Lock** | Security | `CMHeadphoneMotionManagerDelegate`, `CoreAudio` | Detects when AirPods are taken off the head (`didDisconnect` / audio route changes) and instantly executes `SACLockScreenImmediate()` to lock your Mac the moment you step away from your desk. |
-| **4** | **Restlessness & Cognitive Fatigue Index** | Focus / Health | `CMRotationRate` (Gyro variance) | Samples micro-head jitter and rotation rate variance. High stability indicates deep focus/reading; erratic bursts of small head movements signal physical fidgeting or cognitive fatigue, triggering an ergonomic micro-break prompt. |
-| **5** | **Sit / Stand Desk Cadence Detection** | Fitness | `CMAcceleration.z` (Vertical axis) | Detects whether you are sitting or standing at your motorized standing desk by analyzing subtle vertical weight shifts and micro-bobbing, tracking standing desk hours without needing an Apple Watch. |
-| **6** | **Spatial Head Pointer (Hands-Free Mac Navigation)** | Accessibility | `CGEventCreateMouseEvent`, `CMDeviceMotion` | Translates yaw and pitch into low-latency mouse cursor movement with velocity smoothing and dwell-click / nod-click for hands-free navigation. |
-| **7** | **Real-Time Hearing Safety & Sound Exposure** | Health | CoreAudio HAL, `AVAudioSession` | Tracks cumulative decibel exposure (dBA) over daily sessions according to World Health Organization (WHO) safe listening guidelines (e.g. 80 dBA for max 40 hrs/week). |
-| **8** | **Automatic Meeting Transparency Switching** | Productivity | `SFSpeechRecognizer` / Mic input level | Switches AirPods from Active Noise Cancellation (ANC) to Transparency mode automatically when your voice or someone speaking directly to you is detected. |
-| **9** | **Focus Shield (Calendar-Driven Smart ANC)** | Focus | `EventKit`, AppleScript / Bluetooth | Automatically activates Maximum ANC when a calendar event marked "Deep Work" starts, and switches to Adaptive/Transparency between meetings. |
-| **10** | **Resonance Breathing & Heart Rate Variability Coach** | Wellness | High-gain beamforming microphones | Listens to micro-respiratory acoustic patterns during quiet meditation or breathwork breaks to provide guided box breathing pacing. |
-
----
-
-## 🛠️ Requirements & Compatibility
-
-- **macOS**: macOS 14.0 (Sonoma) or macOS 15+ (Sequoia)
-- **Supported Hardware**:
-  - AirPods Max
-  - AirPods Pro (1st & 2nd Generation)
-  - AirPods (3rd & 4th Generation)
-  - Beats Fit Pro & Beats Studio Pro
+### 4. 🛡️ Loophole Defenses & Smart Automation
+* **CoreAudio Meeting Guard**: Periodically monitors `kAudioDevicePropertyDeviceIsRunningSomewhere`. If Zoom, Teams, Meet, or FaceTime claims the mic, all audible chimes are instantly silenced.
+* **Dual-Monitor Cervical Asymmetry Guard**: Analyzes rolling yaw distribution to alert you if your head stays skewed $>20^\circ$ toward a side monitor for $>55\%$ of the past 30 minutes.
+* **App-by-App Posture Heatmap**: Monitors `NSWorkspace.shared.frontmostApplication` to reveal which apps (Xcode, Terminal, Slack, Browser) trigger your worst slouching habits.
+* **Screen Edge Ambient Glow**: Completely click-through, floating border vignette that pulses amber or red when slouching—silent, non-intrusive, and flow-preserving.
+* **Camera Notch HUD Posture Ring**: Floating status crescent positioned right beneath the MacBook camera notch.
+* **WHO Hearing Safety Dose Meter**: Integrates daily sound exposure (dBA) against WHO allowable safety limits.
+* **Zen Bonsai Desk Companion**: Gamified virtual bonsai that blooms with good posture and droops when slouching.
+* **Weekly Scorecard Exporter**: Exports formatted markdown/text ergonomic health scorecards with 1-click clipboard copy or disk save.
+* **Dual-Pipeline Ingestion**: Direct CoreMotion (`.userInteractive` background queue) + local UDP bridge listener (`127.0.0.1:4243`).
+* **Launch at Login**: Full native `SMAppService` launch-at-login integration.
 
 ---
 
 ## 📦 How to Build and Run
 
-### 1. Build the App Bundle (`.app`)
-Run the included build script:
+### Run the App Bundle
 ```bash
-chmod +x build_app.sh
+open /Users/anupam/.gemini/antigravity/scratch/AirPodsMaxPotential/AirPodsPosture.app
+```
+
+### Build from Source
+```bash
+cd /Users/anupam/.gemini/antigravity/scratch/AirPodsMaxPotential
 ./build_app.sh
 ```
-This compiles the release binary and packages `AirPodsPosture.app` with all necessary permissions and bundle metadata.
-
-### 2. Launch the Application
-```bash
-open AirPodsPosture.app
-```
-Or run directly from the terminal with Swift Package Manager:
-```bash
-swift run
-```
-
----
-
-## 🏗️ Project Architecture
-
-```
-AirPodsMaxPotential/
-├── Package.swift                    # Swift Package Manager configuration (macOS 14+)
-├── build_app.sh                     # Automated release build & bundle packager
-├── README.md                        # Documentation & potential roadmap
-└── Sources/
-    └── AirPodsPosture/
-        ├── AirPodsPostureApp.swift  # App entry point (WindowGroup + MenuBarExtra)
-        ├── MotionManager.swift      # CMHeadphoneMotionManager wrapper, kinematics, gestures
-        ├── PostureVisualizerView.swift # 3D Avatar & real-time pitch/roll/yaw meters
-        ├── StretchCoach.swift       # Guided physical therapy state machine
-        ├── StretchCoachView.swift   # Interactive routine UI with hold timers
-        ├── FeaturesHubView.swift    # AirPods potential exploration & architecture guide
-        ├── SettingsView.swift       # Sensitivity sliders, sound picker, demo controls
-        ├── MenuBarView.swift        # Compact Menu Bar dropdown UI
-        └── ContentView.swift        # Main dashboard window layout & navigation
-```
-
----
-
-## 📄 License
-MIT License. Created for the AirPods Max Potential project.

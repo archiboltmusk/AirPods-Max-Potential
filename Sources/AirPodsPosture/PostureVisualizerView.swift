@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct PostureVisualizerView: View {
     @ObservedObject var motion: MotionManager
+    @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
     
     public init(motion: MotionManager) {
         self.motion = motion
@@ -12,30 +13,78 @@ public struct PostureVisualizerView: View {
         case .optimal: return .green
         case .warning: return .orange
         case .slouching: return .red
+        case .snoozed: return .blue
         case .disconnected: return .gray
         }
     }
     
     public var body: some View {
-        VStack(spacing: 20) {
-            // Header status
-            HStack {
-                Label(
-                    title: {
-                        Text(motion.isConnected ? motion.postureState.rawValue : "AirPods Not Connected")
-                            .font(.system(.title3, design: .rounded, weight: .bold))
-                    },
-                    icon: {
-                        Image(systemName: motion.postureState.systemImage)
-                            .foregroundColor(statusColor)
-                            .symbolEffect(.pulse, isActive: motion.postureState == .slouching)
+        VStack(spacing: 16) {
+            // Profile & Smart Status Bar
+            HStack(spacing: 8) {
+                // Posture Profile Picker
+                Menu {
+                    ForEach(PostureProfile.allCases) { profile in
+                        Button(action: {
+                            motion.activeProfile = profile
+                        }) {
+                            Label(profile.rawValue, systemImage: profile.icon)
+                        }
                     }
-                )
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: motion.activeProfile.icon)
+                        Text(motion.activeProfile.rawValue)
+                            .font(.subheadline.bold())
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption2)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.accentColor.opacity(0.12))
+                    .foregroundColor(.accentColor)
+                    .cornerRadius(8)
+                }
                 
                 Spacer()
                 
+                // Smart Meeting Guard Status Pill
+                if audioMonitor.isMicrophoneInUse {
+                    HStack(spacing: 5) {
+                        Image(systemName: "mic.fill")
+                            .foregroundColor(.purple)
+                        Text("Meeting Active (Chimes Muted)")
+                            .font(.caption.bold())
+                            .foregroundColor(.purple)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.purple.opacity(0.12))
+                    .cornerRadius(8)
+                }
+                
+                // Snooze Status Pill
+                if motion.isSnoozed {
+                    HStack(spacing: 5) {
+                        Image(systemName: "moon.zzz.fill")
+                            .foregroundColor(.blue)
+                        Text("Snoozed (\(Int(ceil(motion.snoozeTimeRemaining / 60)))m left)")
+                            .font(.caption.bold())
+                            .foregroundColor(.blue)
+                        Button(action: { motion.clearSnooze() }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.12))
+                    .cornerRadius(8)
+                }
+                
                 // Score Pill
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Text("Score:")
                         .foregroundColor(.secondary)
                         .font(.caption)
@@ -49,9 +98,33 @@ public struct PostureVisualizerView: View {
                 .clipShape(Capsule())
             }
             
-            // 3D Animated Head & Headphones Avatar
+            // Grace Period Warning Bar
+            if motion.postureState == .warning {
+                VStack(spacing: 4) {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                        Text("Slouch posture detected — sit up to clear")
+                            .font(.caption.bold())
+                            .foregroundColor(.orange)
+                        Spacer()
+                        Text(String(format: "Alert in %.1fs", (1.0 - motion.warningProgress) * motion.gracePeriodSeconds))
+                            .font(.caption2.monospaced())
+                            .foregroundColor(.secondary)
+                    }
+                    ProgressView(value: motion.warningProgress)
+                        .tint(.orange)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(8)
+            }
+            
+            // 3D Animated Head & AirPods Avatar
             ZStack {
-                // Background Radar / Alignment Rings
+                // Radar Rings
                 Circle()
                     .stroke(statusColor.opacity(0.15), lineWidth: 32)
                     .frame(width: 220, height: 220)
@@ -99,10 +172,10 @@ public struct PostureVisualizerView: View {
                     .frame(height: 220)
                 }
             }
-            .frame(height: 230)
+            .frame(height: 220)
             
             // Detailed Axis Meters
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 AxisMeterCard(
                     title: "Pitch (Slouch)",
                     value: motion.deltaPitch,
@@ -131,7 +204,7 @@ public struct PostureVisualizerView: View {
                 )
             }
         }
-        .padding(20)
+        .padding(18)
         .background(Color(NSColor.windowBackgroundColor))
         .cornerRadius(16)
         .overlay(
@@ -162,7 +235,7 @@ struct HeadModelView: View {
                         .stroke(Color.primary.opacity(0.25), lineWidth: 1.5)
                 )
             
-            // Nose / Face Direction Indicator
+            // Face Direction
             VStack {
                 Triangle()
                     .fill(Color.primary.opacity(0.35))
@@ -185,7 +258,7 @@ struct HeadModelView: View {
                 .frame(width: 130, height: 115)
                 .offset(y: -22)
             
-            // Left Ear Cup (AirPods Max anodized aluminum cup style)
+            // Left Ear Cup
             RoundedRectangle(cornerRadius: 14)
                 .fill(Color(NSColor.controlAccentColor).opacity(0.25))
                 .frame(width: 22, height: 42)
@@ -259,19 +332,16 @@ struct AxisMeterCard: View {
                     .foregroundColor(.secondary)
             }
             
-            // Gauge Bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color.primary.opacity(0.1))
                     
-                    // Center zero mark
                     Rectangle()
                         .fill(Color.secondary.opacity(0.4))
                         .frame(width: 2)
                         .position(x: geo.size.width / 2, y: geo.size.height / 2)
                     
-                    // Current offset
                     let halfW = geo.size.width / 2.0
                     let clampedVal = max(-threshold * 2.0, min(threshold * 2.0, value))
                     let widthVal = abs(clampedVal / (threshold * 2.0)) * halfW

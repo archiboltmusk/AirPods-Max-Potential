@@ -56,9 +56,14 @@ cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
     <string>AirPods Posture uses headphone motion tracking to actively monitor neck angle and posture.</string>
     <key>NSBluetoothAlwaysUsageDescription</key>
     <string>AirPods Posture uses Bluetooth to detect connected AirPods Max and AirPods Pro.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>AirPods Posture connects to AirPods motion sensors to track head orientation.</string>
 </dict>
 </plist>
 EOF
+
+echo "🔏 Signing bundle with adhoc signature & sealed Info.plist..."
+codesign --force --deep --sign - "$APP_DIR"
 
 echo "✅ App bundle created successfully at: $APP_DIR"
 echo "You can launch the app by running: open '$APP_DIR'"

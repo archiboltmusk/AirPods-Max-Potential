@@ -2,6 +2,8 @@ import SwiftUI
 
 public struct MenuBarView: View {
     @ObservedObject var motion: MotionManager
+    @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
+    @ObservedObject var breakTimer = ErgonomicBreakTimer.shared
     let openDashboard: () -> Void
     
     public init(motion: MotionManager, openDashboard: @escaping () -> Void) {
@@ -14,37 +16,122 @@ public struct MenuBarView: View {
         case .optimal: return .green
         case .warning: return .orange
         case .slouching: return .red
+        case .snoozed: return .blue
         case .disconnected: return .gray
         }
     }
     
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             // Header status
             HStack {
                 Image(systemName: motion.postureState.systemImage)
                     .foregroundColor(statusColor)
                     .font(.title3)
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(motion.isConnected ? motion.postureState.rawValue : "No AirPods Detected")
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(motion.isConnected ? motion.postureState.rawValue : "No AirPods Connected")
                         .font(.headline)
-                    Text(motion.isConnected ? "Deviations: Pitch \(Int(motion.deltaPitch))°, Roll \(Int(motion.deltaRoll))°" : "Connect AirPods Max or Pro")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                    if motion.isSnoozed {
+                        Text("Snoozed for \(Int(ceil(motion.snoozeTimeRemaining / 60)))m")
+                            .font(.caption2)
+                            .foregroundColor(.blue)
+                    } else if motion.isConnected {
+                        Text("Pitch \(Int(motion.deltaPitch))°, Roll \(Int(motion.deltaRoll))°")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("Put on AirPods Max or Pro")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 
                 Spacer()
                 
                 Text("\(motion.postureScore)%")
                     .font(.system(.body, design: .rounded, weight: .bold))
-                    .foregroundColor(motion.postureScore > 80 ? .green : .orange)
+                    .foregroundColor(motion.postureScore > 80 ? .green : (motion.postureScore > 60 ? .orange : .red))
             }
-            .padding(.bottom, 4)
+            .padding(.bottom, 2)
+            
+            // Smart Meeting Guard notice
+            if audioMonitor.isMicrophoneInUse {
+                HStack(spacing: 6) {
+                    Image(systemName: "mic.fill")
+                        .foregroundColor(.purple)
+                        .font(.caption)
+                    Text("Meeting Active — Chimes Muted")
+                        .font(.caption.bold())
+                        .foregroundColor(.purple)
+                }
+                .padding(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.purple.opacity(0.12))
+                .cornerRadius(6)
+            }
             
             Divider()
             
-            // Quick Actions
+            // Profile Selector
+            Menu {
+                ForEach(PostureProfile.allCases) { profile in
+                    Button(action: {
+                        motion.activeProfile = profile
+                    }) {
+                        HStack {
+                            Text(profile.rawValue)
+                            if motion.activeProfile == profile {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Label("Profile: \(motion.activeProfile.rawValue)", systemImage: motion.activeProfile.icon)
+            }
+            
+            // Quick Snooze Menu
+            if motion.isSnoozed {
+                Button(action: { motion.clearSnooze() }) {
+                    Label("Resume Tracking (Clear Snooze)", systemImage: "play.circle")
+                }
+            } else {
+                Menu {
+                    Button("Snooze for 5 minutes") { motion.snooze(minutes: 5) }
+                    Button("Snooze for 15 minutes") { motion.snooze(minutes: 15) }
+                    Button("Snooze for 30 minutes") { motion.snooze(minutes: 30) }
+                    Button("Snooze for 1 hour") { motion.snooze(minutes: 60) }
+                } label: {
+                    Label("Snooze Alerts...", systemImage: "moon.zzz")
+                }
+            }
+            
+            // 20-20-20 Break Timer Status
+            if breakTimer.isEnabled {
+                HStack {
+                    Label(
+                        breakTimer.isBreakDue ? "20-20-20 Break Due!" : "Next Break: \(Int(ceil(breakTimer.secondsRemaining / 60)))m",
+                        systemImage: "timer"
+                    )
+                    .font(.caption)
+                    .foregroundColor(breakTimer.isBreakDue ? .orange : .secondary)
+                    
+                    Spacer()
+                    
+                    if breakTimer.isBreakDue {
+                        Button("Rest Eyes") {
+                            breakTimer.startBreak()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.mini)
+                    }
+                }
+            }
+            
+            Divider()
+            
+            // Primary Quick Actions
             Button(action: {
                 motion.calibrateCurrentPosture()
             }) {
@@ -85,6 +172,6 @@ public struct MenuBarView: View {
             }
         }
         .padding(14)
-        .frame(width: 270)
+        .frame(width: 290)
     }
 }
