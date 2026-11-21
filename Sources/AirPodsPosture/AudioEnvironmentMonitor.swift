@@ -73,6 +73,7 @@ public final class AudioEnvironmentMonitor: ObservableObject {
         if self.isMicrophoneInUse != inUse {
             self.isMicrophoneInUse = inUse
             self.meetingAppDetected = inUse
+            ConversationDuckingEngine.shared.updateVoiceActivity(isSpeaking: inUse)
         }
     }
     

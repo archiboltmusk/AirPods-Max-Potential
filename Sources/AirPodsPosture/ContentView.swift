@@ -21,6 +21,7 @@ public struct ContentView: View {
         case vitality = "Biohacking & Vitality"
         
         // SECTION 3: LABS & INTELLIGENCE
+        case pro3Suite = "AirPods Pro 3 Suite"
         case openSourceLab = "Peer Open-Source Labs"
         case sensors = "AirPods Pro Sensors"
         case upgrades = "Power Upgrades"
@@ -44,6 +45,7 @@ public struct ContentView: View {
             case .timeline: return "chart.xyaxis.line"
             case .stretches: return "figure.mind.and.body"
             case .vitality: return "heart.text.square.fill"
+            case .pro3Suite: return "sparkles.tv.fill"
             case .openSourceLab: return "sparkles.rectangle.stack.fill"
             case .sensors: return "earbuds.case.fill"
             case .upgrades: return "sparkles.square.filled.on.square"
@@ -65,6 +67,7 @@ public struct ContentView: View {
             case .timeline: return .orange
             case .stretches: return .teal
             case .vitality: return .pink
+            case .pro3Suite: return .purple
             case .openSourceLab: return .purple
             case .sensors: return .indigo
             case .upgrades: return .yellow
@@ -110,6 +113,7 @@ public struct ContentView: View {
                         
                         // SECTION 3: LABS & INTELLIGENCE
                         Section("LABS & INTELLIGENCE") {
+                            sidebarRow(.pro3Suite)
                             sidebarRow(.openSourceLab)
                             sidebarRow(.sensors)
                             sidebarRow(.upgrades)
@@ -272,6 +276,8 @@ public struct ContentView: View {
                         BiohackingVitalityView()
                         
                     // 3. LABS & INTELLIGENCE
+                    case .pro3Suite:
+                        AirPodsPro3SuiteView()
                     case .openSourceLab:
                         OpenSourceUpgradesView()
                     case .sensors:

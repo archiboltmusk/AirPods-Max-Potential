@@ -386,6 +386,11 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         userAccelZ = accel.z
         totalKineticEnergy = sqrt(pow(userAccelX, 2) + pow(userAccelY, 2) + pow(userAccelZ, 2))
         
+        // Touchless Teeth-Click Micro-Gesture Sentinel
+        if totalKineticEnergy > TeethClickGestureEngine.shared.sensitivityLevel.threshold {
+            TeethClickGestureEngine.shared.processAcousticImpulse(energy: totalKineticEnergy)
+        }
+        
         // 4. Gyroscope rotation rate (rad/s -> deg/s)
         rotRateX = gyro.x * 180.0 / .pi
         rotRateY = gyro.y * 180.0 / .pi
