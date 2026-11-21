@@ -3,6 +3,7 @@ import SwiftUI
 public struct PostureVisualizerView: View {
     @ObservedObject var motion: MotionManager
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
+    @State private var use3DSpineView: Bool = true
     
     public init(motion: MotionManager) {
         self.motion = motion
@@ -96,6 +97,16 @@ public struct PostureVisualizerView: View {
                 .padding(.vertical, 4)
                 .background(Color(NSColor.controlBackgroundColor))
                 .clipShape(Capsule())
+                
+                // Toggle between 3D Anatomical Spine & 2.5D Avatar
+                Button(action: {
+                    use3DSpineView.toggle()
+                }) {
+                    Image(systemName: use3DSpineView ? "cube.transparent.fill" : "person.crop.circle")
+                        .foregroundColor(.accentColor)
+                }
+                .buttonStyle(.bordered)
+                .help("Toggle 3D Anatomical Vertebrae Rig")
             }
             
             // Grace Period Warning Bar
@@ -122,7 +133,39 @@ public struct PostureVisualizerView: View {
                 .cornerRadius(8)
             }
             
-            // 3D Animated Head & AirPods Avatar
+            // 3D Animated Head & AirPods Avatar OR Anatomical Spine Model
+            if use3DSpineView {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+                        )
+                    
+                    AnatomicalSpine3DView(
+                        pitch: motion.deltaPitch,
+                        roll: motion.deltaRoll,
+                        yaw: motion.deltaYaw,
+                        postureScore: motion.postureScore
+                    )
+                    
+                    VStack {
+                        HStack {
+                            Text("3D Metal/SceneKit Cervical-Thoracic Rig (C1–C7)")
+                                .font(.caption2.bold())
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(motion.postureScore >= 80 ? "Optimal Alignment" : "Intervertebral Compression")
+                                .font(.caption2.bold())
+                                .foregroundColor(statusColor)
+                        }
+                        .padding(12)
+                        Spacer()
+                    }
+                }
+                .frame(height: 250)
+            } else {
             ZStack {
                 // Radar Rings
                 Circle()
@@ -173,6 +216,14 @@ public struct PostureVisualizerView: View {
                 }
             }
             .frame(height: 220)
+            }
+            
+            // Apple-Style Concentric Activity Rings
+            ActivityRingsDashboardView(
+                postureScore: Double(motion.postureScore),
+                hydrationGlasses: HydrationTracker.shared.waterGlassesLogged,
+                romScore: Double(CervicalROMDiagnostic.shared.flexibilityScore)
+            )
             
             // Detailed Axis Meters
             HStack(spacing: 14) {
