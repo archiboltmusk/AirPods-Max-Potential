@@ -38,9 +38,9 @@ public struct PostureVisualizerView: View {
     
     public var body: some View {
         VStack(spacing: 16) {
-            // Profile & Smart Status Bar
-            HStack(spacing: 8) {
-                // Posture Profile Picker
+            // Streamlined Header Bar
+            HStack {
+                // Posture Profile Selector
                 Menu {
                     ForEach(PostureProfile.allCases) { profile in
                         Button(action: {
@@ -52,104 +52,61 @@ public struct PostureVisualizerView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: motion.activeProfile.icon)
+                            .foregroundColor(HumanCinemaDesignSystem.Palette.vermilion)
                         Text(motion.activeProfile.rawValue)
-                            .font(.subheadline.bold())
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.primary)
                         Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption2)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color.accentColor.opacity(0.12))
-                    .foregroundColor(.accentColor)
-                    .cornerRadius(8)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(10)
                 }
                 
                 Spacer()
                 
-                // Smart Meeting Guard Status Pill
-                if audioMonitor.isMicrophoneInUse {
-                    HStack(spacing: 5) {
-                        Image(systemName: "mic.fill")
-                            .foregroundColor(.purple)
-                        Text("Meeting Active (Chimes Muted)")
-                            .font(.caption.bold())
-                            .foregroundColor(.purple)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.purple.opacity(0.12))
-                    .cornerRadius(8)
-                }
-                
-                // Snooze Status Pill
-                if motion.isSnoozed {
-                    HStack(spacing: 5) {
-                        Image(systemName: "moon.zzz.fill")
-                            .foregroundColor(.blue)
-                        Text("Snoozed (\(Int(ceil(motion.snoozeTimeRemaining / 60)))m left)")
-                            .font(.caption.bold())
-                            .foregroundColor(.blue)
-                        Button(action: { motion.clearSnooze() }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.blue.opacity(0.12))
-                    .cornerRadius(8)
-                }
-                
-                // Autonomous Calibration Status Indicator Pill
-                HStack(spacing: 5) {
-                    Image(systemName: "sparkles")
-                        .foregroundColor(.green)
-                    Text("Zero-Touch Auto-Calibration: Active")
-                        .font(.caption2.bold())
-                        .foregroundColor(.primary)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.green.opacity(0.12))
-                .cornerRadius(8)
-                
-                // Score Pill
-                HStack(spacing: 5) {
-                    Text("Score:")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
-                    Text("\(motion.postureScore)%")
-                        .font(.system(.body, design: .rounded, weight: .heavy))
-                        .foregroundColor(motion.postureScore > 80 ? .green : (motion.postureScore > 60 ? .orange : .red))
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Color(NSColor.controlBackgroundColor))
-                .clipShape(Capsule())
-                
-                // Rig Mode Menu Picker (Human Face vs Anatomical vs Agamemnon vs 2.5D)
-                Menu {
-                    ForEach(VisualizerRigMode.allCases) { mode in
-                        Button(action: {
-                            selectedRigMode = mode
-                        }) {
-                            Label(mode.rawValue, systemImage: mode.icon)
+                // Unified Status Capsule (Right)
+                HStack(spacing: 10) {
+                    if audioMonitor.isMicrophoneInUse {
+                        HStack(spacing: 4) {
+                            Circle().fill(Color.purple).frame(width: 6, height: 6)
+                            Text("Mic")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.purple)
                         }
                     }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: selectedRigMode.icon)
-                            .foregroundColor(.cyan)
-                        Text(selectedRigMode == .humanFace ? "3D Human Face" : (selectedRigMode == .anatomical ? "Metal 3D" : (selectedRigMode == .agamemnon ? "Agamemnon" : "2.5D")))
-                            .font(.caption.bold())
+                    
+                    if motion.isSnoozed {
+                        HStack(spacing: 4) {
+                            Image(systemName: "moon.zzz.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.blue)
+                            Text("\(Int(ceil(motion.snoozeTimeRemaining / 60)))m")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.blue)
+                        }
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.cyan.opacity(0.15))
-                    .cornerRadius(8)
+                    
+                    // Live Alignment Score
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(statusColor)
+                            .frame(width: 7, height: 7)
+                        Text("\(motion.postureScore)%")
+                            .font(.system(size: 14, weight: .heavy, design: .rounded))
+                            .foregroundColor(statusColor)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(statusColor.opacity(0.12))
+                    .clipShape(Capsule())
                 }
-                .help("Select 3D Kinematic Visualizer Rig")
+                .padding(4)
+                .background(Color(NSColor.controlBackgroundColor).opacity(0.8))
+                .cornerRadius(12)
             }
             
             // Grace Period Warning Bar
@@ -350,6 +307,15 @@ public struct PostureVisualizerView: View {
             }
             .frame(height: 220)
             }
+            
+            // Clean Segmented Rig Mode Switcher
+            Picker("3D Viewport Rig", selection: $selectedRigMode) {
+                ForEach(VisualizerRigMode.allCases) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 4)
             
             // Apple-Style Concentric Activity Rings
             ActivityRingsDashboardView(

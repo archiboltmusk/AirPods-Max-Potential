@@ -5,44 +5,38 @@ public struct ContentView: View {
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
     @ObservedObject var breakTimer = ErgonomicBreakTimer.shared
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
-    @State private var selectedTab: TabItem = .humanManifesto
+    @State private var selectedTab: TabItem = .showcase
     
-    enum TabItem: String, CaseIterable, Identifiable {
-        case humanManifesto = "HUMAN.md Manifesto"
+    // MARK: - Streamlined Apple HIG 4-Section Navigation
+    public enum TabItem: String, CaseIterable, Identifiable {
+        // Section 1: Studio & Manifesto
         case showcase = "Apple 360° Studio"
-        case posture = "Posture Monitor"
-        case openSourceLab = "Peer Innovations"
-        case radar = "Spatial 360° Radar"
-        case timeline = "Biometric Timeline"
-        case sensors = "AirPods Pro Sensors"
-        case upgrades = "Power Upgrades"
-        case advanced = "Spatial Intelligence"
-        case elite = "Elite Labs"
-        case ecosystem = "Ecosystem Bridges"
-        case audit = "Loophole Audit"
-        case stretches = "Neck Stretches"
-        case potential = "AirPods Potential"
-        case settings = "Settings"
+        case humanManifesto = "HUMAN.md Manifesto"
         
-        var id: String { rawValue }
+        // Section 2: Ergonomics & Health
+        case posture = "Posture & Fatigue"
+        case stretches = "Guided Mobility & PT"
         
-        var icon: String {
+        // Section 3: Innovations & Labs
+        case openSourceLab = "Open-Source Labs"
+        case sensors = "Sensors & Hardware"
+        case featuresHub = "Advanced Features Hub"
+        
+        // Section 4: System
+        case settings = "Settings & Appearance"
+        
+        public var id: String { rawValue }
+        
+        public var icon: String {
             switch self {
-            case .humanManifesto: return "book.pages.fill"
             case .showcase: return "headphones.circle.fill"
+            case .humanManifesto: return "book.pages.fill"
             case .posture: return "figure.walk.motion"
-            case .openSourceLab: return "sparkles.rectangle.stack.fill"
-            case .radar: return "dot.radiowaves.left.and.right"
-            case .timeline: return "chart.xyaxis.line"
-            case .sensors: return "earbuds.case.fill"
-            case .upgrades: return "sparkles.square.filled.on.square"
-            case .advanced: return "wand.and.stars.inverse"
-            case .elite: return "crown.fill"
-            case .ecosystem: return "applewatch.and.arrow.forward"
-            case .audit: return "checkmark.shield"
             case .stretches: return "figure.mind.and.body"
-            case .potential: return "sparkles"
-            case .settings: return "gearshape"
+            case .openSourceLab: return "sparkles.rectangle.stack.fill"
+            case .sensors: return "earbuds.case.fill"
+            case .featuresHub: return "wand.and.stars.inverse"
+            case .settings: return "gearshape.fill"
             }
         }
     }
@@ -60,24 +54,60 @@ public struct ContentView: View {
             }
             
             NavigationSplitView {
-                List(TabItem.allCases, selection: $selectedTab) { tab in
-                    NavigationLink(value: tab) {
-                        Label(tab.rawValue, systemImage: tab.icon)
+                List(selection: $selectedTab) {
+                    // SECTION 1: STUDIO & MANIFESTO
+                    Section("STUDIO & MANIFESTO") {
+                        NavigationLink(value: TabItem.showcase) {
+                            Label(TabItem.showcase.rawValue, systemImage: TabItem.showcase.icon)
+                        }
+                        NavigationLink(value: TabItem.humanManifesto) {
+                            Label(TabItem.humanManifesto.rawValue, systemImage: TabItem.humanManifesto.icon)
+                        }
+                    }
+                    
+                    // SECTION 2: ERGONOMICS & HEALTH
+                    Section("ERGONOMICS & HEALTH") {
+                        NavigationLink(value: TabItem.posture) {
+                            Label(TabItem.posture.rawValue, systemImage: TabItem.posture.icon)
+                        }
+                        NavigationLink(value: TabItem.stretches) {
+                            Label(TabItem.stretches.rawValue, systemImage: TabItem.stretches.icon)
+                        }
+                    }
+                    
+                    // SECTION 3: INNOVATIONS & LABS
+                    Section("INNOVATIONS & LABS") {
+                        NavigationLink(value: TabItem.openSourceLab) {
+                            Label(TabItem.openSourceLab.rawValue, systemImage: TabItem.openSourceLab.icon)
+                        }
+                        NavigationLink(value: TabItem.sensors) {
+                            Label(TabItem.sensors.rawValue, systemImage: TabItem.sensors.icon)
+                        }
+                        NavigationLink(value: TabItem.featuresHub) {
+                            Label(TabItem.featuresHub.rawValue, systemImage: TabItem.featuresHub.icon)
+                        }
+                    }
+                    
+                    // SECTION 4: SYSTEM
+                    Section("SYSTEM") {
+                        NavigationLink(value: TabItem.settings) {
+                            Label(TabItem.settings.rawValue, systemImage: TabItem.settings.icon)
+                        }
                     }
                 }
                 .navigationTitle("AirPodsIQ")
                 .listStyle(.sidebar)
                 
-                // Sidebar Footer: Connection & Meeting indicator
+                // Sidebar Footer: Connection & Audio Status
                 VStack(alignment: .leading, spacing: 6) {
                     Divider()
                     
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Circle()
                             .fill(motion.isConnected ? Color.green : Color.gray)
                             .frame(width: 8, height: 8)
                         Text(motion.isConnected ? (motion.isSimulated ? "Demo Simulation" : "AirPods Connected") : "Disconnected")
-                            .font(.caption)
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.secondary)
                     }
                     
@@ -86,27 +116,28 @@ public struct ContentView: View {
                             Image(systemName: "mic.fill")
                                 .foregroundColor(.purple)
                                 .font(.caption2)
-                            Text("Mic Active (Call Guard)")
-                                .font(.caption2.bold())
+                            Text("Mic Active (Chimes Muted)")
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.purple)
                         }
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 8)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 10)
             } detail: {
                 Group {
                     switch selectedTab {
-                    case .humanManifesto:
-                        HumanManifestoShowcaseView()
                     case .showcase:
                         ScrollView {
                             Apple360HeroShowcaseView()
                                 .padding(.vertical, 16)
                         }
+                    case .humanManifesto:
+                        HumanManifestoShowcaseView()
+                        
                     case .posture:
                         ScrollView {
-                            VStack(spacing: 16) {
+                            VStack(spacing: 20) {
                                 PostureVisualizerView(motion: motion)
                                 
                                 // Interactive 24-Hour Biomechanical Heatmap Scrub Bar
@@ -121,18 +152,24 @@ public struct ContentView: View {
                                         Image(systemName: "hand.raised.fill")
                                             .foregroundColor(.yellow)
                                         Text(interlock)
-                                            .font(.subheadline.bold())
+                                            .font(.caption.bold())
                                             .foregroundColor(.yellow)
+                                        Spacer()
+                                        Button("Dismiss") {
+                                            motion.calibrationInterlockAlert = nil
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
                                     }
-                                    .padding(12)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Color.yellow.opacity(0.15))
+                                    .padding(10)
+                                    .background(Color.yellow.opacity(0.12))
                                     .cornerRadius(10)
                                     .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.yellow.opacity(0.3), lineWidth: 1))
                                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
                                 }
                                 
-                                // Bottom Action Strip
+                                // Bottom Consolidated Action Strip
                                 HStack(spacing: 12) {
                                     Button(action: {
                                         motion.calibrateCurrentPosture()
@@ -143,6 +180,7 @@ public struct ContentView: View {
                                     }
                                     .buttonStyle(.borderedProminent)
                                     .disabled(!motion.isConnected)
+                                    .help("Calibrate current neutral upright posture (⌘⇧C)")
                                     
                                     // Snooze Menu
                                     if motion.isSnoozed {
@@ -169,7 +207,7 @@ public struct ContentView: View {
                                     
                                     Spacer()
                                     
-                                    Button("Reset Stats") {
+                                    Button("Reset Today's Stats") {
                                         motion.secondsTracked = 0
                                         motion.secondsGoodPosture = 0
                                         motion.secondsSlouching = 0
@@ -181,36 +219,21 @@ public struct ContentView: View {
                                 }
                                 .padding(.horizontal, 4)
                             }
-                            .padding(18)
+                            .padding(20)
                         }
-                    case .openSourceLab:
-                        OpenSourceUpgradesView()
-                    case .radar:
-                        ScrollView {
-                            SpatialSoundstageRadarView()
-                                .padding(.vertical, 16)
-                        }
-                    case .timeline:
-                        ScrollView {
-                            BiometricTimelineScrubberView()
-                                .padding(24)
-                        }
-                    case .sensors:
-                        AirPodsProSensorsView()
-                    case .upgrades:
-                        UpgradesSuiteView()
-                    case .advanced:
-                        AdvancedUpgradesView()
-                    case .elite:
-                        EliteUpgradesView()
-                    case .ecosystem:
-                        EcosystemBridgesView()
-                    case .audit:
-                        AuditAndLoopholesView()
+                        
                     case .stretches:
                         StretchCoachView(motion: motion)
-                    case .potential:
+                        
+                    case .openSourceLab:
+                        OpenSourceUpgradesView()
+                        
+                    case .sensors:
+                        AirPodsProSensorsView()
+                        
+                    case .featuresHub:
                         FeaturesHubView(motion: motion)
+                        
                     case .settings:
                         SettingsView(motion: motion)
                     }
@@ -304,6 +327,6 @@ public struct ContentView: View {
                 .transition(.opacity)
             }
         }
-        .frame(minWidth: 800, minHeight: 580)
+        .frame(minWidth: 820, minHeight: 600)
     }
 }
