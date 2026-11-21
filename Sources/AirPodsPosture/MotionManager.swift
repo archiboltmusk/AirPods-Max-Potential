@@ -754,6 +754,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         Task { @MainActor in
             self.isConnected = true
             self.startTracking()
+            AirPodsInCaseLifecycleManager.shared.handleAirPodsRemovedFromCase()
         }
     }
     
@@ -761,6 +762,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         Task { @MainActor in
             self.isConnected = false
             self.postureState = .disconnected
+            AirPodsInCaseLifecycleManager.shared.handleAirPodsPlacedInCase()
         }
     }
     

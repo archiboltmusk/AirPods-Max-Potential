@@ -9,6 +9,7 @@ public struct MenuBarView: View {
     @ObservedObject var miniDesk = FloatingMiniDeskCompanionManager.shared
     @ObservedObject var screenBlur = ProgressiveScreenBlurManager.shared
     @ObservedObject var voiceAlert = SystemAudioVoiceAlertEngine.shared
+    @ObservedObject var inCase = AirPodsInCaseLifecycleManager.shared
     let openDashboard: () -> Void
     
     public init(motion: MotionManager, openDashboard: @escaping () -> Void) {
@@ -124,6 +125,47 @@ public struct MenuBarView: View {
                 .padding(6)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.purple.opacity(0.12))
+                .cornerRadius(6)
+            }
+            
+            // In-Case Work Complete & Hibernation Strip
+            if inCase.isCountingDownToQuit {
+                HStack(spacing: 8) {
+                    Image(systemName: "timer")
+                        .foregroundColor(.orange)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("AirPods in Case • Work Complete")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("Auto-quitting in \(inCase.quitCountdownRemaining)s...")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Button("Cancel") {
+                        inCase.cancelQuitCountdown()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                }
+                .padding(6)
+                .background(Color.orange.opacity(0.12))
+                .cornerRadius(6)
+            } else if !motion.isConnected {
+                HStack(spacing: 8) {
+                    Image(systemName: "moon.zzz.fill")
+                        .foregroundColor(.secondary)
+                    Text("AirPods in Case (0.0% CPU Standby)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("Quit App") {
+                        inCase.quitAppNow()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                }
+                .padding(6)
+                .background(Color.primary.opacity(0.04))
                 .cornerRadius(6)
             }
             

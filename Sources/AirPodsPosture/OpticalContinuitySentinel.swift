@@ -50,8 +50,8 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
     @Published public var eyeAspectRatio: Double = 0.32
     @Published public var screenApneaAlert: String? = nil
     
-    // Autonomous Fallback Configuration
-    @Published public var autoFallbackEnabled: Bool = true {
+    // Autonomous Fallback Configuration (Defaults to OFF: When in case, session is finished)
+    @Published public var autoFallbackEnabled: Bool = false {
         didSet {
             UserDefaults.standard.set(autoFallbackEnabled, forKey: "autoOpticalFallbackEnabled")
         }
@@ -74,7 +74,7 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
     
     private override init() {
         super.init()
-        self.autoFallbackEnabled = UserDefaults.standard.object(forKey: "autoOpticalFallbackEnabled") as? Bool ?? true
+        self.autoFallbackEnabled = UserDefaults.standard.object(forKey: "autoOpticalFallbackEnabled") as? Bool ?? false
         checkAuthorization()
         setupAirPodsHandoffListener()
     }
@@ -173,8 +173,12 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
                         self.stopSentinel()
                     }
                 } else {
-                    // AirPods are in case or disconnected; engage optical fallback
-                    if self.autoFallbackEnabled && !self.isRunning && self.isCameraAuthorized {
+                    // AirPods are in case or disconnected; stop camera unless optical fallback explicitly enabled
+                    if !self.autoFallbackEnabled {
+                        if self.isRunning {
+                            self.stopSentinel()
+                        }
+                    } else if !self.isRunning && self.isCameraAuthorized {
                         self.startSentinel()
                     }
                 }

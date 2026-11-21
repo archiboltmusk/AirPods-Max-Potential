@@ -5,6 +5,7 @@ public struct SettingsView: View {
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
     @ObservedObject var breakTimer = ErgonomicBreakTimer.shared
     @ObservedObject var sentinel = OpticalContinuitySentinel.shared
+    @ObservedObject var inCase = AirPodsInCaseLifecycleManager.shared
     
     let availableSounds = ["Tink", "Ping", "Hero", "Pop", "Submarine", "Basso", "Funk", "Glass"]
     
@@ -30,6 +31,34 @@ public struct SettingsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.vertical, 2)
+            }
+            
+            Section(header: Text("AirPods In-Case & Energy Management").font(.headline)) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("When AirPods Are Placed in Charging Case:")
+                        .font(.subheadline.bold())
+                    Picker("In-Case Behavior", selection: $inCase.actionOnCaseIn) {
+                        ForEach(AirPodsInCaseLifecycleManager.ActionOnCaseIn.allCases) { action in
+                            Text(action.rawValue).tag(action)
+                        }
+                    }
+                    .pickerStyle(.radioGroup)
+                    
+                    Text("Putting AirPods in their case signals that your listening or work session has ended. The app drops CPU utilization to 0.0% and sleeps quietly.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Toggle("Optical Webcam Continuity Fallback", isOn: $sentinel.autoFallbackEnabled)
+                if sentinel.autoFallbackEnabled {
+                    Text("⚠️ Only enable if you want your Mac FaceTime webcam to track your posture while AirPods are charging in their case.")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                } else {
+                    Text("Camera remains completely powered off while AirPods are in their case.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Section(header: Text("Loophole Defenses & Smart Automation").font(.headline)) {
