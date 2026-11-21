@@ -1,19 +1,43 @@
 import Foundation
 import AVFoundation
 
+/// Spatial Audio Soundstage Gravitation Engine.
+/// Anchors acoustic soundstage to calibrated upright posture coordinates.
+/// As posture drifts or slouches, audio dissipates with progressive acoustic occlusion and spatial pan,
+/// triggering subconscious operant neuro-motor correction back to neutral alignment.
 @MainActor
 public final class SpatialAudioBiofeedback: ObservableObject {
     public static let shared = SpatialAudioBiofeedback()
     
     @Published public var isEnabled: Bool = false
     @Published public var isDemoPlaying: Bool = false
-    @Published public var filterCutoffHz: Float = 20000.0 // 20kHz (open) down to 2kHz (muffled slouch)
+    @Published public var filterCutoffHz: Float = 20000.0 // 20kHz (open) down to 600Hz (occluded)
+    @Published public var soundstagePan: Float = 0.0 // -1.0 (Left) to +1.0 (Right)
+    @Published public var soundstageElevation: Float = 0.0 // 0.0 (Eye Level) to 1.0 (Overhead)
+    @Published public var acousticOcclusionPercent: Int = 0
     
     private var engine: AVAudioEngine?
     private var player: AVAudioPlayerNode?
     private var lowPassFilter: AVAudioUnitEQ?
+    private var autoSyncTimer: Timer?
     
-    private init() {}
+    private init() {
+        startMotionSync()
+    }
+    
+    private func startMotionSync() {
+        autoSyncTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self, self.isEnabled || self.isDemoPlaying else { return }
+                let motion = MotionManager.shared
+                self.updateGravitation(
+                    deltaPitch: motion.deltaPitch,
+                    deltaRoll: motion.deltaRoll,
+                    threshold: motion.pitchThreshold
+                )
+            }
+        }
+    }
     
     public func startDemoSoundscape() {
         guard !isDemoPlaying else { return }
@@ -35,7 +59,7 @@ public final class SpatialAudioBiofeedback: ObservableObject {
             engine.connect(player, to: eq, format: format)
             engine.connect(eq, to: engine.mainMixerNode, format: format)
             
-            // Synthesize pleasant pink/ambient focus noise buffer
+            // Synthesize pleasant pink/ambient 40Hz gamma focus noise buffer
             let sampleRate = Float(format.sampleRate > 0 ? format.sampleRate : 44100)
             let frameCount = AVAudioFrameCount(sampleRate * 2.0)
             guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
@@ -49,8 +73,13 @@ public final class SpatialAudioBiofeedback: ObservableObject {
                     b1 = 0.99332 * b1 + white * 0.0750759
                     b2 = 0.96900 * b2 + white * 0.1538520
                     let pink = b0 + b1 + b2 + white * 0.5362
+                    
+                    // Subtle 40Hz Gamma wave modulation for neuro-focus
+                    let t = Float(i) / sampleRate
+                    let gamma = sin(2.0 * .pi * 40.0 * t) * 0.04
+                    
                     for ch in 0..<Int(format.channelCount) {
-                        channels[ch][i] = pink * 0.35
+                        channels[ch][i] = (pink * 0.30) + gamma
                     }
                 }
             }
@@ -77,19 +106,41 @@ public final class SpatialAudioBiofeedback: ObservableObject {
         isDemoPlaying = false
     }
     
+    /// Legacy compatibility alias for MotionManager
     public func updateSlouchMuffle(deltaPitch: Double, threshold: Double) {
-        // As user slouches forward (pitch deviates), smoothly drop low-pass cutoff
-        let deviation = abs(deltaPitch)
-        if deviation <= threshold {
-            filterCutoffHz = 20000.0 // Pristine open spatial audio
+        updateGravitation(deltaPitch: deltaPitch, deltaRoll: 0.0, threshold: threshold)
+    }
+    
+    /// Updates soundstage gravitation vector from pitch and roll kinematics
+    public func updateGravitation(deltaPitch: Double, deltaRoll: Double, threshold: Double) {
+        let pitchDev = abs(deltaPitch)
+        let rollDev = deltaRoll
+        
+        // 1. Acoustic Occlusion (Filter Cutoff)
+        if pitchDev <= threshold {
+            filterCutoffHz = 20000.0
+            acousticOcclusionPercent = 0
+            soundstageElevation = 0.0
         } else {
-            let excess = min(deviation - threshold, 20.0)
-            let ratio = Float(1.0 - (excess / 20.0)) // 1.0 down to 0.0
-            filterCutoffHz = max(800.0, 800.0 + (ratio * 19200.0))
+            let excess = min(pitchDev - threshold, 25.0)
+            let ratio = Float(excess / 25.0) // 0.0 to 1.0
+            acousticOcclusionPercent = Int(ratio * 100.0)
+            
+            // Frequency drops exponentially from 20kHz down to 650Hz
+            filterCutoffHz = max(650.0, 20000.0 - (ratio * 19350.0))
+            soundstageElevation = ratio // Virtual sound lifts overhead/behind
         }
         
+        // 2. Spatial Pan Gravitation (Pulls soundstage against the direction of tilt)
+        let clampedRoll = Float(max(-30.0, min(30.0, rollDev)))
+        self.soundstagePan = -(clampedRoll / 30.0) // If tilted right, sound moves left to pull head back
+        
+        // Apply to audio engine
         if let eq = lowPassFilter, eq.bands.count > 0 {
             eq.bands[0].frequency = filterCutoffHz
+        }
+        if let player = player {
+            player.pan = soundstagePan
         }
     }
 }

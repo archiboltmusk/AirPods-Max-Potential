@@ -6,6 +6,7 @@ public struct Apple360HeroShowcaseView: View {
     @ObservedObject var respiratory = AcousticRespiratoryEngine.shared
     @ObservedObject var calibrator = AutonomousAutoCalibrator.shared
     @ObservedObject var sentinel = OpticalContinuitySentinel.shared
+    @ObservedObject var spineStress = CervicalVertebralStressEngine.shared
     
     // Earwear selection stored persistently
     @AppStorage("studioEarwearStyle") private var earwearStyleRaw: String = EarwearStyle.airPodsPro.rawValue
@@ -221,10 +222,11 @@ public struct Apple360HeroShowcaseView: View {
                     Spacer()
                     
                     // Bottom Angle HUD Strip
-                    HStack(spacing: 18) {
+                    HStack(spacing: 16) {
                         HeroMetricPill(title: "Pitch", value: "\(Int(effectivePitch))°", color: .cyan)
                         HeroMetricPill(title: "Roll", value: "\(Int(motion.deltaRoll))°", color: .purple)
                         HeroMetricPill(title: "Yaw", value: "\(Int(effectiveYaw))°", color: .blue)
+                        HeroMetricPill(title: "C1–C7 Load", value: String(format: "%.1flbs", spineStress.instantLoadLbs), color: spineStress.instantLoadLbs > 25.0 ? .red : .teal)
                         HeroMetricPill(title: "Breathing", value: "\(respiratory.breathsPerMinute) BPM", color: .indigo)
                         
                         if sentinel.isRunning {

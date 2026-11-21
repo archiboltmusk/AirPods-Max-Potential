@@ -1,16 +1,21 @@
 import Foundation
 import AVFoundation
 
+/// Directional Synthetic Ear-Haptic Engine.
+/// Transduces precise low-frequency acoustic impulse waves into physical ear cartilage micro-taps.
+/// Provides directional left/right spatial biofeedback: taps left ear when tilting left, right ear when tilting right.
 @MainActor
 public final class SyntheticEarHapticEngine: ObservableObject {
     public static let shared = SyntheticEarHapticEngine()
     
     @Published public var isHapticAudioEnabled: Bool = true
-    @Published public var hapticVolume: Float = 0.35
+    @Published public var hapticVolume: Float = 0.40
+    @Published public var isDirectionalModeEnabled: Bool = true
     
     private var audioEngine: AVAudioEngine?
     private var playerNode: AVAudioPlayerNode?
     private var audioFormat: AVAudioFormat?
+    private var lastTapTime: Date = Date.distantPast
     
     private init() {
         setupAudioEngine()
@@ -36,12 +41,31 @@ public final class SyntheticEarHapticEngine: ObservableObject {
         }
     }
     
-    /// Generates a single crisp 12ms synthetic Taptic tick (simulates Apple Watch digital crown / haptic engine)
-    public func playTapticClick() {
+    /// Directional Posture Biofeedback: Plays targeted micro-tap into left ear, right ear, or dual ear.
+    public func playDirectionalPostureCue(pitch: Double, roll: Double, pitchThreshold: Double = 12.0, rollThreshold: Double = 10.0) {
+        let now = Date()
+        guard now.timeIntervalSince(lastTapTime) > 0.85 else { return } // Hysteresis limiter
+        
+        if roll > rollThreshold {
+            // Tilting head to the right -> cue right ear to level left
+            playSpatialEarTap(leftGain: 0.05, rightGain: 1.0, baseFreq: 155.0, durationSeconds: 0.02)
+            lastTapTime = now
+        } else if roll < -rollThreshold {
+            // Tilting head to the left -> cue left ear to level right
+            playSpatialEarTap(leftGain: 1.0, rightGain: 0.05, baseFreq: 155.0, durationSeconds: 0.02)
+            lastTapTime = now
+        } else if pitch > pitchThreshold {
+            // Forward slouch -> dual-ear deep 52Hz cartilage resonance pulse
+            playSpatialEarTap(leftGain: 0.9, rightGain: 0.9, baseFreq: 52.0, durationSeconds: 0.035)
+            lastTapTime = now
+        }
+    }
+    
+    /// Generates a calibrated directional synthetic ear-tap buffer
+    public func playSpatialEarTap(leftGain: Float, rightGain: Float, baseFreq: Double = 160.0, durationSeconds: Double = 0.018) {
         guard isHapticAudioEnabled, let format = audioFormat, let player = playerNode else { return }
         
         let sampleRate = format.sampleRate
-        let durationSeconds = 0.015 // 15 ms
         let frameCount = AVAudioFrameCount(sampleRate * durationSeconds)
         
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
@@ -50,22 +74,25 @@ public final class SyntheticEarHapticEngine: ObservableObject {
         guard let leftChannel = buffer.floatChannelData?[0],
               let rightChannel = buffer.floatChannelData?[1] else { return }
         
-        let baseFreq = 160.0 // 160Hz low resonant thump
-        
+        let vol = Double(hapticVolume)
         for frame in 0..<Int(frameCount) {
             let t = Double(frame) / sampleRate
-            // Exponential rapid decay envelope: e^(-t * 280)
-            let envelope = exp(-t * 280.0) * Double(hapticVolume)
+            let envelope = exp(-t * 260.0) * vol
             let sample = Float(sin(2.0 * .pi * baseFreq * t) * envelope)
             
-            leftChannel[frame] = sample
-            rightChannel[frame] = sample
+            leftChannel[frame] = sample * leftGain
+            rightChannel[frame] = sample * rightGain
         }
         
         player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
         if !player.isPlaying {
             player.play()
         }
+    }
+    
+    /// Generates a single crisp 12ms synthetic Taptic tick (Apple Watch digital crown feel)
+    public func playTapticClick() {
+        playSpatialEarTap(leftGain: 0.9, rightGain: 0.9, baseFreq: 160.0, durationSeconds: 0.015)
     }
     
     /// Generates a double micro-tap for warning threshold transitions
@@ -81,7 +108,7 @@ public final class SyntheticEarHapticEngine: ObservableObject {
         guard isHapticAudioEnabled, let format = audioFormat, let player = playerNode else { return }
         
         let sampleRate = format.sampleRate
-        let durationSeconds = 0.04 // 40 ms
+        let durationSeconds = 0.04
         let frameCount = AVAudioFrameCount(sampleRate * durationSeconds)
         
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
@@ -93,7 +120,7 @@ public final class SyntheticEarHapticEngine: ObservableObject {
         for frame in 0..<Int(frameCount) {
             let t = Double(frame) / sampleRate
             let progress = t / durationSeconds
-            let freq = 520.0 + (progress * 440.0) // 520Hz rising to 960Hz
+            let freq = 520.0 + (progress * 440.0)
             let envelope = sin(.pi * progress) * Double(hapticVolume * 0.7)
             let sample = Float(sin(2.0 * .pi * freq * t) * envelope)
             
