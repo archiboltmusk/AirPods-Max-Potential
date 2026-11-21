@@ -9,6 +9,7 @@ public struct ContentView: View {
     enum TabItem: String, CaseIterable, Identifiable {
         case showcase = "Apple 360° Studio"
         case posture = "Posture Monitor"
+        case openSourceLab = "Peer Innovations"
         case radar = "Spatial 360° Radar"
         case timeline = "Biometric Timeline"
         case sensors = "AirPods Pro Sensors"
@@ -27,6 +28,7 @@ public struct ContentView: View {
             switch self {
             case .showcase: return "headphones.circle.fill"
             case .posture: return "figure.walk.motion"
+            case .openSourceLab: return "sparkles.rectangle.stack.fill"
             case .radar: return "dot.radiowaves.left.and.right"
             case .timeline: return "chart.xyaxis.line"
             case .sensors: return "earbuds.case.fill"
@@ -172,6 +174,8 @@ public struct ContentView: View {
                             }
                             .padding(18)
                         }
+                    case .openSourceLab:
+                        OpenSourceUpgradesView()
                     case .radar:
                         ScrollView {
                             SpatialSoundstageRadarView()

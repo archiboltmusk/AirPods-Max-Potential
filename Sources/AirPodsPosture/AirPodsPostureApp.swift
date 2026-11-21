@@ -24,12 +24,15 @@ struct AirPodsPostureApp: App {
                 openWindow(id: "main-dashboard")
             }
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: motion.postureState.systemImage)
-                if motion.isConnected && motion.postureState == .slouching {
-                    Text("Slouch!")
-                        .font(.caption2.bold())
-                }
+            HStack(spacing: 3) {
+                let tone: LiveSpineMenuBarGlyph.Tone = !motion.isConnected ? .disconnected : (motion.postureState == .slouching ? .alert : .calm)
+                let glyphImage = LiveSpineMenuBarGlyph.image(
+                    pitchDegrees: motion.deltaPitch,
+                    tone: tone,
+                    height: 18,
+                    label: motion.isConnected ? "\(Int(motion.deltaPitch))°" : nil
+                )
+                Image(nsImage: glyphImage)
             }
         }
         .menuBarExtraStyle(.window)

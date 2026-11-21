@@ -88,6 +88,11 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     @Published public var calibrationInterlockAlert: String? = nil
     @Published public var isInterlockActive: Bool = false
     
+    // Anti-Gaming Upright Recovery Lockout (AirPosture & PostureFix)
+    @Published public var recoveryGraceSeconds: Double = 2.0
+    @Published public var isRecoveringHysteresis: Bool = false
+    private var uprightRecoveryStartTime: Date? = nil
+    
     // Calibrated baseline quaternion & Euler
     public var qBaseline: simd_quatd = simd_quatd(ix: 0, iy: 0, iz: 0, r: 1)
     @Published public var isCalibrated: Bool = false
@@ -486,6 +491,9 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         let isRollBad = rollDeviation > rollThreshold
         
         if isPitchBad || isRollBad {
+            uprightRecoveryStartTime = nil
+            isRecoveringHysteresis = false
+            
             if warningStartTime == nil {
                 warningStartTime = Date()
             }
@@ -513,7 +521,29 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         } else {
             warningStartTime = nil
             warningProgress = 0.0
-            postureState = .optimal
+            
+            // Anti-gaming upright recovery lockout (AirPosture & PostureFix)
+            if postureState == .slouching || isRecoveringHysteresis {
+                let now = Date()
+                if let start = uprightRecoveryStartTime {
+                    if now.timeIntervalSince(start) >= recoveryGraceSeconds {
+                        postureState = .optimal
+                        isRecoveringHysteresis = false
+                        uprightRecoveryStartTime = nil
+                    } else {
+                        isRecoveringHysteresis = true
+                        postureState = .warning
+                    }
+                } else {
+                    uprightRecoveryStartTime = now
+                    isRecoveringHysteresis = true
+                    postureState = .warning
+                }
+            } else {
+                uprightRecoveryStartTime = nil
+                isRecoveringHysteresis = false
+                postureState = .optimal
+            }
         }
         
         let pitchPenalty = min(pitchDeviation / pitchThreshold, 2.0) * 40.0
@@ -522,6 +552,9 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         postureScore = (postureScore * 9 + calculatedScore) / 10
         
         ScreenGlowManager.shared.update(postureState: postureState)
+        ProgressiveScreenBlurManager.shared.update(postureState: postureState, deltaPitch: deltaPitch)
+        CervicalRepCounterEngine.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+        HeadShortcutsActionRunner.shared.processMotion(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, userAccelY: userAccelY)
         NotchHUDManager.shared.update(postureState: postureState)
         SpatialAudioBiofeedback.shared.updateSlouchMuffle(deltaPitch: deltaPitch, threshold: pitchThreshold)
         MultiMonitorGuard.shared.update(deltaYaw: deltaYaw)
@@ -597,6 +630,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     
     public func triggerSlouchAlert() {
         NotificationManager.shared.sendSlouchNotification(pitch: deltaPitch, roll: deltaRoll)
+        SystemAudioVoiceAlertEngine.shared.triggerSlouchNudge(pitchDeviation: deltaPitch)
         
         guard soundAlertsEnabled else { return }
         if muteInMeetings && AudioEnvironmentMonitor.shared.isMicrophoneInUse {

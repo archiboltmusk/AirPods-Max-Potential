@@ -7,6 +7,8 @@ public struct MenuBarView: View {
     @ObservedObject var calibrator = AutonomousAutoCalibrator.shared
     @ObservedObject var binaural = ProceduralBinauralSoundscapeEngine.shared
     @ObservedObject var miniDesk = FloatingMiniDeskCompanionManager.shared
+    @ObservedObject var screenBlur = ProgressiveScreenBlurManager.shared
+    @ObservedObject var voiceAlert = SystemAudioVoiceAlertEngine.shared
     let openDashboard: () -> Void
     
     public init(motion: MotionManager, openDashboard: @escaping () -> Void) {
@@ -52,11 +54,30 @@ public struct MenuBarView: View {
                 
                 Spacer()
                 
+                let tone: LiveSpineMenuBarGlyph.Tone = !motion.isConnected ? .disconnected : (motion.postureState == .slouching ? .alert : .calm)
+                let glyph = LiveSpineMenuBarGlyph.image(pitchDegrees: motion.deltaPitch, tone: tone, height: 20)
+                Image(nsImage: glyph)
+                
                 Text("\(motion.postureScore)%")
                     .font(.system(.body, design: .rounded, weight: .bold))
                     .foregroundColor(motion.postureScore > 80 ? .green : (motion.postureScore > 60 ? .orange : .red))
             }
             .padding(.bottom, 2)
+            
+            if motion.isRecoveringHysteresis {
+                HStack(spacing: 6) {
+                    Image(systemName: "timer")
+                        .foregroundColor(.orange)
+                        .font(.caption2)
+                    Text("Hold Upright (2s Anti-Gaming Stabilization)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.orange)
+                }
+                .padding(4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.12))
+                .cornerRadius(4)
+            }
             
             // Auto-Calibration status
             HStack(spacing: 6) {
