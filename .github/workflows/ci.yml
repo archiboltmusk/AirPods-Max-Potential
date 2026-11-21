@@ -1,0 +1,50 @@
+name: CI Build Verification
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-build:
+    name: Build & Verify macOS App
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16+
+        run: |
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app
+          elif [ -d "/Applications/Xcode_16.0.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app
+          fi
+          xcodebuild -version
+          swift --version
+
+      - name: Build Application Bundle
+        run: |
+          chmod +x build_app.sh
+          ./build_app.sh 1.3.0-ci
+
+      - name: Verify Bundle Integrity
+        run: |
+          test -d AirPodsPosture.app
+          test -f AirPodsPosture.app/Contents/MacOS/AirPodsPosture
+          test -f AirPodsPosture.app/Contents/Info.plist
+          codesign --verify --verbose AirPodsPosture.app
+          echo "✅ Application bundle passed all integrity and codesign checks!"

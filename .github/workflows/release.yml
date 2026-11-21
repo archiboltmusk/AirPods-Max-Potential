@@ -1,39 +1,61 @@
-name: Build & Release DMG
+name: Automated Release (DMG & ZIP)
 
 on:
   push:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to release (e.g. 1.3.0)'
+        required: true
+        default: '1.3.0'
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    name: Build macOS Universal Bundle
+  release:
+    name: Build & Publish macOS Release
     runs-on: macos-14
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
-
-      - name: Build and Package Release App
+      - name: Select Xcode 16+
         run: |
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app
+          elif [ -d "/Applications/Xcode_16.0.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app
+          fi
+          xcodebuild -version
+          swift --version
+
+      - name: Compile Universal 2 Binary & Package Distribution Artifacts
+        id: build
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "Building version $VERSION"
           chmod +x build_app.sh
-          ./build_app.sh
+          ./build_app.sh "$VERSION"
 
-      - name: Create DMG Disk Image
-        run: |
-          mkdir -p dmg_root
-          cp -R AirPodsPosture.app dmg_root/
-          ln -s /Applications dmg_root/Applications
-          hdiutil create -volname "AirPodsIQ" -srcfolder dmg_root -ov -format UDZO "AirPodsIQ-${{ github.ref_name }}.dmg"
-
-      - name: Create GitHub Release
+      - name: Publish Artifacts to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: AirPodsIQ-*.dmg
+          files: |
+            AirPodsPosture-*.dmg
+            AirPodsPosture-*.zip
+            SHA256SUMS.txt
           draft: false
           prerelease: false
           generate_release_notes: true

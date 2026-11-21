@@ -1,5 +1,8 @@
 .DS_Store
 /.build
 /AirPodsPosture.app
+*.dmg
+*.zip
+SHA256SUMS.txt
 DerivedData/
 *.xcuserstate
