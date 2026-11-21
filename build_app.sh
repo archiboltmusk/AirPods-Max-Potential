@@ -82,8 +82,10 @@ ditto -c -k --keepParent "$APP_DIR" "$DIR/AirPodsPosture-v${VERSION}-macOS.zip"
 
 echo "💿 Creating Apple Disk Image AirPodsPosture-v${VERSION}-macOS.dmg..."
 TMP_DMG=$(mktemp -d /tmp/dmg_build_XXXXXX)
+chmod 755 "$TMP_DMG"
 cp -R "$APP_DIR" "$TMP_DMG/"
 ln -s /Applications "$TMP_DMG/Applications"
+chmod -R u+rwX,go+rX "$TMP_DMG"
 rm -f "$DIR/AirPodsPosture-v${VERSION}-macOS.dmg"
 hdiutil create -volname "AirPods Posture" -srcfolder "$TMP_DMG" -ov -format UDZO "$DIR/AirPodsPosture-v${VERSION}-macOS.dmg" > /dev/null
 rm -rf "$TMP_DMG"
