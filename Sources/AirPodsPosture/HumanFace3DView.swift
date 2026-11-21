@@ -30,28 +30,36 @@ public struct HumanFace3DView: NSViewRepresentable {
         cameraNode.position = SCNVector3(x: 0, y: 0.1, z: 6.8)
         scene.rootNode.addChildNode(cameraNode)
         
-        // 2. Cinematic Studio Portrait 3-Point Lighting
+        // 2. Cinematic Studio Portrait 3-Point Lighting with Warm Editorial Rim Light
         let keyLight = SCNNode()
         keyLight.light = SCNLight()
         keyLight.light?.type = .omni
-        keyLight.light?.intensity = 1600
-        keyLight.light?.color = NSColor(white: 0.98, alpha: 1.0)
+        keyLight.light?.intensity = 1650
+        keyLight.light?.color = NSColor(red: 1.0, green: 0.97, blue: 0.92, alpha: 1.0) // Warm studio key
         keyLight.position = SCNVector3(x: 3.5, y: 4.0, z: 5.5)
         scene.rootNode.addChildNode(keyLight)
         
         let rimLight = SCNNode()
         rimLight.light = SCNLight()
         rimLight.light?.type = .omni
-        rimLight.light?.intensity = 1100
-        rimLight.light?.color = NSColor.cyan
-        rimLight.position = SCNVector3(x: -4.0, y: 2.0, z: -3.5)
+        rimLight.light?.intensity = 1250
+        rimLight.light?.color = NSColor(red: 252.0/255.0, green: 65.0/255.0, blue: 9.0/255.0, alpha: 1.0) // HUMAN.md Vermilion Rim
+        rimLight.position = SCNVector3(x: -4.0, y: 2.2, z: -3.5)
         scene.rootNode.addChildNode(rimLight)
+        
+        let cyanRim = SCNNode()
+        cyanRim.light = SCNLight()
+        cyanRim.light?.type = .omni
+        cyanRim.light?.intensity = 600
+        cyanRim.light?.color = NSColor.cyan
+        cyanRim.position = SCNVector3(x: 3.5, y: -1.5, z: -3.0)
+        scene.rootNode.addChildNode(cyanRim)
         
         let fillLight = SCNNode()
         fillLight.light = SCNLight()
         fillLight.light?.type = .ambient
-        fillLight.light?.intensity = 450
-        fillLight.light?.color = NSColor(white: 0.32, alpha: 1.0)
+        fillLight.light?.intensity = 480
+        fillLight.light?.color = NSColor(red: 0.38, green: 0.35, blue: 0.35, alpha: 1.0)
         scene.rootNode.addChildNode(fillLight)
         
         // 3. Human Head Assembly Root

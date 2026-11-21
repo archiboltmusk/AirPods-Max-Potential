@@ -4,9 +4,11 @@ public struct ContentView: View {
     @ObservedObject var motion = MotionManager.shared
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
     @ObservedObject var breakTimer = ErgonomicBreakTimer.shared
-    @State private var selectedTab: TabItem = .posture
+    @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
+    @State private var selectedTab: TabItem = .humanManifesto
     
     enum TabItem: String, CaseIterable, Identifiable {
+        case humanManifesto = "HUMAN.md Manifesto"
         case showcase = "Apple 360° Studio"
         case posture = "Posture Monitor"
         case openSourceLab = "Peer Innovations"
@@ -26,6 +28,7 @@ public struct ContentView: View {
         
         var icon: String {
             switch self {
+            case .humanManifesto: return "book.pages.fill"
             case .showcase: return "headphones.circle.fill"
             case .posture: return "figure.walk.motion"
             case .openSourceLab: return "sparkles.rectangle.stack.fill"
@@ -48,9 +51,13 @@ public struct ContentView: View {
     
     public var body: some View {
         ZStack {
-            // Metal Shader Live Fluid Chromatic Canvas
-            FluidChromaticCanvasView(postureScore: motion.postureScore)
-                .opacity(0.85)
+            // Adaptive Living Canvas: Warm Film Grain Noir vs Cupertino Metal Plasma
+            if appVisualTheme == "humanCinema" {
+                AnalogFilmGrainCanvasView(postureScore: motion.postureScore)
+            } else {
+                FluidChromaticCanvasView(postureScore: motion.postureScore)
+                    .opacity(0.85)
+            }
             
             NavigationSplitView {
                 List(TabItem.allCases, selection: $selectedTab) { tab in
@@ -90,6 +97,8 @@ public struct ContentView: View {
             } detail: {
                 Group {
                     switch selectedTab {
+                    case .humanManifesto:
+                        HumanManifestoShowcaseView()
                     case .showcase:
                         ScrollView {
                             Apple360HeroShowcaseView()
