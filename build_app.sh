@@ -74,3 +74,19 @@ codesign --force --deep --sign - "$APP_DIR"
 
 echo "✅ App bundle created successfully at: $APP_DIR"
 echo "You can launch the app by running: open '$APP_DIR'"
+
+# Package DMG and ZIP
+VERSION="1.3.0"
+echo "📦 Packaging AirPodsPosture-v${VERSION}-macOS.zip..."
+ditto -c -k --keepParent "$APP_DIR" "$DIR/AirPodsPosture-v${VERSION}-macOS.zip"
+
+echo "💿 Creating Apple Disk Image AirPodsPosture-v${VERSION}-macOS.dmg..."
+TMP_DMG=$(mktemp -d /tmp/dmg_build_XXXXXX)
+cp -R "$APP_DIR" "$TMP_DMG/"
+ln -s /Applications "$TMP_DMG/Applications"
+rm -f "$DIR/AirPodsPosture-v${VERSION}-macOS.dmg"
+hdiutil create -volname "AirPods Posture" -srcfolder "$TMP_DMG" -ov -format UDZO "$DIR/AirPodsPosture-v${VERSION}-macOS.dmg" > /dev/null
+rm -rf "$TMP_DMG"
+
+echo "✨ Release artifacts generated in $DIR:"
+ls -lh "$DIR"/AirPodsPosture-v${VERSION}-macOS.*
