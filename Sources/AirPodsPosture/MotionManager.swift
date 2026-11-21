@@ -440,6 +440,8 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         DisplayDistanceGuardManager.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ)
         MicroNapSleepApneaDetector.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
         CervicalKeypressWheelManager.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+        AcousticRespiratoryEngine.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
+        MultiDisplaySpatialGridMapper.shared.update(yaw: deltaYaw)
             return
         }
         
@@ -459,8 +461,11 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             
             if elapsedWarning >= gracePeriodSeconds {
                 if postureState != .slouching {
-                    slouchEventCount += 1
-                    triggerSlouchAlert()
+                    // Check if user is typing rapidly (Flow state gating)
+                    if !TypingFlowStateGatingManager.shared.shouldSuppressAlertForFlow() {
+                        slouchEventCount += 1
+                        triggerSlouchAlert()
+                    }
                 }
                 postureState = .slouching
             } else {
@@ -504,6 +509,8 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         DisplayDistanceGuardManager.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ)
         MicroNapSleepApneaDetector.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
         CervicalKeypressWheelManager.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+        AcousticRespiratoryEngine.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
+        MultiDisplaySpatialGridMapper.shared.update(yaw: deltaYaw)
     }
     
     private func detectGestures(pitch: Double, yaw: Double) {
@@ -547,7 +554,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         }
     }
     
-    private func triggerSlouchAlert() {
+    public func triggerSlouchAlert() {
         NotificationManager.shared.sendSlouchNotification(pitch: deltaPitch, roll: deltaRoll)
         
         guard soundAlertsEnabled else { return }
