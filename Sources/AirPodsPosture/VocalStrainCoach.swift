@@ -2,6 +2,10 @@ import Foundation
 import SwiftUI
 import CoreAudio
 
+/// Vocal Tract Strain & Laryngeal Compression Coach.
+/// When speaking on Zoom / Google Meet / FaceTime with a forward slouched neck,
+/// the hyoid bone shifts and compresses the larynx, causing vocal fatigue, hoarseness, and shallow clavicular breathing.
+/// Detects microphone activity and provides real-time laryngeal biofeedback.
 @MainActor
 public final class VocalStrainCoach: ObservableObject {
     public static let shared = VocalStrainCoach()
@@ -9,8 +13,10 @@ public final class VocalStrainCoach: ObservableObject {
     @Published public var isEnabled: Bool = true
     @Published public var isMicActive: Bool = false
     @Published public var strainDetected: Bool = false
+    @Published public var laryngealCompressionPercent: Int = 12 // 0% = open, 100% = severe vocal fold pinch
+    @Published public var resonanceQuality: String = "Open Diaphragmatic"
     @Published public var strainEventsCount: Int = 0
-    @Published public var statusMessage: String = "Normal Laryngeal Posture"
+    @Published public var statusMessage: String = "Optimal Laryngeal Speech Alignment"
     
     private var micCheckTimer: Timer?
     private var strainStartTime: Date?
@@ -22,23 +28,28 @@ public final class VocalStrainCoach: ObservableObject {
     public func update(pitch: Double, roll: Double) {
         guard isEnabled && isMicActive else {
             strainDetected = false
+            laryngealCompressionPercent = 0
+            resonanceQuality = "Microphone Inactive"
             return
         }
         
-        // Forward head posture (forward pitch < -12 degrees) compresses cervical spine and tenses strap muscles of larynx
-        let isForwardHead = pitch < -12.0
+        let forwardDev = max(0.0, -pitch) // Looking down / forward craned
+        let compression = min(100.0, (forwardDev / 25.0) * 100.0)
+        self.laryngealCompressionPercent = Int(compression)
         
-        if isForwardHead {
+        if forwardDev > 12.0 {
+            self.resonanceQuality = "⚠️ Compressed Clavicular (Vocal Pinch)"
             if let start = strainStartTime {
                 let duration = Date().timeIntervalSince(start)
-                if duration > 4.0 && !strainDetected {
+                if duration > 3.5 && !strainDetected {
                     strainDetected = true
                     strainEventsCount += 1
-                    statusMessage = "⚠️ Forward Head Vocal Strain: Retract chin to unload vocal cords!"
+                    statusMessage = "⚠️ Laryngeal Pinch: Retract chin back to unload vocal cords!"
                     NotificationManager.shared.sendCustomAlert(
                         title: "Vocal Strain Detected",
-                        body: "Speaking with your neck tilted forward puts excessive pressure on your vocal cords. Tuck your chin back!"
+                        body: "Speaking with your neck slouched compresses your vocal tract. Tuck your chin back for effortless vocal projection!"
                     )
+                    SyntheticEarHapticEngine.shared.playTapticClick()
                 }
             } else {
                 strainStartTime = Date()
@@ -46,7 +57,8 @@ public final class VocalStrainCoach: ObservableObject {
         } else {
             strainStartTime = nil
             strainDetected = false
-            statusMessage = "Good Alignment for Diaphragmatic Speech"
+            self.resonanceQuality = "Open Diaphragmatic Resonance"
+            statusMessage = "Optimal Alignment for Vocal Projection"
         }
     }
     
@@ -100,8 +112,6 @@ public final class VocalStrainCoach: ObservableObject {
         
         if runStatus == noErr {
             self.isMicActive = (isRunning != 0)
-        } else {
-            self.isMicActive = false
         }
     }
 }
