@@ -322,14 +322,11 @@ public struct PostureVisualizerView: View {
                 .stroke(Color.primary.opacity(0.1), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 .frame(width: 220, height: 220)
                 
-                // Head + AirPods Max Model
+                // Head + AirPods Max Model (Instant 60Hz single-frame tracking)
                 HeadModelView(statusColor: statusColor)
                     .rotation3DEffect(.degrees(-motion.deltaPitch), axis: (x: 1, y: 0, z: 0))
                     .rotation3DEffect(.degrees(motion.deltaRoll), axis: (x: 0, y: 0, z: 1))
                     .rotation3DEffect(.degrees(-motion.deltaYaw), axis: (x: 0, y: 1, z: 0))
-                    .animation(.interactiveSpring(response: 0.25, dampingFraction: 0.75), value: motion.deltaPitch)
-                    .animation(.interactiveSpring(response: 0.25, dampingFraction: 0.75), value: motion.deltaRoll)
-                    .animation(.interactiveSpring(response: 0.25, dampingFraction: 0.75), value: motion.deltaYaw)
                 
                 // Gesture popup banner
                 if let ts = motion.gestureTimestamp, Date().timeIntervalSince(ts) < 2.0 {

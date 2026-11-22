@@ -131,8 +131,8 @@ public struct AnatomicalSpine3DView: NSViewRepresentable {
               let skullNode = spineRoot.childNode(withName: "skullNode", recursively: false) else { return }
         
         SCNTransaction.begin()
-        SCNTransaction.animationDuration = 0.08
-        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeOut)
+        SCNTransaction.animationDuration = 0.016
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .linear)
         
         // Convert degrees to radians in CGFloat
         let pRad = CGFloat(pitch * .pi / 180.0)

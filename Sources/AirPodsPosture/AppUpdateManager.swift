@@ -12,8 +12,8 @@ public final class AppUpdateManager: ObservableObject {
     public static let shared = AppUpdateManager()
     
     // Version Telemetry
-    public let currentVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.8.2"
-    public let currentBuild: String = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "2.8.2"
+    public let currentVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.9.3"
+    public let currentBuild: String = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "2.9.3"
     
     // Update States
     @Published public var isChecking: Bool = false

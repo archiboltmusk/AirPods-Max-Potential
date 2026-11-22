@@ -37,8 +37,8 @@ public struct HergePostureAvatarView: View {
         }
     }
     
-    /// Loads the crisp 1024x1024 Hergé artwork from bundle resources or local fallback
-    private var avatarImage: NSImage? {
+    /// Loads the crisp 1024x1024 Hergé artwork once into RAM (zero disk I/O at 60Hz)
+    private static let cachedImage: NSImage? = {
         if let bundleURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png"),
            let img = NSImage(contentsOf: bundleURL) {
             return img
@@ -49,6 +49,10 @@ public struct HergePostureAvatarView: View {
             return img
         }
         return nil
+    }()
+    
+    private var avatarImage: NSImage? {
+        Self.cachedImage
     }
     
     public var body: some View {
@@ -79,10 +83,9 @@ public struct HergePostureAvatarView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: cardSize * 0.92, height: cardSize * 0.92)
                     .clipShape(RoundedRectangle(cornerRadius: isCompact ? 18 : 22, style: .continuous))
-                    // Lifelike physical pitch nod (subtle rotation anchored near neck)
+                    // Instantaneous 60Hz physical head tracking with zero artificial lag
                     .rotationEffect(.degrees(pitch * 0.35), anchor: .bottomLeading)
                     .rotationEffect(.degrees(roll * 0.2))
-                    .animation(.spring(response: 0.4, dampingFraction: 0.75), value: pitch)
             } else {
                 // Fallback icon if image is loading
                 VStack(spacing: 8) {

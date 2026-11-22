@@ -155,8 +155,8 @@ public struct AgamemnonOdysseySpineView: NSViewRepresentable {
               let maskNode = spineAssembly.childNode(withName: "maskOfAgamemnon", recursively: false) else { return }
         
         SCNTransaction.begin()
-        SCNTransaction.animationDuration = 0.08
-        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeOut)
+        SCNTransaction.animationDuration = 0.016
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .linear)
         
         let pRad = CGFloat(pitch * .pi / 180.0)
         let rRad = CGFloat(roll * .pi / 180.0)

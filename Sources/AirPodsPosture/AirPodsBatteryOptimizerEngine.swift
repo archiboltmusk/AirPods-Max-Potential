@@ -67,8 +67,8 @@ public final class AirPodsBatteryOptimizerEngine: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.tickCount += 1
-                // Periodically poll hardware battery every 15 seconds
-                if self.tickCount % 15 == 0 {
+                // Periodically poll hardware battery every 60 seconds
+                if self.tickCount % 60 == 0 {
                     self.refreshHardwareBattery()
                 }
                 self.evaluateBatteryState()
