@@ -21,11 +21,18 @@ public final class SyntheticEarHapticEngine: ObservableObject {
     private var lastTapTime: Date = Date.distantPast
     
     private init() {
+        // Audio engine initialized strictly on demand to prevent continuous coreaudiod power assertions
+    }
+    
+    private func ensureAudioEngine() {
+        guard audioEngine == nil else { return }
         setupAudioEngine()
     }
     
     private func setupAudioEngine() {
-        guard NSApp != nil else { return }
+        guard NSApp != nil,
+              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+              NSClassFromString("XCTest") == nil else { return }
         let engine = AVAudioEngine()
         let player = AVAudioPlayerNode()
         
@@ -35,14 +42,10 @@ public final class SyntheticEarHapticEngine: ObservableObject {
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
         
-        do {
-            try engine.start()
-            self.audioEngine = engine
-            self.playerNode = player
-            self.audioFormat = format
-        } catch {
-            print("Failed to start SyntheticEarHapticEngine: \(error)")
-        }
+        // Keep engine stopped when idle so coreaudiod does NOT hold a continuous audio power assertion!
+        self.audioEngine = engine
+        self.playerNode = player
+        self.audioFormat = format
     }
     
     /// Triggers silent MacBook Force Touch trackpad haptics
@@ -85,7 +88,9 @@ public final class SyntheticEarHapticEngine: ObservableObject {
     
     /// Generates a calibrated directional synthetic ear-tap buffer
     public func playSpatialEarTap(leftGain: Float, rightGain: Float, baseFreq: Double = 160.0, durationSeconds: Double = 0.018) {
-        guard isHapticAudioEnabled, let format = audioFormat, let player = playerNode else { return }
+        guard isHapticAudioEnabled else { return }
+        ensureAudioEngine()
+        guard let format = audioFormat, let engine = audioEngine, let player = playerNode else { return }
         
         let sampleRate = format.sampleRate
         let frameCount = AVAudioFrameCount(sampleRate * durationSeconds)
@@ -106,10 +111,22 @@ public final class SyntheticEarHapticEngine: ObservableObject {
             rightChannel[frame] = sample * rightGain
         }
         
-        guard let engine = audioEngine, engine.isRunning, let player = playerNode else { return }
-        player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
-        if !player.isPlaying {
-            player.play()
+        do {
+            if !engine.isRunning {
+                try engine.start()
+            }
+            player.scheduleBuffer(buffer, at: nil, options: []) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                    if let p = self?.playerNode, !p.isPlaying {
+                        self?.audioEngine?.pause()
+                    }
+                }
+            }
+            if !player.isPlaying {
+                player.play()
+            }
+        } catch {
+            // Audio start fallback
         }
     }
     
@@ -130,7 +147,9 @@ public final class SyntheticEarHapticEngine: ObservableObject {
     /// Generates a crisp rising resonant tick on successful calibration lock
     public func playSuccessChirp() {
         performTrackpadHaptic(pattern: .alignment)
-        guard isHapticAudioEnabled, let format = audioFormat else { return }
+        guard isHapticAudioEnabled else { return }
+        ensureAudioEngine()
+        guard let format = audioFormat, let engine = audioEngine, let player = playerNode else { return }
         
         let sampleRate = format.sampleRate
         let durationSeconds = 0.04
@@ -153,10 +172,22 @@ public final class SyntheticEarHapticEngine: ObservableObject {
             rightChannel[frame] = sample
         }
         
-        guard let engine = audioEngine, engine.isRunning, let player = playerNode else { return }
-        player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
-        if !player.isPlaying {
-            player.play()
+        do {
+            if !engine.isRunning {
+                try engine.start()
+            }
+            player.scheduleBuffer(buffer, at: nil, options: []) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                    if let p = self?.playerNode, !p.isPlaying {
+                        self?.audioEngine?.pause()
+                    }
+                }
+            }
+            if !player.isPlaying {
+                player.play()
+            }
+        } catch {
+            // Audio start fallback
         }
     }
 }
