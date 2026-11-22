@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="Sources/AirPodsPosture/Resources/AppIcon.png" width="128" height="128" alt="AirPods Posture Icon" style="border-radius: 28px;" />
+
 # 🎧 AirPodsIQ: AirPods Max Potential
 
 **The Ultimate Biomechanical, Spatial Audio & Neural Posture OS for macOS.**  
