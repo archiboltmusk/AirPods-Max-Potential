@@ -43,4 +43,23 @@ public enum QuaternionMath {
     public static func relativeOrientation(baseline: simd_quatd, current: simd_quatd) -> simd_quatd {
         return simd_normalize(baseline.inverse * current)
     }
+    
+    /// Projects Earth-down gravity vector [0, 0, -1] into calibrated head frame
+    /// to yield exact, gimbal-lock-free pitch and roll via 2-argument atan2.
+    public static func gravityReferencedTilt(
+        relativeQuat: simd_quatd,
+        isLeftSensor: Bool = false
+    ) -> (pitchDeg: Double, rollDeg: Double) {
+        let calibratedGravity = relativeQuat.act(SIMD3<Double>(0, 0, -1))
+        let forwardSign = -1.0
+        let lateralSign = 1.0
+        
+        let pitchRad = atan2(forwardSign * calibratedGravity.y, -calibratedGravity.z)
+        let rollRad = atan2(lateralSign * calibratedGravity.x, -calibratedGravity.z)
+        
+        return (
+            pitchDeg: pitchRad * 180.0 / .pi,
+            rollDeg: rollRad * 180.0 / .pi
+        )
+    }
 }

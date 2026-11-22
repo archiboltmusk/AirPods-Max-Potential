@@ -467,10 +467,12 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             deltaRoll = tnAngles.compensatedRoll
             deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(tnAngles.compensatedYaw)
         } else {
+            // Gimbal-lock-free Earth-gravity vector projection [0, 0, -1] via relative quaternion
             let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
+            let gravityTilt = QuaternionMath.gravityReferencedTilt(relativeQuat: qRel)
             let relEuler = QuaternionMath.euler(from: qRel)
-            deltaPitch = relEuler.pitch
-            deltaRoll = relEuler.roll
+            deltaPitch = gravityTilt.pitchDeg
+            deltaRoll = gravityTilt.rollDeg
             deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
         }
         
