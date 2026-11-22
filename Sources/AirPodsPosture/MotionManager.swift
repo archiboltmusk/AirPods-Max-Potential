@@ -4,6 +4,7 @@ import Combine
 import AppKit
 import ServiceManagement
 import simd
+import AirPodsCore
 
 public enum PostureState: String, CaseIterable, Identifiable {
     case optimal = "Optimal"
@@ -313,6 +314,8 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         isInterlockActive = false
         calibrationInterlockAlert = nil
         let currentQuat = simd_quatd(ix: quatX, iy: quatY, iz: quatZ, r: quatW)
+        let currentGravity = (gravityX != 0 || gravityY != 0 || gravityZ != 0) ? SIMD3<Double>(gravityX, gravityY, gravityZ) : nil
+        _ = TrueNorthCalibrationEngine.shared.calibrateInstant(quat: currentQuat, gravity: currentGravity)
         qBaseline = currentQuat
         isCalibrated = true
         deltaPitch = 0
@@ -434,11 +437,15 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             gravityZ = g.z
         }
         
-        // Auto-calibrate on first incoming packet
+        // Auto-calibrate on first incoming packet ONLY if within physiological upright zone (-6° to +7°)
         if !isCalibrated {
-            qBaseline = quat
-            isCalibrated = true
-            savePreferences()
+            let currentPitch = rawPitch
+            if currentPitch >= -6.0 && currentPitch <= 7.0 {
+                _ = TrueNorthCalibrationEngine.shared.calibrateInstant(quat: quat, gravity: gravity)
+                qBaseline = quat
+                isCalibrated = true
+                savePreferences()
+            }
         }
         
         // Autonomous Continuous Statistical Calibration
@@ -449,19 +456,23 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             userEnergy: totalKineticEnergy
         )
         
-        // Auto-drift compensation: slowly pull baseline toward current if stable
-        if autoDriftCorrection {
-            let driftFactor = 0.0004
-            qBaseline = simd_slerp(qBaseline, quat, driftFactor)
+        // 6. Compute exact relative posture using TrueNorth Gravitational Kinematics
+        if let tnAngles = TrueNorthCalibrationEngine.shared.processFrame(
+            quat: quat,
+            gravity: gravity,
+            rotRate: rotRateMag,
+            isStationary: totalKineticEnergy < 0.04
+        ) {
+            deltaPitch = tnAngles.compensatedPitch
+            deltaRoll = tnAngles.compensatedRoll
+            deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(tnAngles.compensatedYaw)
+        } else {
+            let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
+            let relEuler = QuaternionMath.euler(from: qRel)
+            deltaPitch = relEuler.pitch
+            deltaRoll = relEuler.roll
+            deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
         }
-        
-        // 6. Compute exact relative posture in 3D quaternion space
-        let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
-        let relEuler = QuaternionMath.euler(from: qRel)
-        
-        deltaPitch = relEuler.pitch
-        deltaRoll = relEuler.roll
-        deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
         
         evaluatePosture()
     }

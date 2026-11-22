@@ -1,5 +1,6 @@
 import Foundation
 import simd
+import AirPodsCore
 
 @MainActor
 public final class AutonomousAutoCalibrator: ObservableObject {
@@ -83,11 +84,13 @@ public final class AutonomousAutoCalibrator: ObservableObject {
             lastAutoCalibratedTime = Date()
             autoCalibrationStatus = "🟢 Auto-Locked: Aligned to True Earth Gravity"
             SyntheticEarHapticEngine.shared.playSuccessChirp()
-        } else {
-            // Subtle adaptive Slerp pull (0.002 factor) so alignment adapts as posture shifts
-            motion.qBaseline = simd_slerp(motion.qBaseline, currentQuat, 0.002)
+        } else if abs(medianPitch) < 2.5 && calibrationConfidence >= 0.95 {
+            // Micro-trim only when verified in physiological upright deadband
+            motion.qBaseline = simd_slerp(motion.qBaseline, currentQuat, 0.0005)
             lastAutoCalibratedTime = Date()
             autoCalibrationStatus = "🟢 Slouch-Proof Auto-Centered (Gravity Confidence: \(Int(calibrationConfidence * 100))%)"
+        } else {
+            autoCalibrationStatus = "Baseline Held Rigid to Gravitational Horizon"
         }
     }
     
