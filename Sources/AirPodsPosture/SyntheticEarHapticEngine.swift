@@ -75,7 +75,7 @@ public final class SyntheticEarHapticEngine: ObservableObject {
             // Tilting head to the left -> cue left ear to level right
             playSpatialEarTap(leftGain: 1.0, rightGain: 0.05, baseFreq: 155.0, durationSeconds: 0.02)
             lastTapTime = now
-        } else if pitch > pitchThreshold {
+        } else if abs(pitch) > pitchThreshold {
             // Forward slouch -> dual-ear deep 52Hz cartilage resonance pulse
             playSpatialEarTap(leftGain: 0.9, rightGain: 0.9, baseFreq: 52.0, durationSeconds: 0.035)
             lastTapTime = now

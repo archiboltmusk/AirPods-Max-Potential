@@ -48,11 +48,12 @@ public final class SpatialElevationSoundstageEngine: ObservableObject {
     public func updateCervicalElevation(pitch: Double) {
         guard isSpatialElevationEnabled, let env = environmentNode else { return }
         
-        // Forward slouch is positive pitch:
-        // 0° to +5° -> Y = 0.0 (Eye Level Horizon)
-        // +15° -> Y = -0.35 (Chin Level)
-        // +30° -> Y = -0.75 (Chest Level)
-        let clampedPitch = max(0.0, min(45.0, pitch))
+        // Forward slouch is negative pitch (head nod forward):
+        // 0° to -5° -> Y = 0.0 (Eye Level Horizon)
+        // -15° -> Y = -0.35 (Chin Level)
+        // -30° -> Y = -0.75 (Chest Level)
+        let forwardSlouchDeg = max(0.0, -pitch)
+        let clampedPitch = min(45.0, forwardSlouchDeg)
         let normalizedDrop = Float(clampedPitch / 35.0) // 0.0 to 1.0
         let targetY = -normalizedDrop * 0.8
         

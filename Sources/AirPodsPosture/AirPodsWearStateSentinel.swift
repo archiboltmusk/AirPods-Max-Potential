@@ -37,9 +37,10 @@ public final class AirPodsWearStateSentinel: ObservableObject {
     public func evaluateWearPose(pitch: Double, roll: Double, yaw: Double, kineticEnergy: Double, rotRateMagnitude: Double) {
         // Collarbone resting signature:
         // When AirPods Max or Pro hang on the neck:
-        // - Earcups twist flat against chest: |roll| > 70° OR pitch is down <-35°
-        // - User is stationary or walking, but head rotation relative to headphones is static (rotRate < 2.5 deg/s)
-        let isCollarboneGeometry = (abs(roll) > 70.0 || pitch < -35.0)
+        // - Earcups twist flat against chest: |roll| > 65° (earbuds resting sideways against clavicles)
+        // - Note: pure forward pitch (pitch < -35°) is a severe slouch or looking down at notes/phone,
+        //   so we strictly require lateral rotation |roll| > 65° to avoid muting real slouch alarms.
+        let isCollarboneGeometry = abs(roll) > 65.0
         let isStillInEarcups = rotRateMagnitude < 3.5 && kineticEnergy < 0.15
         
         if isCollarboneGeometry && isStillInEarcups {
