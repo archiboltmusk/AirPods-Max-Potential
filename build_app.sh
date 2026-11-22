@@ -83,6 +83,10 @@ cat << EOF > "$CONTENTS_DIR/Info.plist"
     <string>AirPodsPosture</string>
     <key>CFBundleIdentifier</key>
     <string>com.archiboltmusk.airpodsposture</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -129,6 +133,14 @@ TMP_DMG=$(mktemp -d /tmp/dmg_build_XXXXXX)
 chmod 755 "$TMP_DMG"
 cp -R "$APP_DIR" "$TMP_DMG/"
 ln -s /Applications "$TMP_DMG/Applications"
+
+# Set custom volume icon on DMG if available
+if [ -f "$RESOURCES_DIR/AppIcon.icns" ]; then
+    cp "$RESOURCES_DIR/AppIcon.icns" "$TMP_DMG/.VolumeIcon.icns"
+    SetFile -c icnC "$TMP_DMG/.VolumeIcon.icns" 2>/dev/null || true
+    SetFile -a C "$TMP_DMG" 2>/dev/null || true
+fi
+
 chmod -R u+rwX,go+rX "$TMP_DMG"
 rm -f "$DIR/$DMG_NAME"
 hdiutil create -volname "AirPods Posture" -srcfolder "$TMP_DMG" -ov -format UDZO "$DIR/$DMG_NAME" > /dev/null
