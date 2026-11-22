@@ -540,6 +540,13 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             return
         }
         
+        // Insertion-Angle Sanity Check: If earbud is loose or seated crookedly, prompt to reseat instead of false slouch
+        if AirPodsInsertionFitSentinel.shared.isCrookedFitDetected {
+            postureState = .warning
+            warningProgress = 0.15
+            return
+        }
+        
         if isSnoozed {
             postureState = .snoozed
             warningProgress = 0.0
@@ -710,6 +717,14 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ),
             rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ)
         )
+        
+        // Insertion-Angle Sanity & Seating Gate
+        AirPodsInsertionFitSentinel.shared.validateInsertionSanity(
+            pitchDeg: deltaPitch,
+            rollDeg: deltaRoll,
+            rotRate: SIMD3<Double>(rotRateX * .pi / 180.0, rotRateY * .pi / 180.0, rotRateZ * .pi / 180.0),
+            userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ)
+        )
     }
     
     private func detectGestures(pitch: Double, yaw: Double) {
@@ -862,6 +877,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         Task { @MainActor in
             self.isConnected = true
             self.startTracking()
+            AirPodsInsertionFitSentinel.shared.headphoneMotionManagerDidConnect(manager)
             AirPodsInCaseLifecycleManager.shared.handleAirPodsRemovedFromCase()
         }
     }
@@ -870,6 +886,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         Task { @MainActor in
             self.isConnected = false
             self.postureState = .disconnected
+            AirPodsInsertionFitSentinel.shared.headphoneMotionManagerDidDisconnect(manager)
             AirPodsInCaseLifecycleManager.shared.handleAirPodsPlacedInCase()
         }
     }

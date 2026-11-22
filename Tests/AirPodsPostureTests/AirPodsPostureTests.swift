@@ -60,3 +60,37 @@ import simd
         #expect(abs(simd_length(profile.right) - 1.0) < 1e-4)
     }
 }
+
+@Test func testInsertionSanityGateCrookedFit() async throws {
+    let sentinel = await AirPodsInsertionFitSentinel()
+    
+    // Feed 65 frames of impossible anatomical resting roll (40° roll while stationary)
+    for _ in 0..<65 {
+        await sentinel.validateInsertionSanity(
+            pitchDeg: 0.0,
+            rollDeg: 40.0,
+            rotRate: SIMD3<Double>(0, 0, 0),
+            userAccel: SIMD3<Double>(0, 0, 0)
+        )
+    }
+    
+    let isCrooked = await sentinel.isCrookedFitDetected
+    let isOptimal = await sentinel.isStemAngleOptimal
+    #expect(isCrooked == true)
+    #expect(isOptimal == false)
+    
+    // Now feed normal posture frames
+    for _ in 0..<10 {
+        await sentinel.validateInsertionSanity(
+            pitchDeg: -4.0,
+            rollDeg: 2.0,
+            rotRate: SIMD3<Double>(0, 0, 0),
+            userAccel: SIMD3<Double>(0, 0, 0)
+        )
+    }
+    
+    let clearedCrooked = await sentinel.isCrookedFitDetected
+    let restoredOptimal = await sentinel.isStemAngleOptimal
+    #expect(clearedCrooked == false)
+    #expect(restoredOptimal == true)
+}

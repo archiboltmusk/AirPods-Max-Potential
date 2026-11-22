@@ -14,6 +14,7 @@ public struct ContentView: View {
     @ObservedObject var physioReport = ClinicalPhysioReportExporter.shared
     @ObservedObject var zupt = AnteriorZUPTKinematicEngine.shared
     @ObservedObject var permanentEngine = PermanentPostureEngine.shared
+    @ObservedObject var fitSentinel = AirPodsInsertionFitSentinel.shared
     
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
     @State private var selectedTab: TabItem = .posture
@@ -398,9 +399,18 @@ public struct ContentView: View {
                                                 .foregroundColor(.green)
                                         }
                                         Spacer()
-                                        Text(permanentEngine.adaptationStatusText)
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
+                                        Button(action: {
+                                            fitSentinel.isFitGuidePresented = true
+                                        }) {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: fitSentinel.isProperlySeated ? "ear.badge.checkmark" : "ear.trianglebadge.exclamationmark")
+                                                    .foregroundColor(fitSentinel.isProperlySeated ? .green : .orange)
+                                                Text("\(fitSentinel.fitQualityScore)% Seal")
+                                                    .font(.caption2.bold())
+                                                    .foregroundColor(fitSentinel.isProperlySeated ? .green : .orange)
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                                 .padding(14)
@@ -526,6 +536,9 @@ public struct ContentView: View {
             }
         }
         .frame(minWidth: 1080, minHeight: 700)
+        .sheet(isPresented: $fitSentinel.isFitGuidePresented) {
+            AirPodsFitVerificationGuideView()
+        }
     }
     
     @ViewBuilder

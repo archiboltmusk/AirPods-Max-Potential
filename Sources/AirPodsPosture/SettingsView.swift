@@ -24,6 +24,7 @@ public struct SettingsView: View {
     @ObservedObject var spatialElevation = SpatialElevationSoundstageEngine.shared
     @ObservedObject var stemGesture = StemForceGestureInterceptor.shared
     @ObservedObject var permanentEngine = PermanentPostureEngine.shared
+    @ObservedObject var fitSentinel = AirPodsInsertionFitSentinel.shared
     
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
     
@@ -134,6 +135,63 @@ public struct SettingsView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.green)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            
+            // AirPods Ear Tip Fit & Insertion Verification
+            Section(header: Text("AirPods Ear-Fit & Acoustic Seal Verification").font(.headline)) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Image(systemName: fitSentinel.isProperlySeated ? "ear.badge.checkmark" : "ear.trianglebadge.exclamationmark")
+                            .foregroundColor(fitSentinel.isProperlySeated ? .green : .orange)
+                            .font(.title2)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Acoustic Seal & Seating Health")
+                                .font(.headline)
+                            Text(fitSentinel.isProperlySeated ? "Good Seal • Hardware Signals Certified" : "Adjustment Recommended")
+                                .font(.caption)
+                                .foregroundColor(fitSentinel.isProperlySeated ? .green : .orange)
+                        }
+                        Spacer()
+                        Text("\(fitSentinel.fitQualityScore)% Seal")
+                            .font(.subheadline.bold())
+                            .foregroundColor(fitSentinel.isProperlySeated ? .green : .orange)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background((fitSentinel.isProperlySeated ? Color.green : Color.orange).opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                    
+                    if let warning = fitSentinel.fitRecommendationMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text(warning)
+                                .font(.caption.bold())
+                                .foregroundColor(.orange)
+                        }
+                        .padding(8)
+                        .background(Color.orange.opacity(0.12))
+                        .cornerRadius(6)
+                    }
+                    
+                    HStack(spacing: 8) {
+                        Button(action: {
+                            fitSentinel.isFitGuidePresented = true
+                        }) {
+                            Label("Open 4-Step Ear Tip & Insertion Guide", systemImage: "info.circle.fill")
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Button(action: {
+                            fitSentinel.checkAudioRouting()
+                        }) {
+                            Label("Re-verify Routing", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.caption)
                     }
                 }
                 .padding(.vertical, 4)
@@ -416,6 +474,9 @@ public struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
+        .sheet(isPresented: $fitSentinel.isFitGuidePresented) {
+            AirPodsFitVerificationGuideView()
+        }
     }
     
     private func formatTime(_ seconds: Int) -> String {
