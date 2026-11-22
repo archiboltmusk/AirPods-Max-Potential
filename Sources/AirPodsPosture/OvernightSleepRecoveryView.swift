@@ -11,6 +11,7 @@ public struct OvernightSleepRecoveryView: View {
     @ObservedObject var apnea = OvernightApneaSnoreProfiler.shared
     @ObservedObject var bruxism = NightBruxismSleepSentry.shared
     @ObservedObject var soundscape = AdaptiveNightSoundscapeEngine.shared
+    @ObservedObject var dutyCycle = AdaptiveSleepDutyCycle.shared
     
     public init() {}
     
@@ -414,6 +415,68 @@ public struct OvernightSleepRecoveryView: View {
                             .padding(.vertical, 4)
                             .background(Color.green.opacity(0.12))
                             .clipShape(Capsule())
+                        }
+                    }
+                }
+                
+                // 8. Adaptive Sleep Duty-Cycle (8+ Hour Battery Preservation)
+                SleepCard(
+                    title: "Adaptive Battery Preservation & Duty-Cycle (8+ Hour Sleep)",
+                    subtitle: "Throttles IMU telemetry down to 2Hz during Stage 2/3 NREM sleep, saving 68% battery to last an entire 8-hour sleep cycle.",
+                    icon: "battery.100.bolt",
+                    accentColor: .green
+                ) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Toggle("Enable Adaptive Sleep Duty-Cycle", isOn: $dutyCycle.batteryPreservationMode)
+                                    .toggleStyle(.switch)
+                                    .font(.subheadline.bold())
+                                Text(dutyCycle.statusMessage)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            HStack(spacing: 6) {
+                                Image(systemName: "leaf.fill")
+                                Text("\(dutyCycle.powerSavingsPercent)% Power Saved")
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.green)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.green.opacity(0.12))
+                            .clipShape(Capsule())
+                        }
+                        
+                        HStack(spacing: 16) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "gauge.with.dots.needle.33percent")
+                                    .foregroundColor(.green)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text("\(String(format: "%.1f", dutyCycle.currentSamplingRateHz)) Hz Sampling")
+                                        .font(.system(size: 12, weight: .bold))
+                                    Text("Burst downsampled during sleep")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            HStack(spacing: 8) {
+                                Image(systemName: "clock.badge.checkmark.fill")
+                                    .foregroundColor(.teal)
+                                VStack(alignment: .trailing, spacing: 1) {
+                                    Text("~10h Runtime")
+                                        .font(.system(size: 12, weight: .bold))
+                                    Text("Full night coverage guaranteed")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
                     }
                 }

@@ -10,6 +10,10 @@ public struct MenuBarView: View {
     @ObservedObject var screenBlur = ProgressiveScreenBlurManager.shared
     @ObservedObject var voiceAlert = SystemAudioVoiceAlertEngine.shared
     @ObservedObject var inCase = AirPodsInCaseLifecycleManager.shared
+    @ObservedObject var callSentinel = CallActivitySentinel.shared
+    @ObservedObject var wearSentinel = AirPodsWearStateSentinel.shared
+    @ObservedObject var clamshell = HardwareClamshellSentinel.shared
+    @ObservedObject var escalation = TieredPostureEscalationEngine.shared
     let openDashboard: () -> Void
     
     public init(motion: MotionManager, openDashboard: @escaping () -> Void) {
@@ -112,8 +116,22 @@ public struct MenuBarView: View {
                 .cornerRadius(6)
             }
             
-            // Smart Meeting Guard notice
-            if audioMonitor.isMicrophoneInUse {
+            // Smart Meeting & Call Sentinel notice
+            if callSentinel.isInCall {
+                HStack(spacing: 6) {
+                    Image(systemName: "phone.bubble.fill")
+                        .foregroundColor(.purple)
+                        .font(.caption)
+                    Text(callSentinel.statusMessage)
+                        .font(.caption.bold())
+                        .foregroundColor(.purple)
+                        .lineLimit(1)
+                }
+                .padding(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.purple.opacity(0.12))
+                .cornerRadius(6)
+            } else if audioMonitor.isMicrophoneInUse {
                 HStack(spacing: 6) {
                     Image(systemName: "mic.fill")
                         .foregroundColor(.purple)
@@ -125,6 +143,40 @@ public struct MenuBarView: View {
                 .padding(6)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.purple.opacity(0.12))
+                .cornerRadius(6)
+            }
+            
+            // Collarbone / Neck-Rest Sentinel notice
+            if wearSentinel.isRestingOnNeck {
+                HStack(spacing: 6) {
+                    Image(systemName: "pause.circle.fill")
+                        .foregroundColor(.teal)
+                        .font(.caption)
+                    Text(wearSentinel.statusMessage)
+                        .font(.caption.bold())
+                        .foregroundColor(.teal)
+                        .lineLimit(1)
+                }
+                .padding(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.teal.opacity(0.12))
+                .cornerRadius(6)
+            }
+            
+            // Hardware Clamshell Sentinel notice
+            if clamshell.isLidClosedInClamshell {
+                HStack(spacing: 6) {
+                    Image(systemName: "lock.laptopcomputer")
+                        .foregroundColor(.indigo)
+                        .font(.caption)
+                    Text("MacBook Lid Closed • Webcam Standby")
+                        .font(.caption.bold())
+                        .foregroundColor(.indigo)
+                        .lineLimit(1)
+                }
+                .padding(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.indigo.opacity(0.12))
                 .cornerRadius(6)
             }
             

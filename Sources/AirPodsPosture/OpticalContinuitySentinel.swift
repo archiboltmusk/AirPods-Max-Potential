@@ -178,7 +178,7 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
                         if self.isRunning {
                             self.stopSentinel()
                         }
-                    } else if !self.isRunning && self.isCameraAuthorized {
+                    } else if !self.isRunning && self.isCameraAuthorized && HardwareClamshellSentinel.shared.isCameraPhysicallyAvailable {
                         self.startSentinel()
                     }
                 }
@@ -189,7 +189,7 @@ public final class OpticalContinuitySentinel: NSObject, ObservableObject, AVCapt
     public var isManualSentinelActive: Bool = false
     
     public func startSentinel(manual: Bool = false) {
-        guard isCameraAuthorized else { return }
+        guard isCameraAuthorized && HardwareClamshellSentinel.shared.isCameraPhysicallyAvailable else { return }
         if manual { isManualSentinelActive = true }
         if self.captureSession.inputs.isEmpty {
             self.setupCaptureSession()

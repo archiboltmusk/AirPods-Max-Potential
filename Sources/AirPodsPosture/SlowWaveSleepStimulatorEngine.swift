@@ -69,20 +69,24 @@ public final class SlowWaveSleepStimulatorEngine: ObservableObject {
                 currentSleepStage = .wake
                 isStimulatingNow = false
                 stimulatorStatus = "Movement detected • Standby"
+                AdaptiveSleepDutyCycle.shared.restoreDaytimeSampling()
             } else if energy > 0.02 {
                 currentSleepStage = .lightNrem
                 isStimulatingNow = false
                 stimulatorStatus = "Light NREM • Awaiting Slow-Wave Transition"
+                AdaptiveSleepDutyCycle.shared.engageSleepPowerSaving()
             } else if respRate >= 10 && respRate <= 14 {
                 currentSleepStage = .deepSws
                 isStimulatingNow = true
                 slowWaveBurstsDeliveredTonight += 1
                 deepSleepDurationMinutes += 1
                 stimulatorStatus = "Synchronizing 0.8Hz pink noise micro-bursts to slow-wave delta peaks"
+                AdaptiveSleepDutyCycle.shared.engageSleepPowerSaving()
             } else {
                 currentSleepStage = .rem
                 isStimulatingNow = false
                 stimulatorStatus = "REM sleep detected • Stimulation muted"
+                AdaptiveSleepDutyCycle.shared.engageSleepPowerSaving()
             }
         }
     }

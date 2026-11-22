@@ -37,7 +37,8 @@ public final class JawClenchingBruxismDetector: ObservableObject {
         let microJitter = highFreqEnergyWindow.reduce(0.0) { $0 + abs($1 - mean) } / Double(max(1, highFreqEnergyWindow.count))
         
         // When user is sitting still (mean accel is low) but micro-jitter spikes (teeth clenching)
-        let isClenchingSignature = (microJitter > 0.045 && mean < 0.25)
+        // Pass through BruxismSpectralClassifier to filter out chewing (1.0-1.8Hz) and vocal speech
+        let isClenchingSignature = BruxismSpectralClassifier.shared.evaluateKinematics(accelMagnitude: mean, microJitter: microJitter)
         
         if isClenchingSignature {
             self.tmjStressIndex = min(100, tmjStressIndex + 2)

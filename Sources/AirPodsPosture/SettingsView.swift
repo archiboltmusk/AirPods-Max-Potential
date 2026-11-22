@@ -6,6 +6,9 @@ public struct SettingsView: View {
     @ObservedObject var breakTimer = ErgonomicBreakTimer.shared
     @ObservedObject var sentinel = OpticalContinuitySentinel.shared
     @ObservedObject var inCase = AirPodsInCaseLifecycleManager.shared
+    @ObservedObject var callSentinel = CallActivitySentinel.shared
+    @ObservedObject var drift = AutoZeroDriftCompensator.shared
+    @ObservedObject var clamshell = HardwareClamshellSentinel.shared
     
     let availableSounds = ["Tink", "Ping", "Hero", "Pop", "Submarine", "Basso", "Funk", "Glass"]
     
@@ -95,8 +98,18 @@ public struct SettingsView: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
                 
+                Toggle("Smart Meeting & Call Sentinel (Auto-Mute on Zoom/Teams/Meet)", isOn: $callSentinel.isCallMuteEnabled)
+                Text("Queries CoreAudio input streams and VoIP processes. When in an active call, automatically mutes all auditory nudges and switches to a discreet visual amber indicator.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Continuous Center-Seeking Yaw Drift Filter (EWMA)", isOn: $drift.isDriftCompensationEnabled)
+                Text("Continuously eliminates cumulative gyro yaw drift by re-anchoring to the primary display over a 20-minute half-life window without magnetic interference.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
                 Toggle("FaceTime HD Optical Sentinel (AirPods In-Case Fallback)", isOn: $sentinel.autoFallbackEnabled)
-                Text("Autonomous on-device Apple Neural Engine facial pose estimation keeps monitoring neck posture and turtle-neck craning while your AirPods charge. Shuts down automatically when AirPods re-enter the ear.")
+                Text("Autonomous on-device Apple Neural Engine facial pose estimation keeps monitoring neck posture while AirPods charge. Hardware-aware: automatically stays in 0.0% CPU standby when the MacBook lid is closed in Clamshell Mode.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }

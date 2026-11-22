@@ -236,6 +236,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     public func startTracking() {
         if isSimulated {
             isTracking = true
+        AppNapPowerAssertionManager.shared.acquireSleepTrackingAssertion()
             isConnected = true
             postureState = .optimal
             activeDataSource = "Simulation Demo"
@@ -243,6 +244,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         }
         
         isTracking = true
+        AppNapPowerAssertionManager.shared.acquireSleepTrackingAssertion()
         
         // 1. Direct CoreMotion setup
         if motionManager.isDeviceMotionAvailable && !motionManager.isDeviceMotionActive {
@@ -280,6 +282,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             motionManager.stopDeviceMotionUpdates()
         }
         isTracking = false
+        AppNapPowerAssertionManager.shared.releaseAssertion()
         postureState = .disconnected
     }
     
@@ -337,6 +340,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             motionManager.stopDeviceMotionUpdates()
             isConnected = true
             isTracking = true
+        AppNapPowerAssertionManager.shared.acquireSleepTrackingAssertion()
             activeDataSource = "Simulation Demo"
             if !isCalibrated {
                 calibrateCurrentPosture()
@@ -356,6 +360,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         source: String
     ) {
         guard !isSimulated else { return }
+        guard AdaptiveSleepDutyCycle.shared.shouldProcessSampleInDutyCycle() else { return }
         
         let now = Date()
         packetCount += 1
@@ -396,6 +401,24 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         rotRateY = gyro.y * 180.0 / .pi
         rotRateZ = gyro.z * 180.0 / .pi
         
+        let rotRateMag = sqrt(pow(rotRateX, 2) + pow(rotRateY, 2) + pow(rotRateZ, 2))
+        
+        // 4.1 AirPods Wear State & Collarbone Neck-Rest Sentinel
+        AirPodsWearStateSentinel.shared.evaluateWearPose(
+            pitch: rawPitch,
+            roll: rawRoll,
+            yaw: rawYaw,
+            kineticEnergy: totalKineticEnergy,
+            rotRateMagnitude: rotRateMag
+        )
+        
+        // 4.2 Continuous Center-Seeking EWMA Yaw Drift Compensation
+        AutoZeroDriftCompensator.shared.updateDrift(
+            currentYaw: rawYaw,
+            userKineticEnergy: totalKineticEnergy,
+            rotRate: rotRateMag
+        )
+        
         // 5. Gravity Vector
         if let g = gravity {
             gravityX = g.x
@@ -430,7 +453,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         
         deltaPitch = relEuler.pitch
         deltaRoll = relEuler.roll
-        deltaYaw = relEuler.yaw
+        deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
         
         evaluatePosture()
     }
@@ -457,6 +480,15 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     
     private func evaluatePosture() {
         detectGestures(pitch: deltaPitch, yaw: deltaYaw)
+        
+        // If AirPods are resting flat on the collarbone / neck, suspend posture alerting
+        if AirPodsWearStateSentinel.shared.isRestingOnNeck {
+            postureState = .optimal
+            warningProgress = 0.0
+            warningStartTime = nil
+            TieredPostureEscalationEngine.shared.updateSlouchDuration(isCompromised: false, deltaPitch: 0, deltaRoll: 0)
+            return
+        }
         
         if isSnoozed {
             postureState = .snoozed
@@ -505,6 +537,12 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         }
         let isPitchBad = pitchDeviation > effectivePitchThreshold
         let isRollBad = rollDeviation > rollThreshold
+        
+        TieredPostureEscalationEngine.shared.updateSlouchDuration(
+            isCompromised: isPitchBad || isRollBad,
+            deltaPitch: deltaPitch,
+            deltaRoll: deltaRoll
+        )
         
         if isPitchBad || isRollBad {
             uprightRecoveryStartTime = nil
@@ -654,6 +692,9 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         HourlyFatigueProfiler.shared.recordAlert()
         
         guard soundAlertsEnabled else { return }
+        if CallActivitySentinel.shared.shouldSuppressAudioCue() {
+            return
+        }
         if muteInMeetings && AudioEnvironmentMonitor.shared.isMicrophoneInUse {
             return
         }
