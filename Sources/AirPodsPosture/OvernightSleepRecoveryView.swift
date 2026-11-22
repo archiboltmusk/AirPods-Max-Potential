@@ -12,6 +12,8 @@ public struct OvernightSleepRecoveryView: View {
     @ObservedObject var bruxism = NightBruxismSleepSentry.shared
     @ObservedObject var soundscape = AdaptiveNightSoundscapeEngine.shared
     @ObservedObject var dutyCycle = AdaptiveSleepDutyCycle.shared
+    @ObservedObject var shoulderBalancer = BilateralSleepPositionBalancer.shared
+    @ObservedObject var bedRadar = FindInBedLocatorRadar.shared
     
     public init() {}
     
@@ -476,6 +478,161 @@ public struct OvernightSleepRecoveryView: View {
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                 }
+                            }
+                        }
+                    }
+                }
+                
+                // 9. Bilateral Sleep Shoulder & Position Balancer
+                SleepCard(
+                    title: "Bilateral Shoulder & Sleep Position Balancer",
+                    subtitle: "Quantifies left vs right lateral pressure distribution to prevent rotator cuff impingement and unilateral facial puffiness.",
+                    icon: "figure.mind.and.body",
+                    accentColor: .orange
+                ) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(shoulderBalancer.dominantSide)
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(.orange)
+                                Text(shoulderBalancer.morningRecommendation)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            HStack(spacing: 6) {
+                                Image(systemName: "scalemass.fill")
+                                Text("\(shoulderBalancer.shoulderAsymmetryRiskIndex)% Asymmetry Risk")
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(shoulderBalancer.shoulderAsymmetryRiskIndex > 65 ? .red : .orange)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.orange.opacity(0.12))
+                            .clipShape(Capsule())
+                        }
+                        
+                        // 4-Bar Distribution
+                        VStack(spacing: 6) {
+                            HStack(spacing: 4) {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color.blue)
+                                    .frame(width: max(8, CGFloat(shoulderBalancer.leftPercent) * 2.2), height: 10)
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color.teal)
+                                    .frame(width: max(8, CGFloat(shoulderBalancer.rightPercent) * 2.2), height: 10)
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color.indigo)
+                                    .frame(width: max(8, CGFloat(shoulderBalancer.supinePercent) * 2.2), height: 10)
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color.purple)
+                                    .frame(width: max(8, CGFloat(shoulderBalancer.pronePercent) * 2.2), height: 10)
+                                Spacer()
+                            }
+                            
+                            HStack(spacing: 12) {
+                                HStack(spacing: 4) {
+                                    Circle().fill(Color.blue).frame(width: 6, height: 6)
+                                    Text("Left: \(Int(shoulderBalancer.leftPercent))%")
+                                        .font(.caption2)
+                                }
+                                HStack(spacing: 4) {
+                                    Circle().fill(Color.teal).frame(width: 6, height: 6)
+                                    Text("Right: \(Int(shoulderBalancer.rightPercent))%")
+                                        .font(.caption2)
+                                }
+                                HStack(spacing: 4) {
+                                    Circle().fill(Color.indigo).frame(width: 6, height: 6)
+                                    Text("Back: \(Int(shoulderBalancer.supinePercent))%")
+                                        .font(.caption2)
+                                }
+                                HStack(spacing: 4) {
+                                    Circle().fill(Color.purple).frame(width: 6, height: 6)
+                                    Text("Prone: \(Int(shoulderBalancer.pronePercent))%")
+                                        .font(.caption2)
+                                }
+                                Spacer()
+                            }
+                            .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                // 10. "Find In Bed" Acoustic Locator Radar
+                SleepCard(
+                    title: "\"Find in Bed\" Acoustic Locator Radar",
+                    subtitle: "Locate earbuds lost in dark bedsheets with safe, escalating 2.4kHz sonar chirps engineered to pierce thick blankets.",
+                    icon: "dot.radiowaves.left.and.right",
+                    accentColor: .cyan
+                ) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .center, spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .stroke(Color.cyan.opacity(0.3), lineWidth: 2)
+                                    .frame(width: 48, height: 48)
+                                if bedRadar.isSearching {
+                                    Circle()
+                                        .fill(Color.cyan.opacity(0.2))
+                                        .frame(width: 40, height: 40)
+                                        .scaleEffect(1.2)
+                                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: bedRadar.isSearching)
+                                }
+                                Image(systemName: "earbuds")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.cyan)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Text(bedRadar.droppedSideDescription)
+                                        .font(.subheadline.bold())
+                                    Text("(\(bedRadar.timeSinceDropFormatted))")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                                Text(bedRadar.sonarStatusMessage)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                if bedRadar.isSearching {
+                                    bedRadar.stopEscalatingChirp()
+                                } else {
+                                    bedRadar.startEscalatingChirp()
+                                }
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: bedRadar.isSearching ? "stop.circle.fill" : "speaker.wave.3.fill")
+                                    Text(bedRadar.isSearching ? "Stop Pinging" : "Ring Lost Earbud")
+                                        .font(.system(size: 12, weight: .bold))
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(bedRadar.isSearching ? Color.red : Color.cyan)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        
+                        if bedRadar.isSearching {
+                            HStack(spacing: 8) {
+                                Text("Locator Chirp Intensity:")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                ProgressView(value: Double(bedRadar.locatorVolumePercent), total: 100.0)
+                                    .progressViewStyle(.linear)
+                                    .tint(.cyan)
+                                Text("\(bedRadar.locatorVolumePercent)%")
+                                    .font(.caption2.bold())
+                                    .foregroundColor(.cyan)
                             }
                         }
                     }
