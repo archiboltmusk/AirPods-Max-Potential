@@ -81,27 +81,26 @@ public final class PermanentPostureEngine: ObservableObject, @unchecked Sendable
     // MARK: - Factory Defaults
     
     /// Pre-seeds clean, canonical orthonormal anatomical profiles for AirPods in typical ears.
-    /// In an average ear canal, the AirPod stem points downward with a slight ~15° sagittal forward angle.
+    /// In AirPods CoreMotion space, Earth gravity points down along -Z (0, 0, -1).
+    /// Therefore, the skull's Up vector is +Z (0, 0, 1), Forward is +Y (0, 1, 0), and Right is +X (1, 0, 0).
     /// This ensures zero-latency instantaneous accuracy on Frame 1 with ZERO cross-axis roll leakage.
     private func ensureFactoryDefaultProfiles() {
         if profiles.isEmpty {
-            let stemTiltRad = 15.0 * .pi / 180.0
-            let defaultUp = simd_normalize(SIMD3<Double>(0.0, cos(stemTiltRad), -sin(stemTiltRad)))
+            let defaultUp = SIMD3<Double>(0.0, 0.0, 1.0)
+            let defaultForward = SIMD3<Double>(0.0, 1.0, 0.0)
             let defaultRight = SIMD3<Double>(1.0, 0.0, 0.0)
-            let defaultForward = simd_normalize(simd_cross(defaultRight, defaultUp))
-            let finalRight = simd_normalize(simd_cross(defaultUp, defaultForward))
             
             let standardLeft = AnatomicalEarProfile(
                 up: defaultUp,
                 forward: defaultForward,
-                right: finalRight,
+                right: defaultRight,
                 isCustomLearned: false
             )
             
             let standardRight = AnatomicalEarProfile(
                 up: defaultUp,
                 forward: defaultForward,
-                right: finalRight,
+                right: defaultRight,
                 isCustomLearned: false
             )
             
@@ -136,7 +135,7 @@ public final class PermanentPostureEngine: ObservableObject, @unchecked Sendable
         
         // 2. Extract exact gimbal-lock-free Pitch and Roll
         let pitchDeg = atan2(-gForward, gDown) * 180.0 / .pi
-        let rollDeg = atan2(gRight, gDown) * 180.0 / .pi
+        let rollDeg = -atan2(gRight, gDown) * 180.0 / .pi
         
         self.livePitchDeg = pitchDeg
         self.liveRollDeg = rollDeg
@@ -354,14 +353,12 @@ public final class PermanentPostureEngine: ObservableObject, @unchecked Sendable
         uprightGravity: SIMD3<Double>,
         lateralHint: SIMD3<Double>? = nil
     ) -> AnatomicalEarProfile {
-        // Enforce physical reality: In a human ear, the AirPod stem points downward,
-        // so gravity MUST have a negative Y component (gravity.y <= -0.4).
-        // If gravity was sampled while AirPods were flat on a desk or tilted (gravity.y > -0.4),
-        // fallback to standard anatomical upright gravity so an inverted basis is NEVER constructed.
+        // Enforce physical reality: In AirPods headphone space, Earth gravity points predominantly along -Z (gravity.z <= -0.4).
+        // If gravity was sampled while AirPods were flat on a desk or upside down (gravity.z > -0.4),
+        // fallback to standard canonical upright gravity (0, 0, -1).
         let sanitizedGravity: SIMD3<Double>
-        if uprightGravity.y > -0.4 {
-            let stemTiltRad = 15.0 * .pi / 180.0
-            sanitizedGravity = SIMD3<Double>(0.0, -cos(stemTiltRad), sin(stemTiltRad))
+        if uprightGravity.z > -0.4 {
+            sanitizedGravity = SIMD3<Double>(0.0, 0.0, -1.0)
         } else {
             sanitizedGravity = uprightGravity
         }
@@ -371,22 +368,22 @@ public final class PermanentPostureEngine: ObservableObject, @unchecked Sendable
         // In CoreMotion for AirPods, the X-axis (1, 0, 0) is the nominal ear-to-ear lateral axis.
         var rightCand = lateralHint ?? SIMD3<Double>(1.0, 0.0, 0.0)
         
-        // If the lateral hint happens to be collinear with up, fallback to X or Z
+        // If the lateral hint happens to be collinear with up, fallback to X
         if abs(simd_dot(simd_normalize(rightCand), up)) > 0.85 {
             rightCand = SIMD3<Double>(1.0, 0.0, 0.0)
             if abs(simd_dot(rightCand, up)) > 0.85 {
-                rightCand = SIMD3<Double>(0.0, 0.0, 1.0)
+                rightCand = SIMD3<Double>(0.0, 1.0, 0.0)
             }
         }
         
         // 1. Gram-Schmidt projection of lateral axis onto the horizontal plane
         let projectedRight = simd_normalize(rightCand - simd_dot(rightCand, up) * up)
         
-        // 2. Forward axis is perpendicular to both Right and Up: right x up = forward
-        let forward = simd_normalize(simd_cross(projectedRight, up))
+        // 2. Forward axis is perpendicular to both Up and Right: up x right = forward
+        let forward = simd_normalize(simd_cross(up, projectedRight))
         
-        // 3. Right axis is strictly orthogonal to both Up and Forward: up x forward = right
-        let finalRight = simd_normalize(simd_cross(up, forward))
+        // 3. Right axis is strictly orthogonal to both Up and Forward: forward x up = right
+        let finalRight = simd_normalize(simd_cross(forward, up))
         
         return AnatomicalEarProfile(
             up: up,
@@ -441,12 +438,12 @@ public final class PermanentPostureEngine: ObservableObject, @unchecked Sendable
         }
         
         // In CoreMotion AirPods space, the lateral axis MUST NOT be predominantly vertical
-        if abs(p.right.y) > 0.6 || abs(p.right.x) < 0.4 {
+        if abs(p.right.z) > 0.6 || abs(p.right.x) < 0.4 {
             return false
         }
         
-        // Crucial: In human ears, the AirPod stem points downward, so UP must have positive Y (up.y > 0.5)
-        if p.up.y < 0.5 {
+        // Crucial: In human ears, Earth gravity points down along -Z, so UP must have positive Z (up.z > 0.5)
+        if p.up.z < 0.5 {
             return false
         }
         

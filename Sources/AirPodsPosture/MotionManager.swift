@@ -284,11 +284,11 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     
     @discardableResult
     public func calibrateCurrentPosture(force: Bool = false) -> Bool {
-        // In-ear orientation requires gravity pulling downwards along stem (gravity.y <= -0.4)
-        let currentGravity = (gravityX != 0 || gravityY != 0 || gravityZ != 0) ? SIMD3<Double>(gravityX, gravityY, gravityZ) : SIMD3<Double>(0, -0.966, 0.259)
+        // In-ear orientation requires gravity pulling downwards along Z (gravity.z <= -0.4)
+        let currentGravity = (gravityX != 0 || gravityY != 0 || gravityZ != 0) ? SIMD3<Double>(gravityX, gravityY, gravityZ) : SIMD3<Double>(0, 0, -1.0)
         
-        // Strict Slouch-Proof Interlock: Reject only if AirPods are demonstrably not in ears
-        if !force && currentGravity.y > -0.4 {
+        // Strict Slouch-Proof Interlock: Reject only if AirPods are demonstrably upside down
+        if !force && currentGravity.z > -0.4 {
             isInterlockActive = true
             calibrationInterlockAlert = "⚠️ AirPods not in ear: please seat AirPods upright before calibrating."
             SyntheticEarHapticEngine.shared.playGentleDoubleTap()
@@ -453,45 +453,22 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             userEnergy: totalKineticEnergy
         )
         
-        // 6. Compute exact relative posture using Permanent Anatomical Basis Engine (Permanent Across Restarts)
+        // 6. Compute exact relative posture from calibrated baseline quaternion (Ground Truth 3D Kinematics)
+        let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
+        let relEuler = QuaternionMath.euler(from: qRel)
+        
+        deltaPitch = relEuler.pitch
+        deltaRoll = relEuler.roll
+        deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
+        
+        // Also update PermanentPostureEngine in background for diagnostics
         if let g = gravity {
-            let perm = PermanentPostureEngine.shared.evaluate(
+            _ = PermanentPostureEngine.shared.evaluate(
                 gravity: g,
                 rotRate: SIMD3<Double>(rotRateX * .pi / 180.0, rotRateY * .pi / 180.0, rotRateZ * .pi / 180.0),
                 userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ),
                 sensorLocation: sensorLocation
             )
-            
-            if perm.isPermanent {
-                deltaPitch = perm.pitchDeg
-                deltaRoll = perm.rollDeg
-                let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
-                let relEuler = QuaternionMath.euler(from: qRel)
-                deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
-                isCalibrated = true
-            } else if let tnAngles = TrueNorthCalibrationEngine.shared.processFrame(
-                quat: quat,
-                gravity: gravity,
-                rotRate: rotRateMag,
-                isStationary: totalKineticEnergy < 0.04
-            ) {
-                deltaPitch = tnAngles.compensatedPitch
-                deltaRoll = tnAngles.compensatedRoll
-                deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(tnAngles.compensatedYaw)
-            } else {
-                let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
-                let gravityTilt = QuaternionMath.gravityReferencedTilt(relativeQuat: qRel)
-                let relEuler = QuaternionMath.euler(from: qRel)
-                deltaPitch = gravityTilt.pitchDeg
-                deltaRoll = gravityTilt.rollDeg
-                deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
-            }
-        } else {
-            let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
-            let relEuler = QuaternionMath.euler(from: qRel)
-            deltaPitch = relEuler.pitch
-            deltaRoll = relEuler.roll
-            deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
         }
         
         evaluatePosture()
@@ -863,9 +840,14 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         defaults.set(autoDriftCorrection, forKey: "autoDriftCorrection")
         defaults.set(batterySaverMode, forKey: "batterySaverMode")
         defaults.set(isCalibrated, forKey: "isCalibrated")
+        defaults.set([qBaseline.real, qBaseline.imag.x, qBaseline.imag.y, qBaseline.imag.z], forKey: "calibratedBaselineQuat")
     }
     
     public func loadPreferences() {
+        if let quatArr = defaults.array(forKey: "calibratedBaselineQuat") as? [Double], quatArr.count == 4 {
+            qBaseline = simd_quatd(ix: quatArr[1], iy: quatArr[2], iz: quatArr[3], r: quatArr[0])
+            isCalibrated = true
+        }
         if defaults.object(forKey: "pitchThreshold") != nil {
             pitchThreshold = defaults.double(forKey: "pitchThreshold")
         }
