@@ -13,6 +13,7 @@ public struct ContentView: View {
     @ObservedObject var torqueEngine = CervicalSpineTorqueEngine.shared
     @ObservedObject var physioReport = ClinicalPhysioReportExporter.shared
     @ObservedObject var zupt = AnteriorZUPTKinematicEngine.shared
+    @ObservedObject var permanentEngine = PermanentPostureEngine.shared
     
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
     @State private var selectedTab: TabItem = .posture
@@ -386,6 +387,21 @@ public struct ContentView: View {
                                     Text(torqueEngine.reliefCallToAction)
                                         .font(.caption)
                                         .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 10.0 ? .orange : .secondary)
+                                    
+                                    Divider()
+                                    
+                                    HStack {
+                                        HStack(spacing: 5) {
+                                            Circle().fill(Color.green).frame(width: 6, height: 6)
+                                            Text("Permanent Ear-Fit Horizon")
+                                                .font(.caption2.bold())
+                                                .foregroundColor(.green)
+                                        }
+                                        Spacer()
+                                        Text(permanentEngine.adaptationStatusText)
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
                                 .padding(14)
                                 .background(Color(NSColor.controlBackgroundColor).opacity(0.6))

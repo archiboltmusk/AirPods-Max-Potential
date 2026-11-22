@@ -1,4 +1,5 @@
 import SwiftUI
+import AirPodsCore
 
 /// Comprehensive macOS Settings & Preferences Center.
 /// Contains all granular preferences, sensitivity sliders, audio & haptic options,
@@ -22,6 +23,7 @@ public struct SettingsView: View {
     @ObservedObject var ghostDimming = GhostDimmingBiofeedbackManager.shared
     @ObservedObject var spatialElevation = SpatialElevationSoundstageEngine.shared
     @ObservedObject var stemGesture = StemForceGestureInterceptor.shared
+    @ObservedObject var permanentEngine = PermanentPostureEngine.shared
     
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
     
@@ -60,6 +62,81 @@ public struct SettingsView: View {
                 Text("Continuously eliminates cumulative gyro yaw drift by re-anchoring to the primary display over a 20-minute half-life window without magnetic interference.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
+            }
+            
+            // Permanent Anatomical Ear-Fit Basis (Zero Re-Calibration Across Restarts)
+            Section(header: Text("Permanent Ear-Fit Calibration (Across Restarts)").font(.headline)) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "ear.and.waveform")
+                            .foregroundColor(.green)
+                            .font(.title2)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Permanent Anatomical Skull Basis")
+                                .font(.headline)
+                            Text(permanentEngine.isProfileActive ? "Active — Left & Right Ear Profiles Calibrated" : "Active — Standard Factory Horizon Active")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Text(permanentEngine.adaptationStatusText)
+                            .font(.caption2.bold())
+                            .foregroundColor(.green)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.green.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                    
+                    Divider()
+                    
+                    Text("Separates anatomical ear-fit geometry from arbitrary session yaw heading. Earth's gravity vector is projected onto your permanent skull coordinate frame, giving instantaneous 0-latency posture tracking on app launch without needing to recalibrate.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Clamped Micro-Fit Adaptation")
+                                .font(.subheadline.bold())
+                            Text("Slowly auto-tunes via EMA (α = 0.001) within ±6° neutral zone to absorb daily earbud insertion angle differences without ever drifting into slouch.")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Circle()
+                            .fill(permanentEngine.isAdaptingInsertionTolerance ? Color.green : Color.secondary.opacity(0.3))
+                            .frame(width: 10, height: 10)
+                    }
+                    
+                    if permanentEngine.isOnboardingActive {
+                        VStack(spacing: 6) {
+                            HStack {
+                                Text(permanentEngine.onboardingStep.rawValue)
+                                    .font(.caption.bold())
+                                    .foregroundColor(.orange)
+                                Spacer()
+                                Button("Cancel") {
+                                    permanentEngine.cancelGuidedOnboarding()
+                                }
+                                .font(.caption)
+                            }
+                            ProgressView(value: permanentEngine.onboardingProgress)
+                                .tint(.orange)
+                        }
+                        .padding(10)
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(8)
+                    } else {
+                        Button(action: {
+                            permanentEngine.startGuidedOnboarding()
+                        }) {
+                            Label("Run 4s Guided Ear Calibration (Sit Upright 2s -> Nod 2s)", systemImage: "sparkles")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.green)
+                    }
+                }
+                .padding(.vertical, 4)
             }
             
             // 3. Fine-Tuning Sensitivity & Thresholds

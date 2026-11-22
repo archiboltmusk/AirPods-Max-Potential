@@ -263,6 +263,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
                 let gyro = SIMD3<Double>(m.rotationRate.x, m.rotationRate.y, m.rotationRate.z)
                 let accel = SIMD3<Double>(m.userAcceleration.x, m.userAcceleration.y, m.userAcceleration.z)
                 let grav = SIMD3<Double>(m.gravity.x, m.gravity.y, m.gravity.z)
+                let locRaw = m.sensorLocation.rawValue
                 
                 Task { @MainActor in
                     self?.processIncomingSample(
@@ -271,7 +272,8 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
                         accel: accel,
                         gravity: grav,
                         pps: 50,
-                        source: "Direct CoreMotion"
+                        source: "Direct CoreMotion",
+                        sensorLocation: locRaw
                     )
                 }
             }
@@ -316,6 +318,11 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         let currentQuat = simd_quatd(ix: quatX, iy: quatY, iz: quatZ, r: quatW)
         let currentGravity = (gravityX != 0 || gravityY != 0 || gravityZ != 0) ? SIMD3<Double>(gravityX, gravityY, gravityZ) : nil
         _ = TrueNorthCalibrationEngine.shared.calibrateInstant(quat: currentQuat, gravity: currentGravity)
+        PermanentPostureEngine.shared.savePermanentProfile(
+            for: 1,
+            uprightGravity: currentGravity ?? SIMD3<Double>(gravityX, gravityY, gravityZ),
+            nodAngularVelocitySample: SIMD3<Double>(0, 1.0, 0)
+        )
         qBaseline = currentQuat
         isCalibrated = true
         deltaPitch = 0
@@ -360,7 +367,8 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         accel: SIMD3<Double>,
         gravity: SIMD3<Double>?,
         pps: Int,
-        source: String
+        source: String,
+        sensorLocation: Int = 1
     ) {
         guard !isSimulated else { return }
         guard AdaptiveSleepDutyCycle.shared.shouldProcessSampleInDutyCycle() else { return }
@@ -456,23 +464,44 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             userEnergy: totalKineticEnergy
         )
         
-        // 6. Compute exact relative posture using TrueNorth Gravitational Kinematics
-        if let tnAngles = TrueNorthCalibrationEngine.shared.processFrame(
-            quat: quat,
-            gravity: gravity,
-            rotRate: rotRateMag,
-            isStationary: totalKineticEnergy < 0.04
-        ) {
-            deltaPitch = tnAngles.compensatedPitch
-            deltaRoll = tnAngles.compensatedRoll
-            deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(tnAngles.compensatedYaw)
+        // 6. Compute exact relative posture using Permanent Anatomical Basis Engine (Permanent Across Restarts)
+        if let g = gravity {
+            let perm = PermanentPostureEngine.shared.evaluate(
+                gravity: g,
+                rotRate: SIMD3<Double>(rotRateX * .pi / 180.0, rotRateY * .pi / 180.0, rotRateZ * .pi / 180.0),
+                userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ),
+                sensorLocation: sensorLocation
+            )
+            
+            if perm.isPermanent {
+                deltaPitch = perm.pitchDeg
+                deltaRoll = perm.rollDeg
+                let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
+                let relEuler = QuaternionMath.euler(from: qRel)
+                deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
+                isCalibrated = true
+            } else if let tnAngles = TrueNorthCalibrationEngine.shared.processFrame(
+                quat: quat,
+                gravity: gravity,
+                rotRate: rotRateMag,
+                isStationary: totalKineticEnergy < 0.04
+            ) {
+                deltaPitch = tnAngles.compensatedPitch
+                deltaRoll = tnAngles.compensatedRoll
+                deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(tnAngles.compensatedYaw)
+            } else {
+                let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
+                let gravityTilt = QuaternionMath.gravityReferencedTilt(relativeQuat: qRel)
+                let relEuler = QuaternionMath.euler(from: qRel)
+                deltaPitch = gravityTilt.pitchDeg
+                deltaRoll = gravityTilt.rollDeg
+                deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
+            }
         } else {
-            // Gimbal-lock-free Earth-gravity vector projection [0, 0, -1] via relative quaternion
             let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
-            let gravityTilt = QuaternionMath.gravityReferencedTilt(relativeQuat: qRel)
             let relEuler = QuaternionMath.euler(from: qRel)
-            deltaPitch = gravityTilt.pitchDeg
-            deltaRoll = gravityTilt.rollDeg
+            deltaPitch = relEuler.pitch
+            deltaRoll = relEuler.roll
             deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
         }
         

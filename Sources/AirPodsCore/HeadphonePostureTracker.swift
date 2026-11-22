@@ -73,7 +73,33 @@ public final class HeadphonePostureTracker: NSObject, ObservableObject, @uncheck
         let still = simd_length(rotRate) < 0.05 && simd_length(userAccel) < 0.02
         self.isStill = still
         
-        // 2. Auto-calibration via upper-percentile upright gravity tracking
+        // 2. Permanent Anatomical Basis Evaluation (Frame-1 Zero-Latency & Permanent across Restarts)
+        let locRaw = motion.sensorLocation.rawValue
+        let permResult = PermanentPostureEngine.shared.evaluate(
+            gravity: gravity,
+            rotRate: rotRate,
+            userAccel: userAccel,
+            sensorLocation: locRaw
+        )
+        
+        switch motion.sensorLocation {
+        case .headphoneLeft:
+            self.sensorLocationText = "Left AirPod (Permanent Anatomical Basis)"
+        case .headphoneRight:
+            self.sensorLocationText = "Right AirPod (Permanent Anatomical Basis)"
+        default:
+            self.sensorLocationText = "Headphone IMU (Permanent Anatomical Basis)"
+        }
+        
+        if permResult.isPermanent {
+            self.relativePitchDeg = permResult.pitchDeg
+            self.relativeRollDeg = permResult.rollDeg
+            self.isCalibrated = true
+            self.isSlouching = permResult.pitchDeg < -15.0 || abs(permResult.rollDeg) > 12.0
+            return
+        }
+        
+        // 3. Fallback Auto-calibration via upper-percentile upright gravity tracking
         if !isCalibrated && still {
             updateAutoCalibration(timestamp: motion.timestamp, quat: currentQuat, gravity: gravity)
         }
