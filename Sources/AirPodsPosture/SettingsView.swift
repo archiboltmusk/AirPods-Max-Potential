@@ -1,5 +1,8 @@
 import SwiftUI
 
+/// Comprehensive macOS Settings & Preferences Center.
+/// Contains all granular preferences, sensitivity sliders, audio & haptic options,
+/// loophole sentinels, ecosystem bridges, and display overlays.
 public struct SettingsView: View {
     @ObservedObject var motion: MotionManager
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
@@ -9,6 +12,15 @@ public struct SettingsView: View {
     @ObservedObject var callSentinel = CallActivitySentinel.shared
     @ObservedObject var drift = AutoZeroDriftCompensator.shared
     @ObservedObject var clamshell = HardwareClamshellSentinel.shared
+    @ObservedObject var glance = GlanceAndLockAutoCalibrator.shared
+    @ObservedObject var companion = FloatingMiniDeskCompanionManager.shared
+    @ObservedObject var spatialAudio = SpatialAudioBiofeedback.shared
+    @ObservedObject var voiceAlert = SystemAudioVoiceAlertEngine.shared
+    @ObservedObject var haptics = SyntheticEarHapticEngine.shared
+    @ObservedObject var watchBridge = AppleWatchBridgeManager.shared
+    @ObservedObject var smartDesk = SmartDeskBLEController.shared
+    
+    @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
     
     let availableSounds = ["Tink", "Ping", "Hero", "Pop", "Submarine", "Basso", "Funk", "Glass"]
     
@@ -18,11 +30,13 @@ public struct SettingsView: View {
     
     public var body: some View {
         Form {
+            // 1. Software Updates
             Section(header: Text("Software Updates & Release Channel").font(.headline)) {
                 SoftwareUpdateCardView()
             }
             
-            Section(header: Text("Posture Profiles & Presets").font(.headline)) {
+            // 2. Posture Profiles & Auto-Calibration
+            Section(header: Text("Posture Profiles & Auto-Calibration").font(.headline)) {
                 Picker("Active Profile", selection: $motion.activeProfile) {
                     ForEach(PostureProfile.allCases) { profile in
                         Text(profile.rawValue).tag(profile)
@@ -33,73 +47,9 @@ public struct SettingsView: View {
                 Text(motion.activeProfile.description)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                    .padding(.vertical, 2)
-            }
-            
-            Section(header: Text("AirPods In-Case & Energy Management").font(.headline)) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("When AirPods Are Placed in Charging Case:")
-                        .font(.subheadline.bold())
-                    Picker("In-Case Behavior", selection: $inCase.actionOnCaseIn) {
-                        ForEach(AirPodsInCaseLifecycleManager.ActionOnCaseIn.allCases) { action in
-                            Text(action.rawValue).tag(action)
-                        }
-                    }
-                    .pickerStyle(.radioGroup)
-                    
-                    Text("Putting AirPods in their case signals that your listening or work session has ended. The app drops CPU utilization to 0.0% and sleeps quietly.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
                 
-                Toggle("Optical Webcam Continuity Fallback", isOn: $sentinel.autoFallbackEnabled)
-                if sentinel.autoFallbackEnabled {
-                    Text("⚠️ Only enable if you want your Mac FaceTime webcam to track your posture while AirPods are charging in their case.")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                } else {
-                    Text("Camera remains completely powered off while AirPods are in their case.")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Section(header: Text("Loophole Defenses & Smart Automation").font(.headline)) {
-                Toggle("Launch at Login (Start with macOS)", isOn: $motion.launchAtLogin)
-                
-                Toggle("Screen Edge Ambient Glow Alert", isOn: Binding(
-                    get: { ScreenGlowManager.shared.isGlowEnabled },
-                    set: { ScreenGlowManager.shared.isGlowEnabled = $0 }
-                ))
-                Text("Subtly pulses a gentle amber or red glow along the border of your display when slouching. Completely silent, click-through, and perfect for meetings and deep focus.")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                
-                Toggle("Camera Notch Ambient HUD Pill", isOn: Binding(
-                    get: { DynamicIslandNotchHaloManager.shared.isEnabled },
-                    set: { _ in DynamicIslandNotchHaloManager.shared.toggleEnabled() }
-                ))
-                Text("Optional floating status capsule under the display notch. Disabled by default to keep your screen completely unobstructed.")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                
-                Toggle("Smart Meeting Guard (Mute during Zoom / Calls)", isOn: $motion.muteInMeetings)
-                Text("Monitors macOS microphone state in real-time. Automatically silences audio chimes during meetings, calls, or screen recordings so you are never interrupted.")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                
-                Toggle("Battery Saver Mode (Eco Sampling)", isOn: $motion.batterySaverMode)
-                Text("Dynamically throttles sensor polling in background mode to ~10Hz. Conserves AirPods Max/Pro battery and drops Mac CPU usage below 0.1%.")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                
-                Toggle("Auto-Drift Posture Compensation", isOn: $motion.autoDriftCorrection)
-                Text("Applies a subtle exponential moving filter to compensate for headphones gently slipping on hair/ears over 4+ hours of continuous wear.")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                
-                Toggle("Smart Meeting & Call Sentinel (Auto-Mute on Zoom/Teams/Meet)", isOn: $callSentinel.isCallMuteEnabled)
-                Text("Queries CoreAudio input streams and VoIP processes. When in an active call, automatically mutes all auditory nudges and switches to a discreet visual amber indicator.")
+                Toggle("Glance & Lock Auto-Calibration", isOn: $glance.isGlanceLockEnabled)
+                Text("Autonomous zero-click onboarding: When you put on AirPods and look at your Mac screen for 3 steady seconds, locks baseline automatically with a soft chime.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
                 
@@ -107,41 +57,9 @@ public struct SettingsView: View {
                 Text("Continuously eliminates cumulative gyro yaw drift by re-anchoring to the primary display over a 20-minute half-life window without magnetic interference.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
-                
-                Toggle("FaceTime HD Optical Sentinel (AirPods In-Case Fallback)", isOn: $sentinel.autoFallbackEnabled)
-                Text("Autonomous on-device Apple Neural Engine facial pose estimation keeps monitoring neck posture while AirPods charge. Hardware-aware: automatically stays in 0.0% CPU standby when the MacBook lid is closed in Clamshell Mode.")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
             }
             
-            Section(header: Text("20-20-20 Ergonomic Eye & Spine Break Timer").font(.headline)) {
-                Toggle("Enable 20-20-20 Rule Reminders", isOn: $breakTimer.isEnabled)
-                
-                if breakTimer.isEnabled {
-                    HStack {
-                        Text("Interval:")
-                        Spacer()
-                        Text("\(Int(breakTimer.intervalMinutes)) minutes")
-                            .foregroundColor(.secondary)
-                    }
-                    Slider(value: $breakTimer.intervalMinutes, in: 15.0...60.0, step: 5.0)
-                    
-                    HStack {
-                        Text("Time until next break:")
-                        Spacer()
-                        Text(String(format: "%02dm %02ds", Int(breakTimer.secondsRemaining) / 60, Int(breakTimer.secondsRemaining) % 60))
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundColor(.accentColor)
-                    }
-                    
-                    Button("Trigger Break Now") {
-                        breakTimer.startBreak()
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-            }
-            
+            // 3. Fine-Tuning Sensitivity & Thresholds
             Section(header: Text("Fine-Tuning Sensitivity & Thresholds").font(.headline)) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
@@ -165,16 +83,30 @@ public struct SettingsView: View {
                 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Grace Period Buffer")
+                        Text("Grace Period Buffer (Hysteresis)")
                         Spacer()
                         Text(String(format: "%.1fs", motion.gracePeriodSeconds))
                             .font(.system(.body, design: .monospaced, weight: .bold))
                     }
-                    Slider(value: $motion.gracePeriodSeconds, in: 1.0...10.0, step: 0.5)
+                    Slider(value: $motion.gracePeriodSeconds, in: 1.0...15.0, step: 0.5)
+                }
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Anti-Gaming Stabilization Lockout")
+                        Spacer()
+                        Text(String(format: "%.1fs", motion.recoveryGraceSeconds))
+                            .font(.system(.body, design: .monospaced, weight: .bold))
+                    }
+                    Slider(value: $motion.recoveryGraceSeconds, in: 1.0...5.0, step: 0.5)
+                    Text("Requires holding an upright posture for this duration before resetting slouch warnings.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                 }
             }
             
-            Section(header: Text("Audio & Feedback Options").font(.headline)) {
+            // 4. Audio, Haptics & Biofeedback
+            Section(header: Text("Audio, Haptics & Biofeedback").font(.headline)) {
                 Toggle("Sound Alert on Slouching", isOn: $motion.soundAlertsEnabled)
                 
                 if motion.soundAlertsEnabled {
@@ -194,9 +126,137 @@ public struct SettingsView: View {
                         .controlSize(.small)
                     }
                 }
+                
+                Toggle("Music Posture Dimmer (Psychoacoustic Treble Muffle)", isOn: $spatialAudio.isEnabled)
+                Text("Operant conditioning without beeps: Subtly muffles music/podcast high frequencies when slouching; crystal clarity returns the moment you sit upright.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Spoken Voice Posture Announcements", isOn: $voiceAlert.isVoiceCueEnabled)
+                Text("Gently announces 'Sit up straight' through system speech synthesizer during severe slouching.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Synthetic Ear Haptics (Directional Clicks)", isOn: $haptics.isHapticAudioEnabled)
+                Text("Delivers localized directional tactile acoustic micro-clicks in the ear corresponding to slouch direction.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
             
-            Section(header: Text("Testing & Demo Mode").font(.headline)) {
+            // 5. Smart Meeting Cloak & Call Sentinel
+            Section(header: Text("Smart Meeting Cloak & Call Sentinel").font(.headline)) {
+                Toggle("Auto-Silence Chimes on Zoom / Teams / Meet", isOn: $callSentinel.isCallMuteEnabled)
+                Text("Continuously monitors CoreAudio input streams and active conferencing apps. Automatically silences auditory nudges during meetings so you are never interrupted.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Smart Meeting Guard (Microphone Usage Lock)", isOn: $motion.muteInMeetings)
+                Text("Suppresses audio alerts whenever any Mac application claims the microphone.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            // 6. AirPods In-Case & Energy Management
+            Section(header: Text("AirPods In-Case & Energy Management").font(.headline)) {
+                Picker("In-Case Behavior", selection: $inCase.actionOnCaseIn) {
+                    Text("Deep Standby (0.0% CPU)").tag(AirPodsInCaseLifecycleManager.ActionOnCaseIn.deepHibernate)
+                    Text("Auto-Quit App (15s)").tag(AirPodsInCaseLifecycleManager.ActionOnCaseIn.autoQuit)
+                }
+                .pickerStyle(.segmented)
+                
+                Toggle("Battery Saver Mode (Eco Sampling)", isOn: $motion.batterySaverMode)
+                Text("Dynamically throttles sensor polling to 10Hz in background mode. Conserves AirPods battery and drops Mac CPU usage below 0.1%.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("FaceTime HD Optical Sentinel (AirPods In-Case Fallback)", isOn: $sentinel.autoFallbackEnabled)
+                Text("Autonomous on-device Apple Neural Engine facial pose estimation keeps monitoring posture while AirPods charge. Automatically enters standby if the laptop lid is closed in Clamshell Mode.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            // 7. Visual Overlays, Companions & Appearance
+            Section(header: Text("Visual Overlays, Companions & Appearance").font(.headline)) {
+                Toggle("Float Posture Buddy on Desktop", isOn: Binding(
+                    get: { companion.isCompanionVisible },
+                    set: { _ in companion.toggleCompanion() }
+                ))
+                Text("Places an interactive living mascot on your screen that physically slumps with you. Tap to switch avatar style; double-tap to recalibrate.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                if companion.isCompanionVisible {
+                    Picker("Buddy Avatar Style", selection: $companion.avatarStyle) {
+                        ForEach(FloatingMiniDeskCompanionManager.AvatarStyle.allCases, id: \.self) { style in
+                            Text(style.rawValue).tag(style)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                
+                Picker("App Visual Canvas Theme", selection: $appVisualTheme) {
+                    Text("Warm Human Cinema (Film Grain)").tag("humanCinema")
+                    Text("Cupertino Metal (Plasma Flow)").tag("cupertino")
+                }
+                .pickerStyle(.segmented)
+                
+                Toggle("Screen Edge Ambient Glow Alert", isOn: Binding(
+                    get: { ScreenGlowManager.shared.isGlowEnabled },
+                    set: { ScreenGlowManager.shared.isGlowEnabled = $0 }
+                ))
+                Text("Subtly pulses a gentle amber or red glow along the border of your display when slouching. Completely silent and click-through.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Camera Notch Ambient HUD Pill", isOn: Binding(
+                    get: { DynamicIslandNotchHaloManager.shared.isEnabled },
+                    set: { _ in DynamicIslandNotchHaloManager.shared.toggleEnabled() }
+                ))
+                Text("Optional floating status capsule under the display notch.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Launch at Login (Start with macOS)", isOn: $motion.launchAtLogin)
+            }
+            
+            // 8. 20-20-20 Ergonomic Rest Break Timer
+            Section(header: Text("20-20-20 Ergonomic Eye & Spine Break Timer").font(.headline)) {
+                Toggle("Enable 20-20-20 Rule Reminders", isOn: $breakTimer.isEnabled)
+                
+                if breakTimer.isEnabled {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Reminder Frequency")
+                            Spacer()
+                            Text("\(Int(breakTimer.intervalMinutes)) mins")
+                                .font(.system(.body, design: .monospaced, weight: .bold))
+                        }
+                        Slider(value: $breakTimer.intervalMinutes, in: 15.0...60.0, step: 5.0)
+                    }
+                    
+                    Button("Start Break Now") {
+                        breakTimer.startBreak()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            
+            // 9. Ecosystem & Hardware Bridges
+            Section(header: Text("Ecosystem & Hardware Bridges").font(.headline)) {
+                Toggle("Apple Watch Thoracic Kinematics Bridge", isOn: $watchBridge.hapticFeedbackEnabled)
+                Text("Pairs AirPods cervical head pitch with Apple Watch thoracic chest angles for true whole-spine curvature tracking.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Smart Standing Desk BLE Controller", isOn: $smartDesk.isAutoGlideEnabled)
+                Text("Automatically commands Bluetooth motorized desks to alternate between sit and stand heights.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            // 10. Testing & Demo Simulation
+            Section(header: Text("Testing & Demo Simulation").font(.headline)) {
                 Toggle("Enable Simulation Mode", isOn: Binding(
                     get: { motion.isSimulated },
                     set: { _ in motion.toggleSimulation() }
@@ -231,27 +291,28 @@ public struct SettingsView: View {
                 }
             }
             
+            // 11. Session Statistics
             Section(header: Text("Session Statistics").font(.headline)) {
                 HStack {
                     Text("Total Tracked:")
                     Spacer()
-                    Text(formatTime(motion.secondsTracked))
+                    Text(formatTime(Int(motion.secondsTracked)))
                         .foregroundColor(.secondary)
                 }
                 HStack {
-                    Text("Optimal Posture Time:")
+                    Text("Good Posture:")
                     Spacer()
-                    Text(formatTime(motion.secondsGoodPosture))
+                    Text(formatTime(Int(motion.secondsGoodPosture)))
                         .foregroundColor(.green)
                 }
                 HStack {
                     Text("Slouching Time:")
                     Spacer()
-                    Text(formatTime(motion.secondsSlouching))
+                    Text(formatTime(Int(motion.secondsSlouching)))
                         .foregroundColor(.red)
                 }
                 HStack {
-                    Text("Slouch Incidents:")
+                    Text("Slouch Events:")
                     Spacer()
                     Text("\(motion.slouchEventCount)")
                         .foregroundColor(.orange)
@@ -259,12 +320,16 @@ public struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .padding(16)
+        .padding()
     }
     
-    private func formatTime(_ seconds: TimeInterval) -> String {
-        let mins = Int(seconds) / 60
-        let secs = Int(seconds) % 60
-        return String(format: "%02dm %02ds", mins, secs)
+    private func formatTime(_ seconds: Int) -> String {
+        let h = seconds / 3600
+        let m = (seconds % 3600) / 60
+        let s = seconds % 60
+        if h > 0 {
+            return String(format: "%dh %02dm %02ds", h, m, s)
+        }
+        return String(format: "%02dm %02ds", m, s)
     }
 }

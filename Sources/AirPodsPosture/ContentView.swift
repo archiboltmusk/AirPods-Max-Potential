@@ -1,11 +1,8 @@
 import SwiftUI
 
-/// AirPodsIQ: Modern 4-Hub Consolidated Architecture.
-/// Replaces 18 scattered tabs with 4 Apple-grade, focused hubs:
-/// 1. Posture & Desk (Live Hergé Mascot, 360° Radar, 24h Timeline)
-/// 2. Sleep & Recovery (Clinical 10-Feature Sleep Suite)
-/// 3. Focus & Mobility (40Hz Gamma Audio, Guided Stretches, Heart Rate)
-/// 4. Settings & Shields (Meeting Auto-Mute, In-Case Standby, Diagnostics)
+/// AirPodsIQ: Complete Gold-Standard Architecture.
+/// Organizes all 16 specialized hardware suites, clinical labs, ecosystem bridges,
+/// and granular settings under 4 clean, structured categories.
 public struct ContentView: View {
     @ObservedObject var motion = MotionManager.shared
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
@@ -16,16 +13,30 @@ public struct ContentView: View {
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
     @State private var selectedTab: TabItem = .posture
     
-    // Sub-segment states for clean navigation without cognitive clutter
-    @State private var postureSubTab: Int = 0 // 0: Live Mascot, 1: 360° Radar, 2: 24h Timeline
-    @State private var focusSubTab: Int = 0   // 0: Guided Stretches, 1: 40Hz Focus Audio, 2: Heart Rate & Vitals
-    @State private var settingsSubTab: Int = 0 // 0: Shields & Preferences, 1: Diagnostics & Audit
-    
     public enum TabItem: String, CaseIterable, Identifiable {
-        case posture = "Posture & Desk"
-        case sleepLab = "Sleep & Recovery"
-        case focusMobility = "Focus & Mobility"
-        case settings = "Settings & Shields"
+        // SECTION 1: ESSENTIAL POSTURE & SLEEP
+        case posture = "Posture Monitor"
+        case sleepLab = "Sleep & Recovery Lab"
+        case stretches = "Neck Stretches & Mobility"
+        case timeline = "Activity Timeline"
+        case radar = "Spatial 360° Radar"
+        
+        // SECTION 2: BIOMETRICS & PRO SUITES
+        case vitality = "Biohacking & Vitality"
+        case pro3Suite = "AirPods Pro 3 Suite"
+        case sensors = "Hardware Sensors & Battery"
+        case openSourceLab = "Peer Open-Source Labs"
+        
+        // SECTION 3: POWER INNOVATIONS
+        case upgrades = "Power Upgrades Suite"
+        case advanced = "Spatial Intelligence"
+        case elite = "Elite Labs Suite"
+        
+        // SECTION 4: ECOSYSTEM & CONFIGURATION
+        case ecosystem = "Ecosystem Bridges (Watch & Desk)"
+        case audit = "Loophole & Tech Audit"
+        case potential = "AirPods Potential Roadmap"
+        case settings = "Settings & Preferences"
         
         public var id: String { rawValue }
         
@@ -33,8 +44,23 @@ public struct ContentView: View {
             switch self {
             case .posture: return "person.crop.artzone"
             case .sleepLab: return "moon.stars.fill"
-            case .focusMobility: return "waveform.path.badge.plus"
-            case .settings: return "shield.lefthalf.filled"
+            case .stretches: return "figure.mind.and.body"
+            case .timeline: return "chart.xyaxis.line"
+            case .radar: return "dot.radiowaves.left.and.right"
+                
+            case .vitality: return "heart.text.square.fill"
+            case .pro3Suite: return "sparkles.tv.fill"
+            case .sensors: return "earbuds.case.fill"
+            case .openSourceLab: return "sparkles.rectangle.stack.fill"
+                
+            case .upgrades: return "sparkles.square.filled.on.square"
+            case .advanced: return "wand.and.stars.inverse"
+            case .elite: return "crown.fill"
+                
+            case .ecosystem: return "applewatch.and.arrow.forward"
+            case .audit: return "checkmark.shield.fill"
+            case .potential: return "sparkles"
+            case .settings: return "gearshape.fill"
             }
         }
         
@@ -42,8 +68,23 @@ public struct ContentView: View {
             switch self {
             case .posture: return .green
             case .sleepLab: return .indigo
-            case .focusMobility: return .teal
-            case .settings: return .orange
+            case .stretches: return .teal
+            case .timeline: return .orange
+            case .radar: return .blue
+                
+            case .vitality: return .pink
+            case .pro3Suite: return .purple
+            case .sensors: return .cyan
+            case .openSourceLab: return .purple
+                
+            case .upgrades: return .yellow
+            case .advanced: return .indigo
+            case .elite: return .yellow
+                
+            case .ecosystem: return .blue
+            case .audit: return .orange
+            case .potential: return .pink
+            case .settings: return .gray
             }
         }
     }
@@ -63,10 +104,31 @@ public struct ContentView: View {
             NavigationSplitView {
                 VStack(spacing: 0) {
                     List(selection: $selectedTab) {
-                        Section("ESSENTIAL HUBS") {
+                        Section("ESSENTIAL POSTURE & SLEEP") {
                             sidebarRow(.posture)
                             sidebarRow(.sleepLab)
-                            sidebarRow(.focusMobility)
+                            sidebarRow(.stretches)
+                            sidebarRow(.timeline)
+                            sidebarRow(.radar)
+                        }
+                        
+                        Section("BIOMETRICS & PRO SUITES") {
+                            sidebarRow(.vitality)
+                            sidebarRow(.pro3Suite)
+                            sidebarRow(.sensors)
+                            sidebarRow(.openSourceLab)
+                        }
+                        
+                        Section("POWER INNOVATIONS") {
+                            sidebarRow(.upgrades)
+                            sidebarRow(.advanced)
+                            sidebarRow(.elite)
+                        }
+                        
+                        Section("ECOSYSTEM & CONFIGURATION") {
+                            sidebarRow(.ecosystem)
+                            sidebarRow(.audit)
+                            sidebarRow(.potential)
                             sidebarRow(.settings)
                         }
                     }
@@ -80,7 +142,7 @@ public struct ContentView: View {
                         Circle()
                             .fill(motion.isConnected ? Color.green : Color.gray)
                             .frame(width: 8, height: 8)
-                        Text(motion.isConnected ? (motion.isSimulated ? "Demo Mode" : "AirPods Active") : "Disconnected")
+                        Text(motion.isConnected ? (motion.isSimulated ? "Demo Simulation" : "AirPods Connected") : "Disconnected")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.secondary)
                         
@@ -91,7 +153,7 @@ public struct ContentView: View {
                                 Image(systemName: "mic.fill")
                                     .foregroundColor(.purple)
                                     .font(.caption2)
-                                Text("In Call")
+                                Text("Mic Active")
                                     .font(.system(size: 10, weight: .bold))
                                     .foregroundColor(.purple)
                             }
@@ -101,191 +163,159 @@ public struct ContentView: View {
                     .padding(.vertical, 10)
                 }
                 .navigationTitle("AirPodsIQ")
-                .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
+                .navigationSplitViewColumnWidth(min: 240, ideal: 270, max: 320)
             } detail: {
                 Group {
                     switch selectedTab {
-                    // HUB 1: POSTURE & DESK
+                    // SECTION 1: ESSENTIAL POSTURE & SLEEP
                     case .posture:
-                        VStack(spacing: 0) {
-                            Picker("", selection: $postureSubTab) {
-                                Text("Live Posture").tag(0)
-                                Text("360° Spatial Radar").tag(1)
-                                Text("24h Activity Timeline").tag(2)
-                            }
-                            .pickerStyle(.segmented)
-                            .padding(.horizontal, 24)
-                            .padding(.top, 14)
-                            .padding(.bottom, 10)
-                            
-                            Divider()
-                            
-                            if postureSubTab == 0 {
-                                ScrollView {
-                                    VStack(spacing: 18) {
-                                        // "Glance & Lock" Autonomous Auto-Calibrate Pill
-                                        if glance.glanceLockHoldProgress > 0 && glance.glanceLockHoldProgress < 1.0 {
-                                            HStack(spacing: 8) {
-                                                Image(systemName: "sparkles")
-                                                    .foregroundColor(.cyan)
-                                                Text("Locking to screen in \(Int(ceil((1.0 - glance.glanceLockHoldProgress) * 3.0)))s...")
-                                                    .font(.caption.bold())
-                                                    .foregroundColor(.cyan)
-                                                ProgressView(value: glance.glanceLockHoldProgress, total: 1.0)
-                                                    .progressViewStyle(.linear)
-                                                    .tint(.cyan)
-                                                    .frame(width: 80)
-                                            }
-                                            .padding(8)
-                                            .background(Color.cyan.opacity(0.12))
-                                            .cornerRadius(8)
-                                        }
-                                        
-                                        // Hero Posture Visualizer with Hergé mascot
-                                        PostureVisualizerView(motion: motion)
-                                        
-                                        // Biomechanical Daily Heatmap
-                                        BiomechanicalHeatmapView()
-                                        
-                                        // Slouch-Proof Interlock Warning
-                                        if let interlock = motion.calibrationInterlockAlert {
-                                            HStack(spacing: 8) {
-                                                Image(systemName: "hand.raised.fill")
-                                                    .foregroundColor(.yellow)
-                                                Text(interlock)
-                                                    .font(.caption.bold())
-                                                    .foregroundColor(.yellow)
-                                                Spacer()
-                                                Button("Dismiss") {
-                                                    motion.calibrationInterlockAlert = nil
-                                                }
-                                                .buttonStyle(.borderless)
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                            }
-                                            .padding(10)
-                                            .background(Color.yellow.opacity(0.12))
-                                            .cornerRadius(10)
-                                        }
-                                        
-                                        // Action Strip
-                                        HStack(spacing: 12) {
-                                            Button(action: {
-                                                motion.calibrateCurrentPosture()
-                                            }) {
-                                                Label("Calibrate Upright", systemImage: "scope")
-                                                    .font(.headline)
-                                                    .padding(.vertical, 3)
-                                            }
-                                            .buttonStyle(.borderedProminent)
-                                            .disabled(!motion.isConnected)
-                                            
-                                            Button(action: {
-                                                companion.toggleCompanion()
-                                            }) {
-                                                Label(companion.isCompanionVisible ? "Hide Mascot" : "Float Posture Buddy", systemImage: "person.crop.artzone")
-                                            }
-                                            .buttonStyle(.bordered)
-                                            
-                                            // Snooze Menu
-                                            if motion.isSnoozed {
-                                                Button(action: { motion.clearSnooze() }) {
-                                                    Label("Clear Snooze", systemImage: "play.circle")
-                                                }
-                                                .buttonStyle(.bordered)
-                                            } else {
-                                                Menu {
-                                                    Button("Snooze 5 mins") { motion.snooze(minutes: 5) }
-                                                    Button("Snooze 15 mins") { motion.snooze(minutes: 15) }
-                                                    Button("Snooze 30 mins") { motion.snooze(minutes: 30) }
-                                                } label: {
-                                                    Label("Snooze", systemImage: "moon.zzz")
-                                                }
-                                            }
-                                            
-                                            Button(action: {
-                                                motion.toggleSimulation()
-                                            }) {
-                                                Label(motion.isSimulated ? "Exit Demo" : "Try Demo", systemImage: "wand.and.stars")
-                                            }
-                                            .buttonStyle(.bordered)
-                                            
-                                            Spacer()
-                                        }
-                                        .padding(.horizontal, 4)
+                        ScrollView {
+                            VStack(spacing: 18) {
+                                // "Glance & Lock" Autonomous Auto-Calibrate Pill
+                                if glance.glanceLockHoldProgress > 0 && glance.glanceLockHoldProgress < 1.0 {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "sparkles")
+                                            .foregroundColor(.cyan)
+                                        Text("Glance & Lock: Calibrating in \(Int(ceil((1.0 - glance.glanceLockHoldProgress) * 3.0)))s...")
+                                            .font(.caption.bold())
+                                            .foregroundColor(.cyan)
+                                        ProgressView(value: glance.glanceLockHoldProgress, total: 1.0)
+                                            .progressViewStyle(.linear)
+                                            .tint(.cyan)
+                                            .frame(width: 80)
                                     }
-                                    .padding(20)
+                                    .padding(8)
+                                    .background(Color.cyan.opacity(0.12))
+                                    .cornerRadius(8)
                                 }
-                            } else if postureSubTab == 1 {
-                                ScrollView {
-                                    SpatialSoundstageRadarView()
-                                        .padding(20)
+                                
+                                // Hero Posture Visualizer with Hergé mascot
+                                PostureVisualizerView(motion: motion)
+                                
+                                // Biomechanical Daily Heatmap
+                                BiomechanicalHeatmapView()
+                                
+                                // Slouch-Proof Interlock Warning
+                                if let interlock = motion.calibrationInterlockAlert {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "hand.raised.fill")
+                                            .foregroundColor(.yellow)
+                                        Text(interlock)
+                                            .font(.caption.bold())
+                                            .foregroundColor(.yellow)
+                                        Spacer()
+                                        Button("Dismiss") {
+                                            motion.calibrationInterlockAlert = nil
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                    }
+                                    .padding(10)
+                                    .background(Color.yellow.opacity(0.12))
+                                    .cornerRadius(10)
                                 }
-                            } else {
-                                ScrollView {
-                                    BiometricTimelineScrubberView()
-                                        .padding(20)
+                                
+                                // Action Strip
+                                HStack(spacing: 12) {
+                                    Button(action: {
+                                        motion.calibrateCurrentPosture()
+                                    }) {
+                                        Label("Calibrate Upright", systemImage: "scope")
+                                            .font(.headline)
+                                            .padding(.vertical, 3)
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .disabled(!motion.isConnected)
+                                    
+                                    Button(action: {
+                                        companion.toggleCompanion()
+                                    }) {
+                                        Label(companion.isCompanionVisible ? "Hide Mascot" : "Float Posture Buddy", systemImage: "person.crop.artzone")
+                                    }
+                                    .buttonStyle(.bordered)
+                                    
+                                    // Snooze Menu
+                                    if motion.isSnoozed {
+                                        Button(action: { motion.clearSnooze() }) {
+                                            Label("Clear Snooze", systemImage: "play.circle")
+                                        }
+                                        .buttonStyle(.bordered)
+                                    } else {
+                                        Menu {
+                                            Button("Snooze 5 mins") { motion.snooze(minutes: 5) }
+                                            Button("Snooze 15 mins") { motion.snooze(minutes: 15) }
+                                            Button("Snooze 30 mins") { motion.snooze(minutes: 30) }
+                                        } label: {
+                                            Label("Snooze", systemImage: "moon.zzz")
+                                        }
+                                    }
+                                    
+                                    Button(action: {
+                                        motion.toggleSimulation()
+                                    }) {
+                                        Label(motion.isSimulated ? "Exit Demo" : "Try Demo", systemImage: "wand.and.stars")
+                                    }
+                                    .buttonStyle(.bordered)
+                                    
+                                    Spacer()
+                                    
+                                    Button("Reset Today's Stats") {
+                                        motion.secondsTracked = 0
+                                        motion.secondsGoodPosture = 0
+                                        motion.secondsSlouching = 0
+                                        motion.slouchEventCount = 0
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                                 }
+                                .padding(.horizontal, 4)
                             }
+                            .padding(20)
                         }
-                        
-                    // HUB 2: SLEEP & RECOVERY
                     case .sleepLab:
                         OvernightSleepRecoveryView()
-                        
-                    // HUB 3: FOCUS & MOBILITY
-                    case .focusMobility:
-                        VStack(spacing: 0) {
-                            Picker("", selection: $focusSubTab) {
-                                Text("2-Min Guided Stretches").tag(0)
-                                Text("40Hz Focus Audio").tag(1)
-                                Text("Resting Heart Rate & Vitals").tag(2)
-                            }
-                            .pickerStyle(.segmented)
-                            .padding(.horizontal, 24)
-                            .padding(.top, 14)
-                            .padding(.bottom, 10)
-                            
-                            Divider()
-                            
-                            if focusSubTab == 0 {
-                                StretchCoachView(motion: motion)
-                            } else if focusSubTab == 1 {
-                                ScrollView {
-                                    OpenSourceUpgradesView()
-                                        .padding(20)
-                                }
-                            } else {
-                                ScrollView {
-                                    BiohackingVitalityView()
-                                        .padding(20)
-                                }
-                            }
+                    case .stretches:
+                        StretchCoachView(motion: motion)
+                    case .timeline:
+                        ScrollView {
+                            BiometricTimelineScrubberView()
+                                .padding(24)
+                        }
+                    case .radar:
+                        ScrollView {
+                            SpatialSoundstageRadarView()
+                                .padding(.vertical, 16)
                         }
                         
-                    // HUB 4: SETTINGS & SHIELDS
+                    // SECTION 2: BIOMETRICS & PRO SUITES
+                    case .vitality:
+                        BiohackingVitalityView()
+                    case .pro3Suite:
+                        AirPodsPro3SuiteView()
+                    case .sensors:
+                        AirPodsProSensorsView()
+                    case .openSourceLab:
+                        OpenSourceUpgradesView()
+                        
+                    // SECTION 3: POWER INNOVATIONS
+                    case .upgrades:
+                        UpgradesSuiteView()
+                    case .advanced:
+                        AdvancedUpgradesView()
+                    case .elite:
+                        EliteUpgradesView()
+                        
+                    // SECTION 4: ECOSYSTEM & CONFIGURATION
+                    case .ecosystem:
+                        EcosystemBridgesView()
+                    case .audit:
+                        AuditAndLoopholesView()
+                    case .potential:
+                        FeaturesHubView(motion: motion)
                     case .settings:
-                        VStack(spacing: 0) {
-                            Picker("", selection: $settingsSubTab) {
-                                Text("Shields & Energy").tag(0)
-                                Text("Diagnostics & Audit").tag(1)
-                            }
-                            .pickerStyle(.segmented)
-                            .padding(.horizontal, 24)
-                            .padding(.top, 14)
-                            .padding(.bottom, 10)
-                            
-                            Divider()
-                            
-                            if settingsSubTab == 0 {
-                                SettingsView(motion: motion)
-                            } else {
-                                ScrollView {
-                                    AuditAndLoopholesView()
-                                        .padding(20)
-                                }
-                            }
-                        }
+                        SettingsView(motion: motion)
                     }
                 }
                 .navigationTitle(selectedTab.rawValue)
@@ -360,7 +390,7 @@ public struct ContentView: View {
                 .transition(.opacity)
             }
         }
-        .frame(minWidth: 1020, minHeight: 680)
+        .frame(minWidth: 1080, minHeight: 700)
     }
     
     @ViewBuilder
