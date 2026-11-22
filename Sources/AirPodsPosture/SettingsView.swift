@@ -281,6 +281,11 @@ public struct SettingsView: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
                 
+                Toggle("MacBook Trackpad Silent Haptics (Force Touch)", isOn: $haptics.isTrackpadHapticEnabled)
+                Text("Silent tactile micro-pulses via the MacBook trackpad Taptic Engine. Zero audio noise during meetings or silent study.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
                 Toggle("Ghost Dimming (Subconscious Screen Dimming)", isOn: $ghostDimming.isGhostDimmingEnabled)
                 Text("Subtle visual biofeedback: When slouched for > 20s, screen dims by 20%. The instant you sit tall, screen glides back to 100% brightness.")
                     .font(.caption2)

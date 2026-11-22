@@ -46,10 +46,10 @@ public final class ClinicalPhysioReportExporter: ObservableObject {
             .foregroundColor: NSColor.lightGray
         ]
         
-        let titleStr = NSAttributedString(string: "AirPodsIQ Clinical Cervical Spine & Ergonomic Assessment", attributes: titleAttributes)
+        let titleStr = NSAttributedString(string: "AirPods Posture Pro Clinical Cervical Spine & Ergonomic Assessment", attributes: titleAttributes)
         titleStr.draw(at: CGPoint(x: 48, y: pageHeight - 65))
         
-        let subStr = NSAttributedString(string: "Hardware: AirPods Pro 6-Axis IMU (60Hz) • Clinical Reference: Kapandji Biomechanics", attributes: subAttributes)
+        let subStr = NSAttributedString(string: "Hardware: AirPods 6-Axis TrueNorth IMU (60Hz) • Clinical Reference: Kapandji Biomechanics", attributes: subAttributes)
         subStr.draw(at: CGPoint(x: 48, y: pageHeight - 80))
         
         // 2. Patient / User Summary Card
@@ -130,7 +130,7 @@ public final class ClinicalPhysioReportExporter: ObservableObject {
         
         // Write to Desktop
         let desktopURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first!
-        let outputURL = desktopURL.appendingPathComponent("AirPodsIQ_Clinical_Report.pdf")
+        let outputURL = desktopURL.appendingPathComponent("AirPodsPosture_Clinical_Report.pdf")
         
         pdfData.write(to: outputURL, atomically: true)
         self.lastExportedPDFURL = outputURL

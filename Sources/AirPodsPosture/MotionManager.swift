@@ -814,6 +814,10 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     }
     
     public func playFeedbackSound(_ name: String) {
+        if CallActivitySentinel.shared.shouldSuppressAudioCue() {
+            SyntheticEarHapticEngine.shared.performTrackpadHaptic(pattern: .alignment)
+            return
+        }
         if let sound = NSSound(named: NSSound.Name(name)) {
             sound.play()
         } else {

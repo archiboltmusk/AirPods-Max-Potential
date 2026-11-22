@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 public struct VirtualDisplayCoordinate: Identifiable, Codable {
     public let id: String
@@ -23,7 +24,49 @@ public final class MultiDisplaySpatialGridMapper: ObservableObject {
     
     private var lastUpdateDate: Date = Date()
     
-    private init() {}
+    private init() {
+        autoDetectDisplaysFromNSScreen()
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.autoDetectDisplaysFromNSScreen()
+            }
+        }
+    }
+    
+    /// Auto-detects connected monitors via NSScreen and builds spatial angle map
+    public func autoDetectDisplaysFromNSScreen() {
+        let screens = NSScreen.screens
+        guard screens.count > 1 else { return }
+        
+        // Sort screens by horizontal position (Left to Right)
+        let sorted = screens.sorted(by: { $0.frame.origin.x < $1.frame.origin.x })
+        var newDisplays: [VirtualDisplayCoordinate] = []
+        
+        let centerIdx = sorted.count / 2
+        for (i, screen) in sorted.enumerated() {
+            let offset = Double(i - centerIdx)
+            let yawCenter = offset * 32.0 // ~32° yaw angle per screen
+            let name = screen.localizedName
+            let id = i == centerIdx ? "primary" : (offset < 0 ? "left_\(abs(Int(offset)))" : "right_\(Int(offset))")
+            let label = i == centerIdx ? "Primary (\(name))" : "\(name) (\(offset < 0 ? "Left" : "Right"))"
+            
+            // Retain existing tracked time if available
+            let existingMins = displays.first(where: { $0.id == id })?.minutesSpentToday ?? 0.0
+            
+            newDisplays.append(VirtualDisplayCoordinate(
+                id: id,
+                name: label,
+                yawAngleCenter: yawCenter,
+                yawSpanDegrees: 26.0,
+                minutesSpentToday: existingMins
+            ))
+        }
+        self.displays = newDisplays
+    }
     
     public func update(yaw: Double) {
         guard isMultiDisplayMappingEnabled else { return }
@@ -48,8 +91,8 @@ public final class MultiDisplaySpatialGridMapper: ObservableObject {
         
         // Check unilateral cervical strain:
         // If > 45 minutes continuous on side displays without returning to center
-        let leftMins = displays.first(where: { $0.id == "left" })?.minutesSpentToday ?? 0
-        let rightMins = displays.first(where: { $0.id == "right" })?.minutesSpentToday ?? 0
+        let leftMins = displays.filter { $0.yawAngleCenter < -15.0 }.reduce(0.0) { $0 + $1.minutesSpentToday }
+        let rightMins = displays.filter { $0.yawAngleCenter > 15.0 }.reduce(0.0) { $0 + $1.minutesSpentToday }
         
         if leftMins > 60.0 && rightMins < 15.0 {
             unilateralStrainRisk = "⚠️ Left Sternocleidomastoid Overload: Reposition tasks to Primary Display!"

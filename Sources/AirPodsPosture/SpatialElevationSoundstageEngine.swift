@@ -4,7 +4,7 @@ import Combine
 
 /// Spatial Elevation Soundstage Engine.
 /// Ties acoustic soundstage elevation directly to your physical cervical spine.
-/// In optimal alignment, audio sits at eye level; as your head slouches, the soundstage
+/// In optimal alignment, audio sits at eye level; as your head slouches forward, the soundstage
 /// imperceptibly drops toward your chest, subconsciously prompting you to sit up to restore clarity.
 @MainActor
 public final class SpatialElevationSoundstageEngine: ObservableObject {
@@ -48,19 +48,19 @@ public final class SpatialElevationSoundstageEngine: ObservableObject {
     public func updateCervicalElevation(pitch: Double) {
         guard isSpatialElevationEnabled, let env = environmentNode else { return }
         
-        // Pitch mapping:
+        // Forward slouch is positive pitch:
         // 0° to +5° -> Y = 0.0 (Eye Level Horizon)
-        // -15° -> Y = -0.35 (Chin Level)
-        // -30° -> Y = -0.75 (Chest Level)
-        let clampedPitch = max(-45.0, min(10.0, pitch))
-        let normalizedDrop = Float(min(0.0, clampedPitch) / 35.0) // 0.0 to -1.0
-        let targetY = normalizedDrop * 0.8
+        // +15° -> Y = -0.35 (Chin Level)
+        // +30° -> Y = -0.75 (Chest Level)
+        let clampedPitch = max(0.0, min(45.0, pitch))
+        let normalizedDrop = Float(clampedPitch / 35.0) // 0.0 to 1.0
+        let targetY = -normalizedDrop * 0.8
         
         self.currentElevationY = targetY
         
         // Update listener and sound position in 3D audio space
         env.listenerPosition = AVAudio3DPoint(x: 0, y: 0, z: 0)
-        env.listenerAngularOrientation = AVAudio3DAngularOrientation(yaw: 0, pitch: Float(pitch), roll: 0)
+        env.listenerAngularOrientation = AVAudio3DAngularOrientation(yaw: 0, pitch: Float(-pitch), roll: 0)
         
         if targetY < -0.2 {
             self.soundstageStatus = "Audio Depressed (\(Int(abs(targetY * 100)))% Down) — Sit Tall to Lift"

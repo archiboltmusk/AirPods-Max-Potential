@@ -1,14 +1,17 @@
 import Foundation
 import AVFoundation
+import AppKit
 
-/// Directional Synthetic Ear-Haptic Engine.
-/// Transduces precise low-frequency acoustic impulse waves into physical ear cartilage micro-taps.
-/// Provides directional left/right spatial biofeedback: taps left ear when tilting left, right ear when tilting right.
+/// Directional Synthetic Ear-Haptic & MacBook Trackpad Haptic Engine.
+/// Transduces precise low-frequency acoustic impulse waves into physical ear cartilage micro-taps,
+/// paired with MacBook Force Touch trackpad tactile haptics.
+/// Automatically silences audio cues during meetings (Zoom, Teams, Meet) and defaults to silent trackpad pulses.
 @MainActor
 public final class SyntheticEarHapticEngine: ObservableObject {
     public static let shared = SyntheticEarHapticEngine()
     
     @Published public var isHapticAudioEnabled: Bool = true
+    @Published public var isTrackpadHapticEnabled: Bool = true
     @Published public var hapticVolume: Float = 0.40
     @Published public var isDirectionalModeEnabled: Bool = true
     
@@ -41,10 +44,28 @@ public final class SyntheticEarHapticEngine: ObservableObject {
         }
     }
     
+    /// Triggers silent MacBook Force Touch trackpad haptics
+    public func performTrackpadHaptic(pattern: NSHapticFeedbackManager.FeedbackPattern = .alignment) {
+        guard isTrackpadHapticEnabled else { return }
+        NSHapticFeedbackManager.defaultPerformer.perform(pattern, performanceTime: .default)
+    }
+    
     /// Directional Posture Biofeedback: Plays targeted micro-tap into left ear, right ear, or dual ear.
     public func playDirectionalPostureCue(pitch: Double, roll: Double, pitchThreshold: Double = 12.0, rollThreshold: Double = 10.0) {
         let now = Date()
         guard now.timeIntervalSince(lastTapTime) > 0.85 else { return } // Hysteresis limiter
+        
+        // Meeting Guard: If in a call, suppress audio and deliver silent trackpad haptic
+        if CallActivitySentinel.shared.shouldSuppressAudioCue() {
+            performTrackpadHaptic(pattern: .alignment)
+            lastTapTime = now
+            return
+        }
+        
+        // Optional subtle trackpad assist
+        if isTrackpadHapticEnabled && (pitch > pitchThreshold || abs(roll) > rollThreshold) {
+            performTrackpadHaptic(pattern: .generic)
+        }
         
         if roll > rollThreshold {
             // Tilting head to the right -> cue right ear to level left
@@ -92,6 +113,7 @@ public final class SyntheticEarHapticEngine: ObservableObject {
     
     /// Generates a single crisp 12ms synthetic Taptic tick (Apple Watch digital crown feel)
     public func playTapticClick() {
+        performTrackpadHaptic(pattern: .levelChange)
         playSpatialEarTap(leftGain: 0.9, rightGain: 0.9, baseFreq: 160.0, durationSeconds: 0.015)
     }
     
@@ -105,6 +127,7 @@ public final class SyntheticEarHapticEngine: ObservableObject {
     
     /// Generates a crisp rising resonant tick on successful calibration lock
     public func playSuccessChirp() {
+        performTrackpadHaptic(pattern: .alignment)
         guard isHapticAudioEnabled, let format = audioFormat, let player = playerNode else { return }
         
         let sampleRate = format.sampleRate

@@ -195,9 +195,17 @@ public final class AirPodsBatteryOptimizerEngine: ObservableObject {
         // Check bilateral power imbalance (e.g. Left bud < 15%)
         if leftBudBatteryPercent > 0 && rightBudBatteryPercent > 0 {
             if leftBudBatteryPercent <= 15 && rightBudBatteryPercent > 35 {
-                quickChargeAdvisorAlert = "⚡️ Left AirPod at \(leftBudBatteryPercent)%: Dock it in case for 5 mins (charges to 55%) while Right AirPod continues tracking!"
+                let msg = "⚡️ Left AirPod at \(leftBudBatteryPercent)%: Dock it in case for 5 mins (charges to 55%) while Right AirPod continues tracking!"
+                if quickChargeAdvisorAlert != msg {
+                    DynamicIslandNotchHaloManager.shared.triggerExpansion(message: "⚡️ Left AirPod Low: Swap to Right Bud for 5m Quick Charge", autoDismissSeconds: 5.0)
+                }
+                quickChargeAdvisorAlert = msg
             } else if rightBudBatteryPercent <= 15 && leftBudBatteryPercent > 35 {
-                quickChargeAdvisorAlert = "⚡️ Right AirPod at \(rightBudBatteryPercent)%: Dock it in case for 5 mins while Left AirPod maintains tracking!"
+                let msg = "⚡️ Right AirPod at \(rightBudBatteryPercent)%: Dock it in case for 5 mins while Left AirPod maintains tracking!"
+                if quickChargeAdvisorAlert != msg {
+                    DynamicIslandNotchHaloManager.shared.triggerExpansion(message: "⚡️ Right AirPod Low: Swap to Left Bud for 5m Quick Charge", autoDismissSeconds: 5.0)
+                }
+                quickChargeAdvisorAlert = msg
             } else if lowestBud <= 18 && lowestBud > 12 {
                 quickChargeAdvisorAlert = "Battery Depletion Predicted in ~22 mins. Align with next 20-20-20 stretch break to quick-charge."
             } else {
