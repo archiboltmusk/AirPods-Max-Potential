@@ -21,7 +21,7 @@ public final class AppNapPowerAssertionManager: ObservableObject {
         guard !isAssertionHeld else { return }
         
         let activity = ProcessInfo.processInfo.beginActivity(
-            options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical],
+            options: [.userInitiatedAllowingIdleSystemSleep],
             reason: reason
         )
         self.activityToken = activity

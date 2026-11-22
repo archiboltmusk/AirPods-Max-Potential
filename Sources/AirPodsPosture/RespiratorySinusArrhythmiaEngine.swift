@@ -20,15 +20,7 @@ public final class RespiratorySinusArrhythmiaEngine: ObservableObject {
     private var syncTimer: Timer?
     
     private init() {
-        startVagalLoop()
-    }
-    
-    private func startVagalLoop() {
-        syncTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.computeVagalDynamics()
-            }
-        }
+        // Biofeedback computed on-demand from live kinematics to preserve CPU and zero timer wakeups
     }
     
     public func computeVagalDynamics() {

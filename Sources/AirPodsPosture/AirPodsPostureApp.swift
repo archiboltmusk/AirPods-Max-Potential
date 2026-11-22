@@ -17,6 +17,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             name: NSWindow.didBecomeKeyNotification,
             object: nil
         )
+        
+        if !UserDefaults.standard.bool(forKey: "hasCompletedADAOnboarding") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self.openDashboard()
+            }
+        }
     }
     
     func applyPresentationMode() {
@@ -120,7 +126,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 @main
 struct AirPodsPostureApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var motion = MotionManager.shared
     @Environment(\.openWindow) private var openWindow
 
     init() {
@@ -157,7 +162,7 @@ struct AirPodsPostureApp: App {
         }
 
         MenuBarExtra {
-            MenuBarView(motion: motion) {
+            MenuBarView(motion: MotionManager.shared) {
                 activateMainWindow()
             }
             .onAppear {
@@ -166,16 +171,7 @@ struct AirPodsPostureApp: App {
                 }
             }
         } label: {
-            HStack(spacing: 3) {
-                let tone: LiveSpineMenuBarGlyph.Tone = !motion.isConnected ? .disconnected : (motion.postureState == .slouching ? .alert : .calm)
-                let glyphImage = LiveSpineMenuBarGlyph.image(
-                    pitchDegrees: motion.deltaPitch,
-                    tone: tone,
-                    height: 18,
-                    label: motion.isConnected ? "\(Int(motion.deltaPitch))°" : nil
-                )
-                Image(nsImage: glyphImage)
-            }
+            ThrottledMenuBarLabel()
         }
         .menuBarExtraStyle(.window)
     }

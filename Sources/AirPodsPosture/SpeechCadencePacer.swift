@@ -19,7 +19,7 @@ public final class SpeechCadencePacer: ObservableObject {
     private var pacerTimer: Timer?
     
     private init() {
-        startCadenceWatcher()
+        // Zero persistent timers; activated on-demand
     }
     
     private func startCadenceWatcher() {

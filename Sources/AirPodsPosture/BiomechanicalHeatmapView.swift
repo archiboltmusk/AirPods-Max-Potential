@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 public struct HourlySpineSample: Identifiable {
-    public let id = UUID()
+    public let id: Int
     public let hourLabel: String
     public let score: Int
     public let dominantSlouchType: String
@@ -11,20 +11,24 @@ public struct HourlySpineSample: Identifiable {
 public struct BiomechanicalHeatmapView: View {
     @State private var selectedIndex: Int = 11 // Default to current hour
     
-    public let hours: [HourlySpineSample] = [
-        HourlySpineSample(hourLabel: "9 AM", score: 95, dominantSlouchType: "Upright Focus"),
-        HourlySpineSample(hourLabel: "10 AM", score: 92, dominantSlouchType: "Upright Focus"),
-        HourlySpineSample(hourLabel: "11 AM", score: 88, dominantSlouchType: "Minor Tilt (Roll 6°)"),
-        HourlySpineSample(hourLabel: "12 PM", score: 76, dominantSlouchType: "Lumbar Recline"),
-        HourlySpineSample(hourLabel: "1 PM", score: 90, dominantSlouchType: "Post-Lunch Rest"),
-        HourlySpineSample(hourLabel: "2 PM", score: 68, dominantSlouchType: "Tech-Neck Flexion (-18°)"),
-        HourlySpineSample(hourLabel: "3 PM", score: 62, dominantSlouchType: "Thoracic Slump in Meeting"),
-        HourlySpineSample(hourLabel: "4 PM", score: 82, dominantSlouchType: "Ergonomic Break Reset"),
-        HourlySpineSample(hourLabel: "5 PM", score: 74, dominantSlouchType: "Fatigue Neck Protrusion"),
-        HourlySpineSample(hourLabel: "6 PM", score: 89, dominantSlouchType: "Standing Desk Glide"),
-        HourlySpineSample(hourLabel: "7 PM", score: 91, dominantSlouchType: "Optimal Alignment"),
-        HourlySpineSample(hourLabel: "8 PM", score: 86, dominantSlouchType: "Evening Focus Session")
+    public static let defaultHours: [HourlySpineSample] = [
+        HourlySpineSample(id: 0, hourLabel: "9 AM", score: 95, dominantSlouchType: "Upright Focus"),
+        HourlySpineSample(id: 1, hourLabel: "10 AM", score: 92, dominantSlouchType: "Upright Focus"),
+        HourlySpineSample(id: 2, hourLabel: "11 AM", score: 88, dominantSlouchType: "Minor Tilt (Roll 6°)"),
+        HourlySpineSample(id: 3, hourLabel: "12 PM", score: 76, dominantSlouchType: "Lumbar Recline"),
+        HourlySpineSample(id: 4, hourLabel: "1 PM", score: 90, dominantSlouchType: "Post-Lunch Rest"),
+        HourlySpineSample(id: 5, hourLabel: "2 PM", score: 68, dominantSlouchType: "Tech-Neck Flexion (-18°)"),
+        HourlySpineSample(id: 6, hourLabel: "3 PM", score: 62, dominantSlouchType: "Thoracic Slump in Meeting"),
+        HourlySpineSample(id: 7, hourLabel: "4 PM", score: 82, dominantSlouchType: "Ergonomic Break Reset"),
+        HourlySpineSample(id: 8, hourLabel: "5 PM", score: 74, dominantSlouchType: "Fatigue Neck Protrusion"),
+        HourlySpineSample(id: 9, hourLabel: "6 PM", score: 89, dominantSlouchType: "Standing Desk Glide"),
+        HourlySpineSample(id: 10, hourLabel: "7 PM", score: 91, dominantSlouchType: "Optimal Alignment"),
+        HourlySpineSample(id: 11, hourLabel: "8 PM", score: 86, dominantSlouchType: "Evening Focus Session")
     ]
+    
+    public var hours: [HourlySpineSample] {
+        Self.defaultHours
+    }
     
     public init() {}
     

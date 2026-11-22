@@ -20,7 +20,7 @@ public final class AcousticSymptomSentinel: ObservableObject {
     private var simulationTimer: Timer?
     
     private init() {
-        startPassiveSentinel()
+        // Zero persistent background timers
     }
     
     private func startPassiveSentinel() {

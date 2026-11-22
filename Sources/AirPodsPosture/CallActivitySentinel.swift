@@ -30,7 +30,7 @@ public final class CallActivitySentinel: ObservableObject {
     ]
     
     private init() {
-        startMonitoring()
+        // Zero persistent polling timers; evaluated on-demand before alerts fire
     }
     
     public func startMonitoring() {

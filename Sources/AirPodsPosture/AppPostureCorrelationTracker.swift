@@ -27,32 +27,29 @@ public final class AppPostureCorrelationTracker: ObservableObject {
     }
     
     public func startTracking() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.sampleCurrentApp()
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notif in
+            guard let app = notif.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            Task { @MainActor [weak self] in
+                self?.currentAppName = app.localizedName ?? "Desktop"
             }
         }
+        self.currentAppName = NSWorkspace.shared.frontmostApplication?.localizedName ?? "Desktop"
     }
     
-    private func sampleCurrentApp() {
-        let frontApp = NSWorkspace.shared.frontmostApplication?.localizedName ?? "Desktop"
-        self.currentAppName = frontApp
-        
-        let isSlouching = (MotionManager.shared.postureState == .slouching)
-        let isTracking = MotionManager.shared.isTracking && MotionManager.shared.isConnected
-        guard isTracking else { return }
-        
+    public func recordSample(isSlouching: Bool, duration: TimeInterval = 1.0) {
+        let frontApp = currentAppName
         if let idx = stats.firstIndex(where: { $0.id == frontApp }) {
-            stats[idx].totalSeconds += 2.0
+            stats[idx].totalSeconds += duration
             if isSlouching {
-                stats[idx].slouchSeconds += 2.0
+                stats[idx].slouchSeconds += duration
             }
         } else {
-            stats.append(AppPostureStat(id: frontApp, totalSeconds: 2.0, slouchSeconds: isSlouching ? 2.0 : 0.0))
+            stats.append(AppPostureStat(id: frontApp, totalSeconds: duration, slouchSeconds: isSlouching ? duration : 0.0))
         }
-        
-        // Sort by total time spent
         stats.sort { $0.totalSeconds > $1.totalSeconds }
     }
 }

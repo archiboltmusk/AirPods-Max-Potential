@@ -57,23 +57,7 @@ public final class AirPodsBatteryOptimizerEngine: ObservableObject {
     private var tickCount: Int = 0
     
     private init() {
-        startTelemetryLoop()
-        refreshHardwareBattery()
-    }
-    
-    private func startTelemetryLoop() {
-        telemetryTimer?.invalidate()
-        telemetryTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                self.tickCount += 1
-                // Periodically poll hardware battery every 60 seconds
-                if self.tickCount % 60 == 0 {
-                    self.refreshHardwareBattery()
-                }
-                self.evaluateBatteryState()
-            }
-        }
+        // Zero 1Hz timers: battery state evaluated on-demand or during device connection
     }
     
     /// Queries real-time battery status of connected AirPods/Bluetooth audio device via system_profiler

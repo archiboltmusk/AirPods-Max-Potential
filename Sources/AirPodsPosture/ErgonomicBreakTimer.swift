@@ -21,11 +21,13 @@ public final class ErgonomicBreakTimer: ObservableObject {
     
     public func startTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        let t = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.tick()
             }
         }
+        t.tolerance = 0.5
+        timer = t
     }
     
     private func tick() {

@@ -67,7 +67,7 @@ public final class StudentStudySuiteEngine: ObservableObject {
     private var crammingTimer: Timer?
     
     private init() {
-        startCrammingTimer()
+        // Zero persistent background timers
     }
     
     private func startCrammingTimer() {

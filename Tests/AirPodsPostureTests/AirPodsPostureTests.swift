@@ -250,4 +250,19 @@ struct AirPodsPostureTests {
     let progress = await calibrator.glanceLockHoldProgress
     #expect(progress == 0.0)
 }
+
+@Test func testAppNapPowerAssertionManagerSafetyAndZeroSystemSleepHold() async throws {
+    let powerManager = await AppNapPowerAssertionManager.shared
+    await MainActor.run {
+        powerManager.acquireSleepTrackingAssertion(reason: "Unit Test Verification")
+    }
+    let isHeld = await powerManager.isAssertionHeld
+    #expect(isHeld == true)
+    
+    await MainActor.run {
+        powerManager.releaseAssertion()
+    }
+    let isReleased = await powerManager.isAssertionHeld
+    #expect(isReleased == false)
+}
 }

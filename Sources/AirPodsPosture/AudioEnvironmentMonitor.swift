@@ -11,7 +11,7 @@ public final class AudioEnvironmentMonitor: ObservableObject {
     private var timer: Timer? = nil
     
     private init() {
-        startMonitoring()
+        // Zero persistent polling timers; checked on demand or event
     }
     
     public func startMonitoring() {

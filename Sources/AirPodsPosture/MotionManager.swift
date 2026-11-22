@@ -186,7 +186,6 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         motionManager.delegate = self
         loadPreferences()
         
-        setupBridgeReceiver()
         startTracking()
         startPeriodicTimer()
         startWatchdog()
@@ -745,24 +744,26 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     }
     
     private func startWatchdog() {
-        watchdogTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        let timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
-                guard !self.isSimulated else { return }
+                guard !self.isSimulated, self.isTracking else { return }
                 
-                // If no packets in 3.5 seconds, try triggering CoreMotion discovery again
-                if let last = self.lastPacketDate, Date().timeIntervalSince(last) > 3.5 {
+                // If no packets in 5 seconds while tracking, attempt non-blocking CoreMotion recovery
+                if let last = self.lastPacketDate, Date().timeIntervalSince(last) > 5.0 {
                     self.packetsPerSecond = 0
-                    if self.motionManager.isDeviceMotionAvailable {
+                    if self.motionManager.isDeviceMotionAvailable && !self.motionManager.isDeviceMotionActive {
                         self.startTracking()
                     }
                 }
             }
         }
+        timer.tolerance = 1.0
+        watchdogTimer = timer
     }
     
     private func startPeriodicTimer() {
-        periodicTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        let timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
                 guard self.isTracking && self.isConnected else { return }
@@ -774,6 +775,8 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
                 }
             }
         }
+        timer.tolerance = 0.5
+        periodicTimer = timer
     }
     
     public func savePreferences() {

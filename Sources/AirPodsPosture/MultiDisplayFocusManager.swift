@@ -37,16 +37,7 @@ public final class MultiDisplayFocusManager: ObservableObject {
     private var dwellTimer: Timer?
     
     private init() {
-        startDwellTimer()
-    }
-    
-    private func startDwellTimer() {
-        dwellTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self = self, self.isEnabled else { return }
-                self.dwellTimeOnActiveDisplay += 1.0
-            }
-        }
+        // Dynamic time tracking without continuous 1Hz timer wakeups
     }
     
     public func update(yawDegrees: Double) {
