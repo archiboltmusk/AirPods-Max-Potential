@@ -12,6 +12,7 @@ public struct ContentView: View {
     @ObservedObject var companion = FloatingMiniDeskCompanionManager.shared
     @ObservedObject var torqueEngine = CervicalSpineTorqueEngine.shared
     @ObservedObject var physioReport = ClinicalPhysioReportExporter.shared
+    @ObservedObject var zupt = AnteriorZUPTKinematicEngine.shared
     
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
     @State private var selectedTab: TabItem = .posture
@@ -335,6 +336,23 @@ public struct ContentView: View {
                                                 .foregroundColor(.secondary)
                                         }
                                         
+                                        Divider().frame(height: 36)
+                                        
+                                        // ZUPT Anterior Translation (Tech Neck Detector)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                                Text(String(format: "%+.1f", zupt.anteriorDisplacementCm))
+                                                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                                                    .foregroundColor(zupt.isTechNeckDetected ? .orange : .green)
+                                                Text("cm")
+                                                    .font(.caption2.bold())
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            Text(zupt.isTechNeckDetected ? "Tech Neck Poke" : "Chin Forward")
+                                                .font(.caption2)
+                                                .foregroundColor(zupt.isTechNeckDetected ? .orange : .secondary)
+                                        }
+                                        
                                         Spacer()
                                         
                                         // 1-Click Clinical PDF Report Exporter
@@ -353,6 +371,16 @@ public struct ContentView: View {
                                             .cornerRadius(8)
                                         }
                                         .buttonStyle(.plain)
+                                    }
+                                    
+                                    HStack {
+                                        Text(zupt.statusDescription)
+                                            .font(.caption.bold())
+                                            .foregroundColor(zupt.currentPattern == .optimal ? .green : .orange)
+                                        Spacer()
+                                        Text(zupt.activityMode == .walkingActive ? "🚶‍♂️ Walking Active (\(String(format: "%.1f", zupt.stepCadenceHz)) Hz)" : "💻 Desk Sitting Mode")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
                                     }
                                     
                                     Text(torqueEngine.reliefCallToAction)

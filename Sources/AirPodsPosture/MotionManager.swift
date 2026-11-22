@@ -673,6 +673,14 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         )
         SpatialElevationSoundstageEngine.shared.updateCervicalElevation(pitch: deltaPitch)
         StemForceGestureInterceptor.shared.processKinematicStream(pitch: deltaPitch, rotRateY: rotRateY)
+        
+        // ZUPT Anterior Translation ("Tech Neck") & Biomechanical Kinematics
+        AnteriorZUPTKinematicEngine.shared.processSample(
+            pitch: deltaPitch,
+            roll: deltaRoll,
+            userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ),
+            rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ)
+        )
     }
     
     private func detectGestures(pitch: Double, yaw: Double) {
