@@ -41,19 +41,7 @@ public final class CervicalVertebralStressEngine: ObservableObject {
     private var lastUpdateDate: Date = Date()
     private var cancellables = Set<AnyCancellable>()
     
-    private init() {
-        startLiveTracking()
-    }
-    
-    private func startLiveTracking() {
-        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                let motion = MotionManager.shared
-                self.computeSpinalBiometrics(pitch: motion.deltaPitch, roll: motion.deltaRoll)
-            }
-        }
-    }
+    private init() {}
     
     public func computeSpinalBiometrics(pitch: Double, roll: Double) {
         let absPitch = abs(pitch)

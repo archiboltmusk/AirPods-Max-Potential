@@ -19,25 +19,8 @@ public final class SpatialAudioBiofeedback: ObservableObject {
     private var engine: AVAudioEngine?
     private var player: AVAudioPlayerNode?
     private var lowPassFilter: AVAudioUnitEQ?
-    private var autoSyncTimer: Timer?
     
-    private init() {
-        startMotionSync()
-    }
-    
-    private func startMotionSync() {
-        autoSyncTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self = self, self.isEnabled || self.isDemoPlaying else { return }
-                let motion = MotionManager.shared
-                self.updateGravitation(
-                    deltaPitch: motion.deltaPitch,
-                    deltaRoll: motion.deltaRoll,
-                    threshold: motion.pitchThreshold
-                )
-            }
-        }
-    }
+    private init() {}
     
     public func startDemoSoundscape() {
         guard !isDemoPlaying else { return }

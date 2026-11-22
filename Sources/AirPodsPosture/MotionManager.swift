@@ -371,89 +371,14 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         // Calculate rolling PPS
         ppsWindowTimestamps.append(now)
         ppsWindowTimestamps.removeAll { now.timeIntervalSince($0) > 1.0 }
-        packetsPerSecond = max(pps, ppsWindowTimestamps.count)
         
-        // 1. Store raw Quaternion
-        quatW = quat.real
-        quatX = quat.imag.x
-        quatY = quat.imag.y
-        quatZ = quat.imag.z
+        let rotDegX = gyro.x * 180.0 / .pi
+        let rotDegY = gyro.y * 180.0 / .pi
+        let rotDegZ = gyro.z * 180.0 / .pi
+        let rotRateMag = sqrt(pow(rotDegX, 2) + pow(rotDegY, 2) + pow(rotDegZ, 2))
+        let energy = sqrt(pow(accel.x, 2) + pow(accel.y, 2) + pow(accel.z, 2))
         
-        // 2. Compute absolute Euler angles
-        let rawEuler = QuaternionMath.euler(from: quat)
-        rawPitch = rawEuler.pitch
-        rawRoll = rawEuler.roll
-        rawYaw = rawEuler.yaw
-        
-        // 3. User acceleration & Kinetic energy
-        userAccelX = accel.x
-        userAccelY = accel.y
-        userAccelZ = accel.z
-        totalKineticEnergy = sqrt(pow(userAccelX, 2) + pow(userAccelY, 2) + pow(userAccelZ, 2))
-        
-        // Touchless Teeth-Click Micro-Gesture Sentinel
-        if totalKineticEnergy > TeethClickGestureEngine.shared.sensitivityLevel.threshold {
-            TeethClickGestureEngine.shared.processAcousticImpulse(energy: totalKineticEnergy)
-        }
-        
-        // 4. Gyroscope rotation rate (rad/s -> deg/s)
-        rotRateX = gyro.x * 180.0 / .pi
-        rotRateY = gyro.y * 180.0 / .pi
-        rotRateZ = gyro.z * 180.0 / .pi
-        
-        let rotRateMag = sqrt(pow(rotRateX, 2) + pow(rotRateY, 2) + pow(rotRateZ, 2))
-        
-        // 4.1 AirPods Wear State & Collarbone Neck-Rest Sentinel
-        AirPodsWearStateSentinel.shared.evaluateWearPose(
-            pitch: rawPitch,
-            roll: rawRoll,
-            yaw: rawYaw,
-            kineticEnergy: totalKineticEnergy,
-            rotRateMagnitude: rotRateMag
-        )
-        
-        // 4.2 Continuous Center-Seeking EWMA Yaw Drift Compensation
-        AutoZeroDriftCompensator.shared.updateDrift(
-            currentYaw: rawYaw,
-            userKineticEnergy: totalKineticEnergy,
-            rotRate: rotRateMag
-        )
-        
-        // 4.3 "Glance & Lock" Zero-Click Autonomous Screen Calibration
-        GlanceAndLockAutoCalibrator.shared.evaluateGlance(
-            pitch: rawPitch,
-            roll: rawRoll,
-            rotRate: rotRateMag,
-            isConnected: isConnected
-        )
-        
-        // 5. Gravity Vector
-        if let g = gravity {
-            gravityX = g.x
-            gravityY = g.y
-            gravityZ = g.z
-        }
-        
-        // Auto-calibrate on first incoming packet ONLY if within physiological upright zone (-6° to +7°)
-        if !isCalibrated {
-            let currentPitch = rawPitch
-            if currentPitch >= -6.0 && currentPitch <= 7.0 {
-                _ = TrueNorthCalibrationEngine.shared.calibrateInstant(quat: quat, gravity: gravity)
-                qBaseline = quat
-                isCalibrated = true
-                savePreferences()
-            }
-        }
-        
-        // Autonomous Continuous Statistical Calibration
-        AutonomousAutoCalibrator.shared.processIncomingSample(
-            currentQuat: quat,
-            gravity: gravity,
-            gyroVariance: sqrt(pow(rotRateX, 2) + pow(rotRateY, 2) + pow(rotRateZ, 2)),
-            userEnergy: totalKineticEnergy
-        )
-        
-        // 6. Compute exact relative posture from calibrated baseline quaternion (Ground Truth 3D Kinematics)
+        // 1. Compute exact 3D relative kinematics at full 60Hz
         let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
         let relEuler = QuaternionMath.euler(from: qRel)
         
@@ -461,14 +386,84 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         deltaRoll = relEuler.roll
         deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
         
-        // Also update PermanentPostureEngine in background for diagnostics
-        if let g = gravity {
-            _ = PermanentPostureEngine.shared.evaluate(
-                gravity: g,
-                rotRate: SIMD3<Double>(rotRateX * .pi / 180.0, rotRateY * .pi / 180.0, rotRateZ * .pi / 180.0),
-                userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ),
-                sensorLocation: sensorLocation
+        // 2. Throttle auxiliary telemetry and secondary analyzers to 10Hz to keep Mac cool (CPU < 5%)
+        let isThrottledTick = (packetCount % 6 == 0)
+        if isThrottledTick {
+            quatW = quat.real
+            quatX = quat.imag.x
+            quatY = quat.imag.y
+            quatZ = quat.imag.z
+            
+            rawPitch = relEuler.pitch
+            rawRoll = relEuler.roll
+            rawYaw = relEuler.yaw
+            
+            userAccelX = accel.x
+            userAccelY = accel.y
+            userAccelZ = accel.z
+            totalKineticEnergy = energy
+            
+            rotRateX = rotDegX
+            rotRateY = rotDegY
+            rotRateZ = rotDegZ
+            
+            if let g = gravity {
+                gravityX = g.x
+                gravityY = g.y
+                gravityZ = g.z
+            }
+            
+            packetsPerSecond = max(pps, ppsWindowTimestamps.count)
+            
+            // Touchless Teeth-Click Micro-Gesture Sentinel
+            if totalKineticEnergy > TeethClickGestureEngine.shared.sensitivityLevel.threshold {
+                TeethClickGestureEngine.shared.processAcousticImpulse(energy: totalKineticEnergy)
+            }
+            
+            // AirPods Wear State & Collarbone Neck-Rest Sentinel
+            AirPodsWearStateSentinel.shared.evaluateWearPose(
+                pitch: deltaPitch,
+                roll: deltaRoll,
+                yaw: deltaYaw,
+                kineticEnergy: energy,
+                rotRateMagnitude: rotRateMag
             )
+            
+            // Continuous Center-Seeking EWMA Yaw Drift Compensation
+            AutoZeroDriftCompensator.shared.updateDrift(
+                currentYaw: relEuler.yaw,
+                userKineticEnergy: energy,
+                rotRate: rotRateMag
+            )
+            
+            // Autonomous Continuous Statistical Calibration
+            AutonomousAutoCalibrator.shared.processIncomingSample(
+                currentQuat: quat,
+                gravity: gravity,
+                gyroVariance: rotRateMag,
+                userEnergy: energy
+            )
+            
+            // Also update PermanentPostureEngine in background for diagnostics
+            if let g = gravity {
+                _ = PermanentPostureEngine.shared.evaluate(
+                    gravity: g,
+                    rotRate: SIMD3<Double>(rotDegX * .pi / 180.0, rotDegY * .pi / 180.0, rotDegZ * .pi / 180.0),
+                    userAccel: SIMD3<Double>(accel.x, accel.y, accel.z),
+                    sensorLocation: sensorLocation
+                )
+            }
+        }
+        
+        // Auto-calibrate on first incoming packet ONLY if within physiological upright zone (-6° to +7°)
+        if !isCalibrated {
+            let currentPitch = relEuler.pitch
+            if currentPitch >= -6.0 && currentPitch <= 7.0 {
+                _ = TrueNorthCalibrationEngine.shared.calibrateInstant(quat: quat, gravity: gravity)
+                qBaseline = quat
+                isCalibrated = true
+                savePreferences()
+            }
         }
         
         evaluatePosture()
@@ -497,230 +492,164 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     private func evaluatePosture() {
         detectGestures(pitch: deltaPitch, yaw: deltaYaw)
         
-        // If AirPods are resting flat on the collarbone / neck, suspend posture alerting
-        if AirPodsWearStateSentinel.shared.isRestingOnNeck {
+        // 1. Calculate live posture score on every frame (reactive and smooth)
+        let pitchDeviation = abs(deltaPitch)
+        let rollDeviation = abs(deltaRoll)
+        
+        let pitchPenalty = min(pitchDeviation / pitchThreshold, 2.0) * 45.0
+        let rollPenalty = min(rollDeviation / rollThreshold, 2.0) * 35.0
+        let calculatedScore = max(0, min(100, Int(100.0 - (pitchPenalty + rollPenalty))))
+        // Fast, responsive 4-sample EMA: drops visibly when slouching, rises when upright
+        postureScore = (postureScore * 3 + calculatedScore) / 4
+        
+        // 2. Collarbone neck-rest / Snooze check
+        if AirPodsWearStateSentinel.shared.isRestingOnNeck || isSnoozed {
             postureState = .snoozed
             warningProgress = 0.0
             warningStartTime = nil
             TieredPostureEscalationEngine.shared.updateSlouchDuration(isCompromised: false, deltaPitch: 0, deltaRoll: 0)
-            return
-        }
-        
-        // Insertion-Angle Sanity Check: If earbud is loose or seated crookedly, prompt to reseat instead of false slouch
-        if AirPodsInsertionFitSentinel.shared.isCrookedFitDetected {
-            postureState = .warning
-            warningProgress = 0.15
-            return
-        }
-        
-        // 3-Gate Validation (Audio Route, Freshness, & Anatomical Seating)
-        switch PostureFitGatekeeper.shared.state {
-        case .airPodsNotInEar:
-            postureState = .disconnected
-            warningProgress = 0.0
-            warningStartTime = nil
-            return
-        case .motionStreamDisconnected:
-            postureState = .disconnected
-            warningProgress = 0.0
-            warningStartTime = nil
-            return
-        case .crookedInsertion:
-            postureState = .warning
-            warningProgress = 0.15
-            return
-        case .needsInitialCalibration, .ready:
-            break
-        }
-        
-        if isSnoozed {
-            postureState = .snoozed
-            warningProgress = 0.0
-            ScreenGlowManager.shared.update(postureState: postureState)
-        NotchHUDManager.shared.update(postureState: postureState)
-        SpatialAudioBiofeedback.shared.updateSlouchMuffle(deltaPitch: deltaPitch, threshold: pitchThreshold)
-        MultiMonitorGuard.shared.update(deltaYaw: deltaYaw)
-        HeadPointerManager.shared.update(deltaPitch: deltaPitch)
-        FocusRestlessnessTracker.shared.update(rotRateX: rotRateX, rotRateY: rotRateY, rotRateZ: rotRateZ)
-        StandingDeskTracker.shared.update(userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-        WalkAwayLockManager.shared.update(isConnected: isConnected, lastPacketAge: Date().timeIntervalSince(lastPacketDate ?? Date()))
-        SpatialSpacesManager.shared.update(deltaYaw: deltaYaw)
-        DrowsinessGuard.shared.update(deltaPitch: deltaPitch, userAccelZ: userAccelZ)
-        ThoracicSlumpAnalyzer.shared.update(deltaPitch: deltaPitch, gravityY: gravityY, gravityZ: gravityZ, userAccelZ: userAccelZ)
-        CervicalROMDiagnostic.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-        HydrationTracker.shared.update(pitch: deltaPitch, roll: deltaRoll)
-        HolographicParallaxManager.shared.update(pitch: deltaPitch, yaw: deltaYaw)
-        WindowSnapManager.shared.update(pitch: deltaPitch, roll: deltaRoll)
-        ErgonomicPomodoroEngine.shared.update(score: Double(postureScore))
-        AcousticPulseEstimator.shared.update(userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-        VocalStrainCoach.shared.update(pitch: deltaPitch, roll: deltaRoll)
-        MultiDisplayFocusManager.shared.update(yawDegrees: deltaYaw)
-        MenuBarSparklineRenderer.shared.addSample(score: postureScore)
-        Spatial3DAnchorManager.shared.updateListenerOrientation(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-        NeuralPoseClassifier.shared.classify(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, accel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ), rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ))
-        CervicalGameEngine.shared.updateHeadPitch(pitch: deltaPitch)
-        AppleWatchBridgeManager.shared.updateThoracicKinematics(airpodsPitch: deltaPitch)
-        OcclusionAudioTransparencyManager.shared.update(rotRateX: rotRateX, rotRateY: rotRateY, rotRateZ: rotRateZ, userAccelZ: userAccelZ)
-        DisplayDistanceGuardManager.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ)
-        MicroNapSleepApneaDetector.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-        CervicalKeypressWheelManager.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-        AcousticRespiratoryEngine.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-        MultiDisplaySpatialGridMapper.shared.update(yaw: deltaYaw)
-        ProceduralBinauralSoundscapeEngine.shared.updatePostureModulation(postureScore: postureScore)
-        FaceTimeHeadReactionsManager.shared.checkReactionGestures(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-            return
-        }
-        
-        let pitchDeviation = abs(deltaPitch)
-        let rollDeviation = abs(deltaRoll)
-        
-        var effectivePitchThreshold = pitchThreshold
-        if CircadianMelatoninShield.shared.isShieldEnabled && CircadianMelatoninShield.shared.isNightModeActive {
-            effectivePitchThreshold = pitchThreshold / CircadianMelatoninShield.shared.eveningPostureThresholdMultiplier
-        }
-        let isPitchBad = pitchDeviation > effectivePitchThreshold
-        let isRollBad = rollDeviation > rollThreshold
-        
-        TieredPostureEscalationEngine.shared.updateSlouchDuration(
-            isCompromised: isPitchBad || isRollBad,
-            deltaPitch: deltaPitch,
-            deltaRoll: deltaRoll
-        )
-        
-        if isPitchBad || isRollBad {
-            uprightRecoveryStartTime = nil
-            isRecoveringHysteresis = false
-            
-            if warningStartTime == nil {
-                warningStartTime = Date()
+        } else {
+            var effectivePitchThreshold = pitchThreshold
+            if CircadianMelatoninShield.shared.isShieldEnabled && CircadianMelatoninShield.shared.isNightModeActive {
+                effectivePitchThreshold = pitchThreshold / CircadianMelatoninShield.shared.eveningPostureThresholdMultiplier
             }
+            let isPitchBad = pitchDeviation > effectivePitchThreshold
+            let isRollBad = rollDeviation > rollThreshold
             
-            let elapsedWarning = Date().timeIntervalSince(warningStartTime!)
-            warningProgress = min(1.0, elapsedWarning / gracePeriodSeconds)
+            TieredPostureEscalationEngine.shared.updateSlouchDuration(
+                isCompromised: isPitchBad || isRollBad,
+                deltaPitch: deltaPitch,
+                deltaRoll: deltaRoll
+            )
             
-            if elapsedWarning >= gracePeriodSeconds {
-                if postureState != .slouching {
-                    // Check if user is typing rapidly (Flow state gating)
-                    if !TypingFlowStateGatingManager.shared.shouldSuppressAlertForFlow() {
-                        slouchEventCount += 1
-                        triggerSlouchAlert()
+            if isPitchBad || isRollBad {
+                uprightRecoveryStartTime = nil
+                isRecoveringHysteresis = false
+                
+                if warningStartTime == nil {
+                    warningStartTime = Date()
+                }
+                
+                let elapsedWarning = Date().timeIntervalSince(warningStartTime!)
+                warningProgress = min(1.0, elapsedWarning / gracePeriodSeconds)
+                
+                if elapsedWarning >= gracePeriodSeconds {
+                    if postureState != .slouching {
+                        if !TypingFlowStateGatingManager.shared.shouldSuppressAlertForFlow() {
+                            slouchEventCount += 1
+                            triggerSlouchAlert()
+                            SyntheticEarHapticEngine.shared.playDirectionalPostureCue(pitch: deltaPitch, roll: deltaRoll, pitchThreshold: pitchThreshold, rollThreshold: rollThreshold)
+                        }
+                        DynamicIslandNotchHaloManager.shared.updatePosture(postureState: .slouching, deltaPitch: deltaPitch)
+                    }
+                    postureState = .slouching
+                } else {
+                    if postureState == .optimal {
                         SyntheticEarHapticEngine.shared.playDirectionalPostureCue(pitch: deltaPitch, roll: deltaRoll, pitchThreshold: pitchThreshold, rollThreshold: rollThreshold)
                     }
-                    DynamicIslandNotchHaloManager.shared.updatePosture(postureState: .slouching, deltaPitch: deltaPitch)
+                    postureState = .warning
                 }
-                postureState = .slouching
             } else {
-                if postureState == .optimal {
-                    SyntheticEarHapticEngine.shared.playDirectionalPostureCue(pitch: deltaPitch, roll: deltaRoll, pitchThreshold: pitchThreshold, rollThreshold: rollThreshold)
-                }
-                postureState = .warning
-            }
-        } else {
-            warningStartTime = nil
-            warningProgress = 0.0
-            
-            // Anti-gaming upright recovery lockout (AirPosture & PostureFix)
-            if postureState == .slouching || isRecoveringHysteresis {
-                let now = Date()
-                if let start = uprightRecoveryStartTime {
-                    if now.timeIntervalSince(start) >= recoveryGraceSeconds {
-                        postureState = .optimal
-                        isRecoveringHysteresis = false
-                        uprightRecoveryStartTime = nil
+                warningStartTime = nil
+                warningProgress = 0.0
+                
+                if postureState == .slouching || isRecoveringHysteresis {
+                    let now = Date()
+                    if let start = uprightRecoveryStartTime {
+                        if now.timeIntervalSince(start) >= recoveryGraceSeconds {
+                            postureState = .optimal
+                            isRecoveringHysteresis = false
+                            uprightRecoveryStartTime = nil
+                        } else {
+                            isRecoveringHysteresis = true
+                            postureState = .warning
+                        }
                     } else {
+                        uprightRecoveryStartTime = now
                         isRecoveringHysteresis = true
                         postureState = .warning
                     }
                 } else {
-                    uprightRecoveryStartTime = now
-                    isRecoveringHysteresis = true
-                    postureState = .warning
+                    uprightRecoveryStartTime = nil
+                    isRecoveringHysteresis = false
+                    postureState = .optimal
                 }
-            } else {
-                uprightRecoveryStartTime = nil
-                isRecoveringHysteresis = false
-                postureState = .optimal
             }
         }
         
-        let pitchPenalty = min(pitchDeviation / pitchThreshold, 2.0) * 40.0
-        let rollPenalty = min(rollDeviation / rollThreshold, 2.0) * 30.0
-        let calculatedScore = max(0, min(100, Int(100.0 - (pitchPenalty + rollPenalty))))
-        postureScore = (postureScore * 9 + calculatedScore) / 10
-        
-        ScreenGlowManager.shared.update(postureState: postureState)
-        ProgressiveScreenBlurManager.shared.update(postureState: postureState, deltaPitch: deltaPitch)
-        CervicalRepCounterEngine.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-        HeadShortcutsActionRunner.shared.processMotion(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, userAccelY: userAccelY)
-        DualDirectionPosturalEngine.shared.update(pitch: deltaPitch, dt: 1.0 / 60.0)
-        HourlyFatigueProfiler.shared.recordMonitoredSecond(dt: 1.0 / 60.0)
-        NotchHUDManager.shared.update(postureState: postureState)
-        SpatialAudioBiofeedback.shared.updateSlouchMuffle(deltaPitch: deltaPitch, threshold: pitchThreshold)
-        MultiMonitorGuard.shared.update(deltaYaw: deltaYaw)
-        HeadPointerManager.shared.update(deltaPitch: deltaPitch)
-        FocusRestlessnessTracker.shared.update(rotRateX: rotRateX, rotRateY: rotRateY, rotRateZ: rotRateZ)
-        StandingDeskTracker.shared.update(userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-        WalkAwayLockManager.shared.update(isConnected: isConnected, lastPacketAge: Date().timeIntervalSince(lastPacketDate ?? Date()))
-        SpatialSpacesManager.shared.update(deltaYaw: deltaYaw)
-        DrowsinessGuard.shared.update(deltaPitch: deltaPitch, userAccelZ: userAccelZ)
-        ThoracicSlumpAnalyzer.shared.update(deltaPitch: deltaPitch, gravityY: gravityY, gravityZ: gravityZ, userAccelZ: userAccelZ)
-        CervicalROMDiagnostic.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-        HydrationTracker.shared.update(pitch: deltaPitch, roll: deltaRoll)
-        HolographicParallaxManager.shared.update(pitch: deltaPitch, yaw: deltaYaw)
-        WindowSnapManager.shared.update(pitch: deltaPitch, roll: deltaRoll)
-        ErgonomicPomodoroEngine.shared.update(score: Double(postureScore))
-        AcousticPulseEstimator.shared.update(userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-        VocalStrainCoach.shared.update(pitch: deltaPitch, roll: deltaRoll)
-        MultiDisplayFocusManager.shared.update(yawDegrees: deltaYaw)
-        MenuBarSparklineRenderer.shared.addSample(score: postureScore)
-        Spatial3DAnchorManager.shared.updateListenerOrientation(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-        NeuralPoseClassifier.shared.classify(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, accel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ), rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ))
-        CervicalGameEngine.shared.updateHeadPitch(pitch: deltaPitch)
-        AppleWatchBridgeManager.shared.updateThoracicKinematics(airpodsPitch: deltaPitch)
-        OcclusionAudioTransparencyManager.shared.update(rotRateX: rotRateX, rotRateY: rotRateY, rotRateZ: rotRateZ, userAccelZ: userAccelZ)
-        DisplayDistanceGuardManager.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ)
-        MicroNapSleepApneaDetector.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-        CervicalKeypressWheelManager.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-        AcousticRespiratoryEngine.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-        MultiDisplaySpatialGridMapper.shared.update(yaw: deltaYaw)
-        ProceduralBinauralSoundscapeEngine.shared.updatePostureModulation(postureScore: postureScore)
-        FaceTimeHeadReactionsManager.shared.checkReactionGestures(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-        StudentStudySuiteEngine.shared.processStudyGestures(pitch: deltaPitch, roll: deltaRoll)
-        
-        // Next-Gen Upgrades:
-        CervicalSpineTorqueEngine.shared.updateLivePitch(deltaPitch)
-        GhostDimmingBiofeedbackManager.shared.updatePostureState(
-            isSlouching: postureState == .slouching,
-            warningProgress: warningProgress
-        )
-        SpatialElevationSoundstageEngine.shared.updateCervicalElevation(pitch: deltaPitch)
-        StemForceGestureInterceptor.shared.processKinematicStream(pitch: deltaPitch, rotRateY: rotRateY)
-        
-        // ZUPT Anterior Translation ("Tech Neck") & Biomechanical Kinematics
-        AnteriorZUPTKinematicEngine.shared.processSample(
-            pitch: deltaPitch,
-            roll: deltaRoll,
-            userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ),
-            rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ)
-        )
-        
-        // Insertion-Angle Sanity & Seating Gate
-        AirPodsInsertionFitSentinel.shared.validateInsertionSanity(
-            pitchDeg: deltaPitch,
-            rollDeg: deltaRoll,
-            rotRate: SIMD3<Double>(rotRateX * .pi / 180.0, rotRateY * .pi / 180.0, rotRateZ * .pi / 180.0),
-            userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ)
-        )
-        
-        // 3-Gate Validation Engine Gatekeeper
-        let liveGravity = SIMD3<Double>(gravityX, gravityY, gravityZ)
-        PostureFitGatekeeper.shared.evaluateDirect(
-            gravity: liveGravity,
-            rotRate: SIMD3<Double>(rotRateX * .pi / 180.0, rotRateY * .pi / 180.0, rotRateZ * .pi / 180.0),
-            userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ),
-            timestamp: Date().timeIntervalSince1970,
-            sensorLocationRaw: 1
-        )
+        // 3. Throttle secondary analytical engines to 10Hz (every 6th frame) to keep Mac CPU cool (< 5%)
+        let isThrottledTick = (packetCount % 6 == 0)
+        if isThrottledTick {
+            ScreenGlowManager.shared.update(postureState: postureState)
+            ProgressiveScreenBlurManager.shared.update(postureState: postureState, deltaPitch: deltaPitch)
+            CervicalRepCounterEngine.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+            HeadShortcutsActionRunner.shared.processMotion(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, userAccelY: userAccelY)
+            DualDirectionPosturalEngine.shared.update(pitch: deltaPitch, dt: 0.1)
+            HourlyFatigueProfiler.shared.recordMonitoredSecond(dt: 0.1)
+            NotchHUDManager.shared.update(postureState: postureState)
+            SpatialAudioBiofeedback.shared.updateSlouchMuffle(deltaPitch: deltaPitch, threshold: pitchThreshold)
+            MultiMonitorGuard.shared.update(deltaYaw: deltaYaw)
+            HeadPointerManager.shared.update(deltaPitch: deltaPitch)
+            FocusRestlessnessTracker.shared.update(rotRateX: rotRateX, rotRateY: rotRateY, rotRateZ: rotRateZ)
+            StandingDeskTracker.shared.update(userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
+            WalkAwayLockManager.shared.update(isConnected: isConnected, lastPacketAge: Date().timeIntervalSince(lastPacketDate ?? Date()))
+            SpatialSpacesManager.shared.update(deltaYaw: deltaYaw)
+            DrowsinessGuard.shared.update(deltaPitch: deltaPitch, userAccelZ: userAccelZ)
+            ThoracicSlumpAnalyzer.shared.update(deltaPitch: deltaPitch, gravityY: gravityY, gravityZ: gravityZ, userAccelZ: userAccelZ)
+            CervicalROMDiagnostic.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+            HydrationTracker.shared.update(pitch: deltaPitch, roll: deltaRoll)
+            HolographicParallaxManager.shared.update(pitch: deltaPitch, yaw: deltaYaw)
+            WindowSnapManager.shared.update(pitch: deltaPitch, roll: deltaRoll)
+            ErgonomicPomodoroEngine.shared.update(score: Double(postureScore))
+            AcousticPulseEstimator.shared.update(userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
+            VocalStrainCoach.shared.update(pitch: deltaPitch, roll: deltaRoll)
+            MultiDisplayFocusManager.shared.update(yawDegrees: deltaYaw)
+            MenuBarSparklineRenderer.shared.addSample(score: postureScore)
+            Spatial3DAnchorManager.shared.updateListenerOrientation(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+            NeuralPoseClassifier.shared.classify(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, accel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ), rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ))
+            CervicalGameEngine.shared.updateHeadPitch(pitch: deltaPitch)
+            AppleWatchBridgeManager.shared.updateThoracicKinematics(airpodsPitch: deltaPitch)
+            OcclusionAudioTransparencyManager.shared.update(rotRateX: rotRateX, rotRateY: rotRateY, rotRateZ: rotRateZ, userAccelZ: userAccelZ)
+            DisplayDistanceGuardManager.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ)
+            MicroNapSleepApneaDetector.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
+            CervicalKeypressWheelManager.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+            AcousticRespiratoryEngine.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
+            MultiDisplaySpatialGridMapper.shared.update(yaw: deltaYaw)
+            ProceduralBinauralSoundscapeEngine.shared.updatePostureModulation(postureScore: postureScore)
+            FaceTimeHeadReactionsManager.shared.checkReactionGestures(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
+            StudentStudySuiteEngine.shared.processStudyGestures(pitch: deltaPitch, roll: deltaRoll)
+            
+            CervicalSpineTorqueEngine.shared.updateLivePitch(deltaPitch)
+            GhostDimmingBiofeedbackManager.shared.updatePostureState(
+                isSlouching: postureState == .slouching,
+                warningProgress: warningProgress
+            )
+            SpatialElevationSoundstageEngine.shared.updateCervicalElevation(pitch: deltaPitch)
+            StemForceGestureInterceptor.shared.processKinematicStream(pitch: deltaPitch, rotRateY: rotRateY)
+            
+            AnteriorZUPTKinematicEngine.shared.processSample(
+                pitch: deltaPitch,
+                roll: deltaRoll,
+                userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ),
+                rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ)
+            )
+            
+            AirPodsInsertionFitSentinel.shared.validateInsertionSanity(
+                pitchDeg: deltaPitch,
+                rollDeg: deltaRoll,
+                rotRate: SIMD3<Double>(rotRateX * .pi / 180.0, rotRateY * .pi / 180.0, rotRateZ * .pi / 180.0),
+                userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ)
+            )
+            
+            let liveGravity = SIMD3<Double>(gravityX, gravityY, gravityZ)
+            PostureFitGatekeeper.shared.evaluateDirect(
+                gravity: liveGravity,
+                rotRate: SIMD3<Double>(rotRateX * .pi / 180.0, rotRateY * .pi / 180.0, rotRateZ * .pi / 180.0),
+                userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ),
+                timestamp: Date().timeIntervalSince1970,
+                sensorLocationRaw: 1
+            )
+        }
     }
     
     private func detectGestures(pitch: Double, yaw: Double) {
