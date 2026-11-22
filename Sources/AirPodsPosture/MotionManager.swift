@@ -904,6 +904,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             AirPodsInsertionFitSentinel.shared.headphoneMotionManagerDidConnect(manager)
             PostureFitGatekeeper.shared.headphoneMotionManagerDidConnect(manager)
             AirPodsInCaseLifecycleManager.shared.handleAirPodsRemovedFromCase()
+            AirPodsBatteryOptimizerEngine.shared.refreshHardwareBattery()
         }
     }
     

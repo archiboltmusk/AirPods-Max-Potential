@@ -75,13 +75,50 @@ public struct AirPodsProSensorsView: View {
                     subtitle: "Throttles IMU radio transmission from 60Hz down to 10Hz during resting stillness. Saves up to 65% transmit power, extending AirPods sessions from 4.5h to 7h+."
                 ) {
                     VStack(spacing: 12) {
+                        // Live Connected Device Banner & Manual Refresh
+                        HStack {
+                            if !batteryOpt.deviceName.isEmpty {
+                                HStack(spacing: 5) {
+                                    Circle()
+                                        .fill(Color.green)
+                                        .frame(width: 7, height: 7)
+                                    Text(batteryOpt.deviceName)
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(.primary)
+                                    Text("• Live Hardware Telemetry")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                }
+                            } else {
+                                Text("Polling AirPods Battery...")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                batteryOpt.refreshHardwareBattery()
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.clockwise")
+                                        .rotationEffect(.degrees(batteryOpt.isRefreshing ? 360 : 0))
+                                    Text(batteryOpt.isRefreshing ? "Refreshing..." : "Refresh")
+                                }
+                                .font(.system(size: 10, weight: .medium))
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.mini)
+                            .disabled(batteryOpt.isRefreshing)
+                        }
+                        
                         HStack(spacing: 16) {
                             // Left Bud
                             VStack(spacing: 4) {
                                 Image(systemName: "earbuds")
                                     .font(.title3)
                                     .foregroundColor(.cyan)
-                                Text("Left: \(batteryOpt.leftBudBatteryPercent)%")
+                                Text("Left: \(batteryOpt.leftDisplayString)")
                                     .font(.caption.bold())
                             }
                             .frame(maxWidth: .infinity)
@@ -94,7 +131,7 @@ public struct AirPodsProSensorsView: View {
                                 Image(systemName: "earbuds")
                                     .font(.title3)
                                     .foregroundColor(.cyan)
-                                Text("Right: \(batteryOpt.rightBudBatteryPercent)%")
+                                Text("Right: \(batteryOpt.rightDisplayString)")
                                     .font(.caption.bold())
                             }
                             .frame(maxWidth: .infinity)
@@ -107,7 +144,7 @@ public struct AirPodsProSensorsView: View {
                                 Image(systemName: "case")
                                     .font(.title3)
                                     .foregroundColor(.green)
-                                Text("Case: \(batteryOpt.caseBatteryPercent)%")
+                                Text("Case: \(batteryOpt.caseDisplayString)")
                                     .font(.caption.bold())
                             }
                             .frame(maxWidth: .infinity)
@@ -284,6 +321,9 @@ public struct AirPodsProSensorsView: View {
                 }
             }
             .padding(20)
+        }
+        .onAppear {
+            batteryOpt.refreshHardwareBattery()
         }
     }
 }
