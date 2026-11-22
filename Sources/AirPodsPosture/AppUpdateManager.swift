@@ -12,8 +12,8 @@ public final class AppUpdateManager: ObservableObject {
     public static let shared = AppUpdateManager()
     
     // Version Telemetry
-    public let currentVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
-    public let currentBuild: String = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    public let currentVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.8.2"
+    public let currentBuild: String = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "2.8.2"
     
     // Update States
     @Published public var isChecking: Bool = false
@@ -174,6 +174,13 @@ public final class AppUpdateManager: ObservableObject {
                     try process.run()
                     process.waitUntilExit()
                     
+                    // Strip Gatekeeper quarantine from extracted payload
+                    let xattrProc = Process()
+                    xattrProc.executableURL = URL(fileURLWithPath: "/usr/bin/xattr")
+                    xattrProc.arguments = ["-cr", destinationDir.path]
+                    try? xattrProc.run()
+                    xattrProc.waitUntilExit()
+                    
                     // Locate .app in extracted dir
                     let items = try FileManager.default.contentsOfDirectory(at: destinationDir, includingPropertiesForKeys: nil)
                     if let appBundle = items.first(where: { $0.pathExtension == "app" }) {
@@ -203,16 +210,20 @@ public final class AppUpdateManager: ObservableObject {
         guard let staged = stagedAppPath else { return }
         
         let targetAppPath = Bundle.main.bundlePath
-        let script = """
-        sleep 0.8
+        let pid = ProcessInfo.processInfo.processIdentifier
+        
+        // Wait for current process PID to gracefully exit before replacing and launching the updated bundle
+        let helperScript = """
+        while kill -0 \(pid) 2>/dev/null; do sleep 0.2; done
         rm -rf "\(targetAppPath)"
         cp -R "\(staged.path)" "\(targetAppPath)"
+        /usr/bin/xattr -cr "\(targetAppPath)" 2>/dev/null || true
         open "\(targetAppPath)"
         """
         
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = ["-c", script]
+        process.arguments = ["-c", "nohup /bin/sh -c '\(helperScript)' >/dev/null 2>&1 &"]
         try? process.run()
         
         // Terminate current process

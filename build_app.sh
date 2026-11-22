@@ -12,7 +12,7 @@ else
     if [[ "$GIT_TAG" =~ ^v[0-9] ]]; then
         VERSION="${GIT_TAG#v}"
     else
-        VERSION="1.3.0"
+        VERSION="2.8.2"
     fi
 fi
 
