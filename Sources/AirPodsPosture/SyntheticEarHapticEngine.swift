@@ -25,6 +25,7 @@ public final class SyntheticEarHapticEngine: ObservableObject {
     }
     
     private func setupAudioEngine() {
+        guard NSApp != nil else { return }
         let engine = AVAudioEngine()
         let player = AVAudioPlayerNode()
         
@@ -46,7 +47,7 @@ public final class SyntheticEarHapticEngine: ObservableObject {
     
     /// Triggers silent MacBook Force Touch trackpad haptics
     public func performTrackpadHaptic(pattern: NSHapticFeedbackManager.FeedbackPattern = .alignment) {
-        guard isTrackpadHapticEnabled else { return }
+        guard isTrackpadHapticEnabled && NSApp != nil else { return }
         NSHapticFeedbackManager.defaultPerformer.perform(pattern, performanceTime: .default)
     }
     
@@ -105,6 +106,7 @@ public final class SyntheticEarHapticEngine: ObservableObject {
             rightChannel[frame] = sample * rightGain
         }
         
+        guard let engine = audioEngine, engine.isRunning, let player = playerNode else { return }
         player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
         if !player.isPlaying {
             player.play()
@@ -128,7 +130,7 @@ public final class SyntheticEarHapticEngine: ObservableObject {
     /// Generates a crisp rising resonant tick on successful calibration lock
     public func playSuccessChirp() {
         performTrackpadHaptic(pattern: .alignment)
-        guard isHapticAudioEnabled, let format = audioFormat, let player = playerNode else { return }
+        guard isHapticAudioEnabled, let format = audioFormat else { return }
         
         let sampleRate = format.sampleRate
         let durationSeconds = 0.04
@@ -151,6 +153,7 @@ public final class SyntheticEarHapticEngine: ObservableObject {
             rightChannel[frame] = sample
         }
         
+        guard let engine = audioEngine, engine.isRunning, let player = playerNode else { return }
         player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
         if !player.isPlaying {
             player.play()

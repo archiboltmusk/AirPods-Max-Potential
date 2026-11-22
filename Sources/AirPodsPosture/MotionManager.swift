@@ -283,7 +283,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     }
     
     @discardableResult
-    public func calibrateCurrentPosture(force: Bool = false) -> Bool {
+    public func calibrateCurrentPosture(force: Bool = false, isSilentAuto: Bool = false) -> Bool {
         // In-ear orientation requires gravity pulling downwards along Z (gravity.z <= -0.4)
         let currentGravity = (gravityX != 0 || gravityY != 0 || gravityZ != 0) ? SIMD3<Double>(gravityX, gravityY, gravityZ) : SIMD3<Double>(0, 0, -1.0)
         
@@ -320,15 +320,20 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         warningStartTime = nil
         warningProgress = 0.0
         savePreferences()
-        playFeedbackSound("Hero")
-        SyntheticEarHapticEngine.shared.playSuccessChirp()
+        
+        if isSilentAuto {
+            SyntheticEarHapticEngine.shared.playSuccessChirp()
+            DynamicIslandNotchHaloManager.shared.triggerExpansion(message: "✨ Auto-Aligned: Posture Centered", autoDismissSeconds: 2.5)
+        } else {
+            playFeedbackSound("Hero")
+            SyntheticEarHapticEngine.shared.playSuccessChirp()
+            DynamicIslandNotchHaloManager.shared.triggerExpansion(message: "Calibrated: Locked to Upright Baseline", autoDismissSeconds: 3.0)
+        }
         
         // Also calibrate Optical Webcam Sentinel to neutral upright baseline if active
         if OpticalContinuitySentinel.shared.isRunning {
             OpticalContinuitySentinel.shared.calibrateNeutralBaseline()
         }
-        
-        DynamicIslandNotchHaloManager.shared.triggerExpansion(message: "Calibrated: Locked to Upright Baseline", autoDismissSeconds: 3.0)
         return true
     }
     
@@ -439,12 +444,25 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
                 rotRate: rotRateMag
             )
             
-            // Autonomous Continuous Statistical Calibration
+            // Autonomous Continuous Gravitational Auto-Alignment
             AutonomousAutoCalibrator.shared.processIncomingSample(
                 currentQuat: quat,
                 gravity: gravity,
                 gyroVariance: rotRateMag,
-                userEnergy: energy
+                userEnergy: energy,
+                deltaPitch: deltaPitch,
+                deltaRoll: deltaRoll
+            )
+            
+            // "Glance & Lock" Autonomous Screen Alignment
+            GlanceAndLockAutoCalibrator.shared.evaluate(
+                currentQuat: quat,
+                gravity: gravity,
+                deltaPitch: deltaPitch,
+                deltaRoll: deltaRoll,
+                rotRate: rotRateMag,
+                userEnergy: energy,
+                isConnected: isConnected
             )
             
             // Also update PermanentPostureEngine in background for diagnostics
@@ -458,13 +476,29 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             }
         }
         
-        // Auto-calibrate on first incoming packet ONLY if within physiological upright zone (-6° to +7°)
+        // Auto-calibrate on first incoming packet if within physiological upright zone
         if !isCalibrated {
-            let currentPitch = relEuler.pitch
-            if currentPitch >= -6.0 && currentPitch <= 7.0 {
+            var canAutoZeroFirstPacket = false
+            if let g = gravity, g.z <= -0.50 {
+                let gravPitch = atan2(-g.y, -g.z) * 180.0 / .pi
+                let gravRoll = -atan2(g.x, -g.z) * 180.0 / .pi
+                if gravPitch >= -7.0 && gravPitch <= 7.5 && abs(gravRoll) <= 5.5 {
+                    canAutoZeroFirstPacket = true
+                }
+            } else if relEuler.pitch >= -6.0 && relEuler.pitch <= 7.0 && abs(relEuler.roll) <= 5.5 {
+                canAutoZeroFirstPacket = true
+            }
+            
+            if canAutoZeroFirstPacket {
                 _ = TrueNorthCalibrationEngine.shared.calibrateInstant(quat: quat, gravity: gravity)
+                if let g = gravity {
+                    PermanentPostureEngine.shared.calibrateWithUprightGravity(g, sensorLocation: sensorLocation)
+                }
                 qBaseline = quat
                 isCalibrated = true
+                deltaPitch = 0.0
+                deltaRoll = 0.0
+                deltaYaw = 0.0
                 savePreferences()
             }
         }

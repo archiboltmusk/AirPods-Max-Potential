@@ -1,8 +1,11 @@
+import Foundation
 import Testing
 import simd
 @testable import AirPodsPosture
 @testable import AirPodsCore
 
+@Suite(.serialized)
+struct AirPodsPostureTests {
 @Test func testPermanentPostureEngineProjection() async throws {
     let engine = await PermanentPostureEngine()
     
@@ -171,4 +174,80 @@ import simd
     
     state = await gatekeeper.state
     #expect(state == .ready)
+}
+
+@Test func testGlanceAndLockAutoCalibrationWhenSittingStraight() async throws {
+    let calibrator = await GlanceAndLockAutoCalibrator.shared
+    let motion = await MotionManager.shared
+    
+    // Set an initial offset baseline
+    await MainActor.run {
+        motion.deltaPitch = 8.5
+        motion.deltaRoll = -4.0
+        calibrator.resetLock()
+    }
+    
+    let uprightGravity = SIMD3<Double>(0.0, 0.0, -1.0)
+    let currentQuat = simd_quatd(ix: 0, iy: 0, iz: 0, r: 1)
+    
+    // Evaluate when sitting upright and still
+    await MainActor.run {
+        calibrator.evaluate(
+            currentQuat: currentQuat,
+            gravity: uprightGravity,
+            deltaPitch: 8.5,
+            deltaRoll: -4.0,
+            rotRate: 0.2,
+            userEnergy: 0.005,
+            isConnected: true
+        )
+        
+        // Fast-forward hold duration by 2.5 seconds
+        calibrator.setSteadyStartTimeForTesting(Date().addingTimeInterval(-2.5))
+        
+        calibrator.evaluate(
+            currentQuat: currentQuat,
+            gravity: uprightGravity,
+            deltaPitch: 8.5,
+            deltaRoll: -4.0,
+            rotRate: 0.2,
+            userEnergy: 0.005,
+            isConnected: true
+        )
+    }
+    
+    let isCalibrated = await motion.isCalibrated
+    let pitchAfter = await motion.deltaPitch
+    let rollAfter = await motion.deltaRoll
+    
+    #expect(isCalibrated == true)
+    #expect(abs(pitchAfter) < 0.01)
+    #expect(abs(rollAfter) < 0.01)
+}
+
+@Test func testAutoCalibrationBlockedDuringSlouch() async throws {
+    let calibrator = await GlanceAndLockAutoCalibrator.shared
+    await MainActor.run {
+        calibrator.resetLock()
+    }
+    
+    // Slouching gravity: head down 20 degrees (gravity.y positive)
+    let slouchG = SIMD3<Double>(0.0, 0.34, -0.94)
+    let currentQuat = simd_quatd(ix: 0, iy: 0, iz: 0, r: 1)
+    
+    await MainActor.run {
+        calibrator.evaluate(
+            currentQuat: currentQuat,
+            gravity: slouchG,
+            deltaPitch: -20.0,
+            deltaRoll: 0.0,
+            rotRate: 0.1,
+            userEnergy: 0.005,
+            isConnected: true
+        )
+    }
+    
+    let progress = await calibrator.glanceLockHoldProgress
+    #expect(progress == 0.0)
+}
 }

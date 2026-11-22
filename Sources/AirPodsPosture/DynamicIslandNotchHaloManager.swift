@@ -38,7 +38,9 @@ public final class DynamicIslandNotchHaloManager: ObservableObject {
     }
     
     public func setupWindow() {
-        guard isEnabled else { return }
+        guard isEnabled && NSApp != nil,
+              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+              NSClassFromString("XCTest") == nil else { return }
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.frame
         
@@ -68,7 +70,9 @@ public final class DynamicIslandNotchHaloManager: ObservableObject {
     }
     
     public func triggerExpansion(message: String, autoDismissSeconds: Double = 4.0) {
-        guard isEnabled else { return }
+        guard isEnabled && NSApp != nil,
+              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+              NSClassFromString("XCTest") == nil else { return }
         expansionMessage = message
         withAnimation(.interpolatingSpring(stiffness: 240, damping: 20)) {
             isExpanded = true

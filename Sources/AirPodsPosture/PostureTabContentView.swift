@@ -20,7 +20,7 @@ public struct PostureTabContentView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles")
                             .foregroundColor(.cyan)
-                        Text("Glance & Lock: Calibrating in \(Int(ceil((1.0 - glance.glanceLockHoldProgress) * 3.0)))s...")
+                        Text("Auto-Aligning Posture in \(Int(ceil((1.0 - glance.glanceLockHoldProgress) * 2.0)))s...")
                             .font(.caption.bold())
                             .foregroundColor(.cyan)
                         ProgressView(value: glance.glanceLockHoldProgress, total: 1.0)
