@@ -547,6 +547,26 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             return
         }
         
+        // 3-Gate Validation (Audio Route, Freshness, & Anatomical Seating)
+        switch PostureFitGatekeeper.shared.state {
+        case .airPodsNotInEar:
+            postureState = .disconnected
+            warningProgress = 0.0
+            warningStartTime = nil
+            return
+        case .motionStreamDisconnected:
+            postureState = .disconnected
+            warningProgress = 0.0
+            warningStartTime = nil
+            return
+        case .crookedInsertion:
+            postureState = .warning
+            warningProgress = 0.15
+            return
+        case .needsInitialCalibration, .ready:
+            break
+        }
+        
         if isSnoozed {
             postureState = .snoozed
             warningProgress = 0.0
@@ -725,6 +745,16 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             rotRate: SIMD3<Double>(rotRateX * .pi / 180.0, rotRateY * .pi / 180.0, rotRateZ * .pi / 180.0),
             userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ)
         )
+        
+        // 3-Gate Validation Engine Gatekeeper
+        let liveGravity = SIMD3<Double>(gravityX, gravityY, gravityZ)
+        PostureFitGatekeeper.shared.evaluateDirect(
+            gravity: liveGravity,
+            rotRate: SIMD3<Double>(rotRateX * .pi / 180.0, rotRateY * .pi / 180.0, rotRateZ * .pi / 180.0),
+            userAccel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ),
+            timestamp: Date().timeIntervalSince1970,
+            sensorLocationRaw: 1
+        )
     }
     
     private func detectGestures(pitch: Double, yaw: Double) {
@@ -878,6 +908,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             self.isConnected = true
             self.startTracking()
             AirPodsInsertionFitSentinel.shared.headphoneMotionManagerDidConnect(manager)
+            PostureFitGatekeeper.shared.headphoneMotionManagerDidConnect(manager)
             AirPodsInCaseLifecycleManager.shared.handleAirPodsRemovedFromCase()
         }
     }
@@ -887,6 +918,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             self.isConnected = false
             self.postureState = .disconnected
             AirPodsInsertionFitSentinel.shared.headphoneMotionManagerDidDisconnect(manager)
+            PostureFitGatekeeper.shared.headphoneMotionManagerDidDisconnect(manager)
             AirPodsInCaseLifecycleManager.shared.handleAirPodsPlacedInCase()
         }
     }

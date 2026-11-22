@@ -94,3 +94,60 @@ import simd
     #expect(clearedCrooked == false)
     #expect(restoredOptimal == true)
 }
+
+@Test func testPostureFitGatekeeperTriGateValidation() async throws {
+    let gatekeeper = await PostureFitGatekeeper()
+    
+    // 1. When audio is NOT routed to headphones (AirPods on desk / out of ear)
+    await gatekeeper.setAudioRoutedForTesting(false)
+    let profile = await PermanentPostureEngine.shared.profiles[1]!
+    let gUpright = -profile.up
+    
+    await gatekeeper.evaluateDirect(
+        gravity: gUpright,
+        rotRate: SIMD3<Double>(0, 0, 0),
+        userAccel: SIMD3<Double>(0, 0, 0),
+        timestamp: 100.0,
+        sensorLocationRaw: 1
+    )
+    
+    var state = await gatekeeper.state
+    var slouching = await gatekeeper.isSlouching
+    #expect(state == .airPodsNotInEar)
+    #expect(slouching == false)
+    
+    // 2. When audio route is connected, but earbud is seated crookedly (> 35° resting roll while stationary)
+    await gatekeeper.setAudioRoutedForTesting(true)
+    let crookedAngle = 42.0 * .pi / 180.0
+    let crookedG = -profile.up * cos(crookedAngle) + profile.right * sin(crookedAngle)
+    
+    await gatekeeper.evaluateDirect(
+        gravity: crookedG,
+        rotRate: SIMD3<Double>(0, 0, 0),
+        userAccel: SIMD3<Double>(0, 0, 0),
+        timestamp: 100.02,
+        sensorLocationRaw: 1
+    )
+    
+    state = await gatekeeper.state
+    slouching = await gatekeeper.isSlouching
+    switch state {
+    case .crookedInsertion:
+        #expect(true)
+    default:
+        #expect(Bool(false), "Expected crookedInsertion state")
+    }
+    #expect(slouching == false)
+    
+    // 3. When in-ear and aligned (All 3 gates pass -> Ready)
+    await gatekeeper.evaluateDirect(
+        gravity: gUpright,
+        rotRate: SIMD3<Double>(0, 0, 0),
+        userAccel: SIMD3<Double>(0, 0, 0),
+        timestamp: 100.04,
+        sensorLocationRaw: 1
+    )
+    
+    state = await gatekeeper.state
+    #expect(state == .ready)
+}

@@ -5,6 +5,7 @@ import AirPodsCore
 /// Provides real-time hardware signal validation and a 4-step physical acoustic seal protocol.
 public struct AirPodsFitVerificationGuideView: View {
     @ObservedObject var fitSentinel = AirPodsInsertionFitSentinel.shared
+    @ObservedObject var gatekeeper = PostureFitGatekeeper.shared
     @Environment(\.dismiss) private var dismiss
     
     public init() {}
@@ -63,23 +64,43 @@ public struct AirPodsFitVerificationGuideView: View {
                         HStack(spacing: 10) {
                             SignalPill(
                                 title: "Audio Route",
-                                isActive: fitSentinel.isAudioRouteActive,
+                                isActive: gatekeeper.isAudioRoutedToHeadphones,
                                 activeText: "AirPods Active",
                                 inactiveText: "Disconnected"
                             )
                             SignalPill(
                                 title: "Motion Stream",
-                                isActive: fitSentinel.isMotionStreaming,
+                                isActive: gatekeeper.isMotionConnected,
                                 activeText: "Streaming (In-Ear)",
                                 inactiveText: "Suspended (Desk)"
                             )
                             SignalPill(
                                 title: "Stem Alignment",
-                                isActive: fitSentinel.isStemAngleOptimal,
+                                isActive: gatekeeper.state != .crookedInsertion(rollErrorDeg: 0, pitchErrorDeg: 0),
                                 activeText: "Optimal (~35°)",
                                 inactiveText: "Crooked Angle"
                             )
                         }
+                        
+                        // Tri-Gate Validation State Capsule
+                        HStack {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(gatekeeper.state.isTrackingValid ? Color.green : Color.orange)
+                                    .frame(width: 8, height: 8)
+                                Text(gatekeeper.state.statusTitle)
+                                    .font(.caption.bold())
+                                    .foregroundColor(gatekeeper.state.isTrackingValid ? .green : .orange)
+                            }
+                            Spacer()
+                            Text("Tri-Gate Guard Active")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color(NSColor.windowBackgroundColor))
+                        .cornerRadius(8)
                         
                         if let warning = fitSentinel.fitRecommendationMessage {
                             HStack(spacing: 8) {
