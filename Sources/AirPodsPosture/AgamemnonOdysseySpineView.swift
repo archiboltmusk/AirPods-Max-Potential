@@ -162,13 +162,14 @@ public struct AgamemnonOdysseySpineView: NSViewRepresentable {
         let rRad = CGFloat(roll * .pi / 180.0)
         let yRad = CGFloat(yaw * .pi / 180.0)
         
-        maskNode.eulerAngles = SCNVector3(x: -pRad, y: yRad, z: -rRad)
+        // Natural Mirror Mode Reflection
+        maskNode.eulerAngles = SCNVector3(x: pRad, y: yRad, z: -rRad)
         
         let totalSegments = 8
         for i in 0..<totalSegments {
             if let segNode = spineAssembly.childNode(withName: "odyssey_vertebra_\(i)", recursively: false) {
                 let fraction = CGFloat(totalSegments - i) / CGFloat(totalSegments)
-                segNode.eulerAngles = SCNVector3(x: -pRad * fraction * 0.72, y: yRad * fraction * 0.65, z: -rRad * fraction * 0.72)
+                segNode.eulerAngles = SCNVector3(x: pRad * fraction * 0.72, y: yRad * fraction * 0.65, z: -rRad * fraction * 0.72)
                 
                 if let discNode = segNode.childNode(withName: "odyssey_disc_\(i)", recursively: false) {
                     let auraColor: NSColor

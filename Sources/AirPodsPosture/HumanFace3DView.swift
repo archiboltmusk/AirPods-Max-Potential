@@ -302,8 +302,11 @@ public struct HumanFace3DView: NSViewRepresentable {
         let rRad = CGFloat(roll * .pi / 180.0)
         let yRad = CGFloat(yaw * .pi / 180.0)
         
-        // Smoothly rotate anatomically faithful human bust with exact IMU attitude
-        headAssembly.eulerAngles = SCNVector3(x: -pRad, y: yRad, z: -rRad)
+        // Natural 1-to-1 Mirror Reflection Mode (like looking directly into a vanity mirror):
+        // • Pitch: Tilting head back (looking up) tilts reflection up/back; slouching tilts down.
+        // • Yaw: Turning right turns reflection to the right; turning left turns left.
+        // • Roll: Tilting head to right shoulder tilts reflection right; left shoulder tilts left.
+        headAssembly.eulerAngles = SCNVector3(x: pRad, y: yRad, z: -rRad)
         
         // 2. Earwear Visibility Sync
         if let proRig = headAssembly.childNode(withName: "airPodsProRig", recursively: false) {

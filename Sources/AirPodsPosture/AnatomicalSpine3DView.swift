@@ -139,15 +139,15 @@ public struct AnatomicalSpine3DView: NSViewRepresentable {
         let rRad = CGFloat(roll * .pi / 180.0)
         let yRad = CGFloat(yaw * .pi / 180.0)
         
-        // Rotate skull to exact head orientation
-        skullNode.eulerAngles = SCNVector3(x: -pRad, y: yRad, z: -rRad)
+        // Rotate skull in 1-to-1 natural mirror reflection
+        skullNode.eulerAngles = SCNVector3(x: pRad, y: yRad, z: -rRad)
         
         // Articulate individual vertebrae along spine curve
         let vertebraeCount = 7
         for i in 0..<vertebraeCount {
             if let vNode = spineRoot.childNode(withName: "vertebra_\(i)", recursively: false) {
                 let fraction = CGFloat(vertebraeCount - i) / CGFloat(vertebraeCount)
-                vNode.eulerAngles = SCNVector3(x: -pRad * fraction * 0.7, y: yRad * fraction * 0.6, z: -rRad * fraction * 0.7)
+                vNode.eulerAngles = SCNVector3(x: pRad * fraction * 0.7, y: yRad * fraction * 0.6, z: -rRad * fraction * 0.7)
                 
                 // Color the intervertebral disc based on localized compressive stress
                 if let discNode = vNode.childNode(withName: "disc_\(i)", recursively: false) {

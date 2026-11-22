@@ -55,9 +55,9 @@ public enum LiveSpineMenuBarGlyph {
     }
 
     private static func bendRatio(_ degrees: Double) -> CGFloat {
-        // Normalizes pitch drop (degrees < 0 is slouching down) into 0...1 bend ratio
-        let absDegrees = max(0, -degrees)
-        return CGFloat(min(max(absDegrees / 35.0, 0), 1.0))
+        // Normalizes forward pitch drop (degrees > 0 is slouching down) into 0...1 bend ratio
+        let forwardDegrees = max(0, degrees)
+        return CGFloat(min(max(forwardDegrees / 35.0, 0), 1.0))
     }
 
     private static func neckPoint(degrees: Double) -> CGPoint {
