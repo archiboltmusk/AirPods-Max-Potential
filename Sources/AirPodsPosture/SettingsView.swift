@@ -27,6 +27,7 @@ public struct SettingsView: View {
     @ObservedObject var fitSentinel = AirPodsInsertionFitSentinel.shared
     
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
+    @AppStorage("appPresentationMode") var appPresentationMode: String = "hideWhenClosed"
     
     let availableSounds = ["Tink", "Ping", "Hero", "Pop", "Submarine", "Basso", "Funk", "Glass"]
     
@@ -352,6 +353,20 @@ public struct SettingsView: View {
                     Text("Cupertino Metal (Plasma Flow)").tag("cupertino")
                 }
                 .pickerStyle(.segmented)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Picker("Dock & Menu Bar Visibility", selection: $appPresentationMode) {
+                        Text("Hide from Dock when window is closed (Recommended)").tag("hideWhenClosed")
+                        Text("Menu Bar Only (Never show in Dock)").tag("menuBarOnly")
+                        Text("Always show in Dock and Menu Bar").tag("alwaysShowDock")
+                    }
+                    .onChange(of: appPresentationMode) { _, _ in
+                        AppDelegate.shared?.applyPresentationMode()
+                    }
+                    Text("When set to 'Hide from Dock', closing the window or quitting from the Dock removes the app from the Dock while keeping posture tracking fully active in the Menu Bar.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
                 
                 Toggle("Screen Edge Ambient Glow Alert", isOn: Binding(
                     get: { ScreenGlowManager.shared.isGlowEnabled },

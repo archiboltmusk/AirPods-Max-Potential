@@ -481,6 +481,13 @@ public struct ContentView: View {
                         }
                         .disabled(!motion.isConnected)
                         .help("Calibrate neutral upright (⌘⇧C)")
+                        
+                        Button(action: {
+                            AppDelegate.shared?.closeAllWindowsAndHideToMenuBar()
+                        }) {
+                            Image(systemName: "menubar.arrow.up.rectangle")
+                        }
+                        .help("Hide to Menu Bar (Exit Dock)")
                     }
                 }
             }

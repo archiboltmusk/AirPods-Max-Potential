@@ -350,6 +350,12 @@ public struct MenuBarView: View {
             }
             
             Button(action: {
+                AppDelegate.shared?.closeAllWindowsAndHideToMenuBar()
+            }) {
+                Label("Hide to Menu Bar (Exit Dock)", systemImage: "menubar.arrow.up.rectangle")
+            }
+            
+            Button(action: {
                 openDashboard()
                 AppUpdateManager.shared.checkForUpdates()
             }) {
@@ -359,9 +365,10 @@ public struct MenuBarView: View {
             Divider()
             
             Button(action: {
+                AppDelegate.isExplicitQuitFromMenuBar = true
                 NSApplication.shared.terminate(nil)
             }) {
-                Label("Quit AirPods Posture", systemImage: "power")
+                Label("Quit AirPods Posture Completely", systemImage: "power")
             }
         }
         .padding(14)
