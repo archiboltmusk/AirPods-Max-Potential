@@ -1,15 +1,14 @@
 import SwiftUI
+import AppKit
 
-/// Hergé Ligne Claire Animated Posture Companion Avatar.
-/// Inspired by Allen's open-source AirPosture avatar, styled in our beloved Hergé / Tintin Ligne Claire aesthetic.
-/// Physically slumps in real-time when the user slouches, and beams with cheerful pride when upright.
+/// Pixel-Perfect Hergé Ligne Claire Posture Companion.
+/// Renders the official, user-approved high-resolution Ligne Claire illustration with live kinematics.
+/// Reacts dynamically to your AirPods' real-time head pitch and roll with smooth physical motion.
 public struct HergePostureAvatarView: View {
     let pitch: Double
     let roll: Double
     let postureScore: Int
     let isCompact: Bool
-    
-    @State private var breathePhase: Double = 0.0
     
     public init(pitch: Double, roll: Double, postureScore: Int, isCompact: Bool = false) {
         self.pitch = pitch
@@ -18,7 +17,7 @@ public struct HergePostureAvatarView: View {
         self.isCompact = isCompact
     }
     
-    private var stateTone: Color {
+    private var statusColor: Color {
         if postureScore >= 80 {
             return .green
         } else if postureScore >= 60 {
@@ -28,232 +27,115 @@ public struct HergePostureAvatarView: View {
         }
     }
     
-    // Slump factor from 0.0 (perfect) to 1.0 (slouched)
-    private var slumpFactor: Double {
-        let normalized = min(1.0, max(0.0, (80.0 - Double(postureScore)) / 50.0))
-        return normalized
+    private var postureDescription: String {
+        if postureScore >= 80 {
+            return "Optimal Alignment"
+        } else if postureScore >= 60 {
+            return "Slight Neck Flexion"
+        } else {
+            return "Slouching (\(Int(abs(pitch)))° Down)"
+        }
+    }
+    
+    /// Loads the crisp 1024x1024 Hergé artwork from bundle resources or local fallback
+    private var avatarImage: NSImage? {
+        if let bundleURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png"),
+           let img = NSImage(contentsOf: bundleURL) {
+            return img
+        }
+        let fallbackPath = "/Users/anupam/.gemini/antigravity/scratch/AirPodsMaxPotential/Sources/AirPodsPosture/Resources/AppIcon.png"
+        if FileManager.default.fileExists(atPath: fallbackPath),
+           let img = NSImage(contentsOfFile: fallbackPath) {
+            return img
+        }
+        return nil
     }
     
     public var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
-            let scale = min(w, h) / 140.0
+        let cardSize: CGFloat = isCompact ? 130 : 220
+        
+        ZStack {
+            // Background Card: Apple Warm Paper with dynamic posture glow
+            RoundedRectangle(cornerRadius: isCompact ? 22 : 28, style: .continuous)
+                .fill(Color(red: 0.98, green: 0.97, blue: 0.93))
+                .overlay(
+                    RoundedRectangle(cornerRadius: isCompact ? 22 : 28, style: .continuous)
+                        .stroke(
+                            statusColor.opacity(postureScore >= 80 ? 0.4 : 0.7),
+                            lineWidth: isCompact ? 2.5 : 3.0
+                        )
+                )
+                .shadow(
+                    color: statusColor.opacity(postureScore < 60 ? 0.35 : 0.15),
+                    radius: isCompact ? 8 : 14,
+                    x: 0,
+                    y: 4
+                )
             
-            ZStack {
-                // Background soft parchment aura
-                RoundedRectangle(cornerRadius: 24 * scale, style: .continuous)
-                    .fill(Color(red: 0.98, green: 0.96, blue: 0.92))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24 * scale, style: .continuous)
-                            .stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 3.0 * scale)
-                    )
-                    .shadow(color: stateTone.opacity(0.35), radius: 10 * scale, x: 0, y: 4 * scale)
-                
-                // Character Group with real-time pitch tilt and roll
-                VStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    
-                    ZStack {
-                        // 1. Torso & Slumping Spine Curve
-                        Path { path in
-                            // Shoulder base
-                            let startX: CGFloat = 40 * scale
-                            let startY: CGFloat = 135 * scale
-                            let neckX: CGFloat = 62 * scale + CGFloat(slumpFactor * 14.0 * scale)
-                            let neckY: CGFloat = 88 * scale + CGFloat(slumpFactor * 10.0 * scale)
-                            let backX: CGFloat = 95 * scale
-                            let backY: CGFloat = 135 * scale
-                            
-                            path.move(to: CGPoint(x: startX, y: startY))
-                            path.addQuadCurve(
-                                to: CGPoint(x: neckX, y: neckY),
-                                control: CGPoint(x: startX + 5 * scale, y: 105 * scale)
-                            )
-                            path.addQuadCurve(
-                                to: CGPoint(x: backX, y: backY),
-                                control: CGPoint(x: (neckX + backX) / 2.0 + CGFloat(slumpFactor * 12.0 * scale), y: (neckY + backY) / 2.0)
-                            )
-                            path.closeSubpath()
-                        }
-                        .fill(Color(red: 0.95, green: 0.85, blue: 0.74))
-                        .overlay(
-                            Path { path in
-                                let startX: CGFloat = 40 * scale
-                                let startY: CGFloat = 135 * scale
-                                let neckX: CGFloat = 62 * scale + CGFloat(slumpFactor * 14.0 * scale)
-                                let neckY: CGFloat = 88 * scale + CGFloat(slumpFactor * 10.0 * scale)
-                                let backX: CGFloat = 95 * scale
-                                let backY: CGFloat = 135 * scale
-                                
-                                path.move(to: CGPoint(x: startX, y: startY))
-                                path.addQuadCurve(
-                                    to: CGPoint(x: neckX, y: neckY),
-                                    control: CGPoint(x: startX + 5 * scale, y: 105 * scale)
-                                )
-                                path.addQuadCurve(
-                                    to: CGPoint(x: backX, y: backY),
-                                    control: CGPoint(x: (neckX + backX) / 2.0 + CGFloat(slumpFactor * 12.0 * scale), y: (neckY + backY) / 2.0)
-                                )
-                            }
-                            .stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 3.5 * scale)
-                        )
-                        
-                        // 2. Animated Head with Pitch Tilt & Roll
-                        VStack(spacing: 0) {
-                            ZStack {
-                                // Hair Back
-                                Circle()
-                                    .fill(Color(red: 0.32, green: 0.22, blue: 0.15))
-                                    .frame(width: 52 * scale, height: 50 * scale)
-                                    .offset(x: 2 * scale, y: -6 * scale)
-                                
-                                // Face
-                                Circle()
-                                    .fill(Color(red: 0.97, green: 0.88, blue: 0.78))
-                                    .frame(width: 46 * scale, height: 46 * scale)
-                                    .overlay(
-                                        Circle().stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 3.0 * scale)
-                                    )
-                                
-                                // Hair Quiff / Cowlick (Classic Hergé style)
-                                Path { path in
-                                    path.move(to: CGPoint(x: 10 * scale, y: 12 * scale))
-                                    path.addQuadCurve(to: CGPoint(x: 34 * scale, y: 6 * scale), control: CGPoint(x: 18 * scale, y: 0))
-                                    path.addQuadCurve(to: CGPoint(x: 42 * scale, y: 18 * scale), control: CGPoint(x: 40 * scale, y: 10 * scale))
-                                    path.addQuadCurve(to: CGPoint(x: 10 * scale, y: 18 * scale), control: CGPoint(x: 26 * scale, y: 14 * scale))
-                                    path.closeSubpath()
-                                }
-                                .fill(Color(red: 0.32, green: 0.22, blue: 0.15))
-                                .overlay(
-                                    Path { path in
-                                        path.move(to: CGPoint(x: 10 * scale, y: 12 * scale))
-                                        path.addQuadCurve(to: CGPoint(x: 34 * scale, y: 6 * scale), control: CGPoint(x: 18 * scale, y: 0))
-                                        path.addQuadCurve(to: CGPoint(x: 42 * scale, y: 18 * scale), control: CGPoint(x: 40 * scale, y: 10 * scale))
-                                    }
-                                    .stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 3.0 * scale)
-                                )
-                                .offset(x: -23 * scale, y: -23 * scale)
-                                
-                                // Face Details (Eyes, Nose, Mouth)
-                                if postureScore >= 80 {
-                                    // Happy / Upright: Eyes open, cheerful smile
-                                    Circle()
-                                        .fill(Color(red: 0.12, green: 0.16, blue: 0.28))
-                                        .frame(width: 4 * scale, height: 4 * scale)
-                                        .offset(x: -8 * scale, y: -2 * scale)
-                                    
-                                    // Nose
-                                    Path { p in
-                                        p.move(to: CGPoint(x: 16 * scale, y: 22 * scale))
-                                        p.addLine(to: CGPoint(x: 12 * scale, y: 25 * scale))
-                                        p.addLine(to: CGPoint(x: 16 * scale, y: 26 * scale))
-                                    }
-                                    .stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 2.2 * scale)
-                                    
-                                    // Smile
-                                    Path { p in
-                                        p.move(to: CGPoint(x: 14 * scale, y: 31 * scale))
-                                        p.addQuadCurve(to: CGPoint(x: 22 * scale, y: 31 * scale), control: CGPoint(x: 18 * scale, y: 36 * scale))
-                                    }
-                                    .stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 2.2 * scale)
-                                } else if postureScore >= 60 {
-                                    // Warning: Focused / neutral mouth
-                                    Circle()
-                                        .fill(Color(red: 0.12, green: 0.16, blue: 0.28))
-                                        .frame(width: 4 * scale, height: 4 * scale)
-                                        .offset(x: -8 * scale, y: 0)
-                                    
-                                    // Neutral straight mouth
-                                    Path { p in
-                                        p.move(to: CGPoint(x: 14 * scale, y: 32 * scale))
-                                        p.addLine(to: CGPoint(x: 21 * scale, y: 32 * scale))
-                                    }
-                                    .stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 2.2 * scale)
-                                } else {
-                                    // Slouched: Drooped / closed sleepy curved eyes, frown
-                                    Path { p in
-                                        p.move(to: CGPoint(x: 12 * scale, y: 21 * scale))
-                                        p.addQuadCurve(to: CGPoint(x: 18 * scale, y: 21 * scale), control: CGPoint(x: 15 * scale, y: 18 * scale))
-                                    }
-                                    .stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 2.2 * scale)
-                                    
-                                    // Drooped mouth
-                                    Path { p in
-                                        p.move(to: CGPoint(x: 14 * scale, y: 34 * scale))
-                                        p.addQuadCurve(to: CGPoint(x: 22 * scale, y: 34 * scale), control: CGPoint(x: 18 * scale, y: 30 * scale))
-                                    }
-                                    .stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 2.2 * scale)
-                                }
-                                
-                                // Ear with AirPods in Ear
-                                ZStack {
-                                    Circle()
-                                        .fill(Color(red: 0.97, green: 0.88, blue: 0.78))
-                                        .frame(width: 14 * scale, height: 16 * scale)
-                                        .overlay(
-                                            Circle().stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 2.5 * scale)
-                                        )
-                                    
-                                    // AirPods Pro Stem & Earbud
-                                    Path { p in
-                                        // Earbud capsule
-                                        p.addEllipse(in: CGRect(x: 3 * scale, y: 3 * scale, width: 8 * scale, height: 7 * scale))
-                                        // Stem pointing down
-                                        p.move(to: CGPoint(x: 5 * scale, y: 8 * scale))
-                                        p.addLine(to: CGPoint(x: 3 * scale, y: 16 * scale))
-                                    }
-                                    .fill(Color.white)
-                                    .overlay(
-                                        Path { p in
-                                            p.addEllipse(in: CGRect(x: 3 * scale, y: 3 * scale, width: 8 * scale, height: 7 * scale))
-                                            p.move(to: CGPoint(x: 5 * scale, y: 8 * scale))
-                                            p.addLine(to: CGPoint(x: 3 * scale, y: 16 * scale))
-                                        }
-                                        .stroke(Color(red: 0.12, green: 0.16, blue: 0.28), lineWidth: 1.8 * scale)
-                                    )
-                                }
-                                .offset(x: 12 * scale, y: 2 * scale)
-                            }
-                            .rotationEffect(.degrees(pitch * 0.75 + (postureScore < 60 ? 12.0 : 0.0)))
-                            .rotationEffect(.degrees(roll * 0.4))
-                            .offset(
-                                x: CGFloat(slumpFactor * 16.0 * scale),
-                                y: CGFloat(slumpFactor * 12.0 * scale)
-                            )
-                            
-                            Spacer(minLength: 0)
-                        }
-                        .frame(height: 120 * scale)
-                    }
-                    
-                    Spacer(minLength: 0)
+            // The Official High-Res Hergé Illustration with real-time head nod
+            if let img = avatarImage {
+                Image(nsImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: cardSize * 0.92, height: cardSize * 0.92)
+                    .clipShape(RoundedRectangle(cornerRadius: isCompact ? 18 : 22, style: .continuous))
+                    // Lifelike physical pitch nod (subtle rotation anchored near neck)
+                    .rotationEffect(.degrees(pitch * 0.35), anchor: .bottomLeading)
+                    .rotationEffect(.degrees(roll * 0.2))
+                    .animation(.spring(response: 0.4, dampingFraction: 0.75), value: pitch)
+            } else {
+                // Fallback icon if image is loading
+                VStack(spacing: 8) {
+                    Image(systemName: "figure.walk.motion")
+                        .font(.system(size: isCompact ? 32 : 54))
+                        .foregroundColor(statusColor)
+                    Text("\(postureScore)%")
+                        .font(.headline)
+                        .foregroundColor(statusColor)
                 }
-                
-                // Top-right Status Pill
-                VStack {
-                    HStack {
-                        Spacer()
-                        HStack(spacing: 4 * scale) {
-                            Circle()
-                                .fill(stateTone)
-                                .frame(width: 6 * scale, height: 6 * scale)
-                            Text("\(postureScore)%")
-                                .font(.system(size: 10 * scale, weight: .bold, design: .rounded))
-                                .foregroundColor(stateTone)
-                        }
-                        .padding(.horizontal, 6 * scale)
-                        .padding(.vertical, 3 * scale)
-                        .background(Color.white.opacity(0.85))
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule().stroke(Color(red: 0.12, green: 0.16, blue: 0.28).opacity(0.2), lineWidth: 1)
-                        )
-                        .padding(8 * scale)
-                    }
+            }
+            
+            // Top Status Badge Pill
+            VStack {
+                HStack {
                     Spacer()
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(statusColor)
+                            .frame(width: isCompact ? 5 : 7, height: isCompact ? 5 : 7)
+                        Text("\(postureScore)%")
+                            .font(.system(size: isCompact ? 10 : 12, weight: .bold, design: .rounded))
+                            .foregroundColor(statusColor)
+                    }
+                    .padding(.horizontal, isCompact ? 6 : 8)
+                    .padding(.vertical, isCompact ? 3 : 4)
+                    .background(Color.white.opacity(0.92))
+                    .clipShape(Capsule())
+                    .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 1)
+                    .padding(isCompact ? 8 : 12)
+                }
+                Spacer()
+            }
+            
+            // Bottom Description Banner (Full-size card only)
+            if !isCompact {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Text(postureDescription)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(statusColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(0.88))
+                            .clipShape(Capsule())
+                            .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
+                        Spacer()
+                    }
+                    .padding(12)
                 }
             }
         }
+        .frame(width: cardSize, height: cardSize)
     }
 }

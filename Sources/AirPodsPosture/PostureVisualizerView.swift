@@ -152,28 +152,28 @@ public struct PostureVisualizerView: View {
                                     lineWidth: 1.5
                                 )
                         )
-                        .shadow(color: Color.green.opacity(0.15), radius: 15)
+                        .shadow(color: Color.green.opacity(0.12), radius: 12)
                     
+                    // Centered, pixel-perfect Hergé Avatar Card
                     HergePostureAvatarView(
                         pitch: motion.deltaPitch,
                         roll: motion.deltaRoll,
                         postureScore: motion.postureScore
                     )
-                    .padding(16)
                     
                     VStack {
                         HStack {
                             HStack(spacing: 6) {
                                 Image(systemName: "person.crop.artzone")
                                     .foregroundColor(.green)
-                                Text("Ligne Claire Companion Avatar (AirPosture-Inspired)")
+                                Text("Posture Companion: Ligne Claire Profile")
                                     .font(.caption2.bold())
                                     .foregroundColor(.primary)
                             }
                             Spacer()
-                            Text(motion.postureScore >= 80 ? "Heroic Upright Stance" : "Slouching Spinal Curve")
+                            Text(motion.postureScore >= 80 ? "Optimal Neutral Alignment" : "Slouched Neck Flexion")
                                 .font(.caption2.bold())
-                                .foregroundColor(motion.postureScore >= 80 ? .green : .red)
+                                .foregroundColor(motion.postureScore >= 80 ? .green : .orange)
                         }
                         .padding(14)
                         Spacer()
