@@ -68,8 +68,8 @@ public struct OvernightSleepRecoveryView: View {
                 
                 // 1. Slow-Wave Sleep (SWS) Pink Noise Acoustic Stimulator
                 SleepCard(
-                    title: "Slow-Wave Sleep (SWS) Pink-Noise Acoustic Stimulator",
-                    subtitle: "Synchronizes 0.8Hz pink-noise acoustic micro-pulses to delta slow-wave peaks during Stage 3 NREM sleep.",
+                    title: "Deep Sleep Sound Booster",
+                    subtitle: "Synchronizes gentle pink-noise micro-pulses to deepen your restorative stage 3 sleep.",
                     icon: "waveform.path.badge.plus",
                     accentColor: .purple
                 ) {
@@ -133,8 +133,8 @@ public struct OvernightSleepRecoveryView: View {
                 
                 // 2. Positional Obstructive Sleep Apnea (POSA) & Supine Rotational Nudge
                 SleepCard(
-                    title: "Positional Apnea (POSA) & Supine Rotational Nudge",
-                    subtitle: "Detects airway collapse risk when sleeping flat on back (supine) and delivers a subtle directional chime to prompt rolling to the side.",
+                    title: "Side-Sleeping Gentle Nudge",
+                    subtitle: "Detects when you are sleeping flat on your back and plays a soft chime to encourage rolling comfortably onto your side.",
                     icon: "bed.double.fill",
                     accentColor: .blue
                 ) {
@@ -197,8 +197,8 @@ public struct OvernightSleepRecoveryView: View {
                 
                 // 3. Hypnagogic Sleep-Onset Detection & Audio Fade-Out
                 SleepCard(
-                    title: "Hypnagogic Sleep-Onset Detection & Auto-Fade",
-                    subtitle: "Senses kinetic stillness and respiratory deceleration to detect sleep onset, gracefully fading active media over 90 seconds.",
+                    title: "Sleep Audio Auto-Fade",
+                    subtitle: "Senses when you drift off to sleep and gently fades your music or podcasts over 90 seconds.",
                     icon: "moon.fill",
                     accentColor: .indigo
                 ) {
@@ -248,8 +248,8 @@ public struct OvernightSleepRecoveryView: View {
                 
                 // 4. Circadian REM-Window "Dawn Simulation" Smart Alarm
                 SleepCard(
-                    title: "Circadian REM-Window \"Dawn Simulation\" Smart Alarm",
-                    subtitle: "Targets light Stage 1 / REM sleep within a 20-minute window to wake you with ascending harmonic chimes, eliminating sleep inertia.",
+                    title: "Smart Dawn Alarm",
+                    subtitle: "Wakes you during light sleep within a 20-minute window with gentle chimes, eliminating morning grogginess.",
                     icon: "sunrise.fill",
                     accentColor: .orange
                 ) {
@@ -309,8 +309,8 @@ public struct OvernightSleepRecoveryView: View {
                 
                 // 5. Overnight Apnea-Hypopnea Index (AHI) & Snore Profiler
                 SleepCard(
-                    title: "Overnight Apnea-Hypopnea Index (AHI) & Snore Profiler",
-                    subtitle: "Quantifies snoring intensity (dBA) and identifies thoracic respiratory pauses to calculate clinical AHI severity.",
+                    title: "Night Breathing & Snore Profiler",
+                    subtitle: "Listens softly for snoring intensity and pauses in breathing to score your nighttime airflow quality.",
                     icon: "stethoscope",
                     accentColor: .teal
                 ) {
@@ -373,8 +373,8 @@ public struct OvernightSleepRecoveryView: View {
                 
                 // 6. Adaptive Bedroom Soundscape & Tinnitus Masker
                 SleepCard(
-                    title: "Adaptive Room Soundscape & Tinnitus Masker",
-                    subtitle: "Dynamic ambient sound floor that elevates to mask outdoor traffic and includes a notch filter tuned to your audiogram.",
+                    title: "Night Soundscape & Tinnitus Soother",
+                    subtitle: "Adapts to room noise and plays calming ambient audio tuned to ease ear ringing and nighttime restlessness.",
                     icon: "headphones",
                     accentColor: .green
                 ) {
@@ -423,8 +423,8 @@ public struct OvernightSleepRecoveryView: View {
                 
                 // 8. Adaptive Sleep Duty-Cycle (8+ Hour Battery Preservation)
                 SleepCard(
-                    title: "Adaptive Battery Preservation & Duty-Cycle (8+ Hour Sleep)",
-                    subtitle: "Throttles IMU telemetry down to 2Hz during Stage 2/3 NREM sleep, saving 68% battery to last an entire 8-hour sleep cycle.",
+                    title: "All-Night Battery Saver (10+ Hours)",
+                    subtitle: "Slows sensor polling to 2Hz during deep sleep stages, easily extending AirPods Pro battery past 10 hours.",
                     icon: "battery.100.bolt",
                     accentColor: .green
                 ) {

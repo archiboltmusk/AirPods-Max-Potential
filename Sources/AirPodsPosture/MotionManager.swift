@@ -419,6 +419,14 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             rotRate: rotRateMag
         )
         
+        // 4.3 "Glance & Lock" Zero-Click Autonomous Screen Calibration
+        GlanceAndLockAutoCalibrator.shared.evaluateGlance(
+            pitch: rawPitch,
+            roll: rawRoll,
+            rotRate: rotRateMag,
+            isConnected: isConnected
+        )
+        
         // 5. Gravity Vector
         if let g = gravity {
             gravityX = g.x
