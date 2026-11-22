@@ -4,7 +4,6 @@ public struct AirPodsProSensorsView: View {
     @ObservedObject var motion = MotionManager.shared
     @ObservedObject var audioDevice = AudioDeviceManager.shared
     @ObservedObject var batteryOpt = AirPodsBatteryOptimizerEngine.shared
-    @ObservedObject var tmjGuard = JawClenchingBruxismDetector.shared
     @ObservedObject var pomodoro = PostureGatedPomodoroEngine.shared
     
     public init() {}
@@ -246,42 +245,7 @@ public struct AirPodsProSensorsView: View {
                     }
                 }
                 
-                // Section 3: Jaw Clenching & Bruxism Strain Guard
-                SensorSectionBox(
-                    title: "Jaw Clenching & Bruxism Strain Guard (TMJ Stress Detector)",
-                    icon: "mouth.fill",
-                    subtitle: "Detects bone-conducted high-frequency micro-tremors (120Hz-240Hz) from masseter and temporalis muscle clenching during stress."
-                ) {
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(tmjGuard.tmjStressIndex)/100")
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundColor(tmjGuard.tmjStressIndex > 40 ? .orange : .green)
-                            Text("TMJ Stress Index")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Divider().frame(height: 36)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(tmjGuard.clenchEventsToday)")
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundColor(.primary)
-                            Text("Clench Events Today")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Spacer()
-                        
-                        Text(tmjGuard.statusMessage)
-                            .font(.caption.bold())
-                            .foregroundColor(tmjGuard.jawClenchingActive ? .orange : .secondary)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-                
+
                 // Section 4: Live Head Orientation & Kinematics
                 SensorSectionBox(
                     title: "Live Head Orientation & Euler Kinematics",

@@ -87,26 +87,11 @@ public final class ClinicalPhysioReportExporter: ObservableObject {
         let loadAttr = NSAttributedString(string: loadDetails, attributes: [.font: bodyFont, .foregroundColor: NSColor.darkGray])
         loadAttr.draw(at: CGPoint(x: 48, y: pageHeight - 275))
         
-        // 4. Overnight Sleep & Asymmetry Metrics
-        let sleep = BilateralSleepPositionBalancer.shared
-        let sleepHeader = NSAttributedString(string: "Overnight Bilateral Shoulder Sleep Symmetry", attributes: [.font: NSFont.boldSystemFont(ofSize: 13)])
-        sleepHeader.draw(at: CGPoint(x: 36, y: pageHeight - 310))
-        
-        let sleepDetails = """
-        • Left Lateral Sleep Duration: \(sleep.leftLateralMinutes) min
-        • Right Lateral Sleep Duration: \(sleep.rightLateralMinutes) min
-        • Supine (Back) Sleep Duration: \(sleep.supineMinutes) min
-        • Asymmetry Shoulder Strain Index: \(sleep.shoulderAsymmetryRiskIndex)%
-        • Clinical Morning Cross-Body Mobility Advice: \(sleep.morningRecommendation)
-        """
-        let sleepAttr = NSAttributedString(string: sleepDetails, attributes: [.font: bodyFont, .foregroundColor: NSColor.darkGray])
-        sleepAttr.draw(at: CGPoint(x: 48, y: pageHeight - 390))
-        
-        // 5. Clinician / Physiotherapist Notes Section
+        // 4. Clinician / Physiotherapist Notes Section
         let notesHeader = NSAttributedString(string: "Physiotherapy & Ergonomic Plan Recommendations", attributes: [.font: NSFont.boldSystemFont(ofSize: 13)])
-        notesHeader.draw(at: CGPoint(x: 36, y: pageHeight - 430))
+        notesHeader.draw(at: CGPoint(x: 36, y: pageHeight - 330))
         
-        let notesBox = CGRect(x: 36, y: pageHeight - 560, width: pageWidth - 72, height: 110)
+        let notesBox = CGRect(x: 36, y: pageHeight - 480, width: pageWidth - 72, height: 130)
         context.setFillColor(CGColor(gray: 0.96, alpha: 1.0))
         context.fill(notesBox)
         context.stroke(notesBox)

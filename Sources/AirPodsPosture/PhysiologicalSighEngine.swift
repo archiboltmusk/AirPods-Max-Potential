@@ -44,12 +44,10 @@ public final class PhysiologicalSighEngine: ObservableObject {
     
     private func evaluateStressLevels() {
         let resp = AcousticRespiratoryEngine.shared.breathsPerMinute
-        let clenching = JawClenchingBruxismDetector.shared.isClenchingActive
         let pitchSlouch = abs(MotionManager.shared.deltaPitch) > 12.0
         
         var score = 15
         if resp > 18 { score += 35 }
-        if clenching { score += 30 }
         if pitchSlouch { score += 20 }
         
         self.currentStressIndex = min(100, max(5, score))

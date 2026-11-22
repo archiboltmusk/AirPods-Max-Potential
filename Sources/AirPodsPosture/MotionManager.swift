@@ -512,10 +512,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             warningStartTime = nil
             TieredPostureEscalationEngine.shared.updateSlouchDuration(isCompromised: false, deltaPitch: 0, deltaRoll: 0)
         } else {
-            var effectivePitchThreshold = pitchThreshold
-            if CircadianMelatoninShield.shared.isShieldEnabled && CircadianMelatoninShield.shared.isNightModeActive {
-                effectivePitchThreshold = pitchThreshold / CircadianMelatoninShield.shared.eveningPostureThresholdMultiplier
-            }
+            let effectivePitchThreshold = pitchThreshold
             let isPitchBad = pitchDeviation > effectivePitchThreshold
             let isRollBad = rollDeviation > rollThreshold
             
@@ -605,23 +602,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             WindowSnapManager.shared.update(pitch: deltaPitch, roll: deltaRoll)
             ErgonomicPomodoroEngine.shared.update(score: Double(postureScore))
             AcousticPulseEstimator.shared.update(userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-            VocalStrainCoach.shared.update(pitch: deltaPitch, roll: deltaRoll)
-            MultiDisplayFocusManager.shared.update(yawDegrees: deltaYaw)
             MenuBarSparklineRenderer.shared.addSample(score: postureScore)
-            Spatial3DAnchorManager.shared.updateListenerOrientation(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-            NeuralPoseClassifier.shared.classify(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw, accel: SIMD3<Double>(userAccelX, userAccelY, userAccelZ), rotRate: SIMD3<Double>(rotRateX, rotRateY, rotRateZ))
-            CervicalGameEngine.shared.updateHeadPitch(pitch: deltaPitch)
-            AppleWatchBridgeManager.shared.updateThoracicKinematics(airpodsPitch: deltaPitch)
-            OcclusionAudioTransparencyManager.shared.update(rotRateX: rotRateX, rotRateY: rotRateY, rotRateZ: rotRateZ, userAccelZ: userAccelZ)
-            DisplayDistanceGuardManager.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ)
-            MicroNapSleepApneaDetector.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-            CervicalKeypressWheelManager.shared.update(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-            AcousticRespiratoryEngine.shared.update(pitch: deltaPitch, userAccelZ: userAccelZ, totalEnergy: totalKineticEnergy)
-            MultiDisplaySpatialGridMapper.shared.update(yaw: deltaYaw)
-            ProceduralBinauralSoundscapeEngine.shared.updatePostureModulation(postureScore: postureScore)
-            FaceTimeHeadReactionsManager.shared.checkReactionGestures(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
-            StudentStudySuiteEngine.shared.processStudyGestures(pitch: deltaPitch, roll: deltaRoll)
-            
             CervicalSpineTorqueEngine.shared.updateLivePitch(deltaPitch)
             GhostDimmingBiofeedbackManager.shared.updatePostureState(
                 isSlouching: postureState == .slouching,

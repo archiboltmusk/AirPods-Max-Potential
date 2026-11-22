@@ -57,12 +57,7 @@ public final class AirPodsInCaseLifecycleManager: ObservableObject {
             OpticalContinuitySentinel.shared.stopSentinel()
         }
         
-        // 2. Stop audio environment monitoring and active soundscapes
-        if AdaptiveNightSoundscapeEngine.shared.isSoundscapeActive {
-            AdaptiveNightSoundscapeEngine.shared.isSoundscapeActive = false
-        }
-        
-        // 3. Act based on configured user preference
+        // 2. Act based on configured user preference
         switch actionOnCaseIn {
         case .deepHibernate:
             isCountingDownToQuit = false
