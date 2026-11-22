@@ -12,7 +12,6 @@ public final class HeadphonePostureTracker: NSObject, ObservableObject, @uncheck
     public static let shared = HeadphonePostureTracker()
     
     private let motionManager = CMHeadphoneMotionManager()
-    private let processingQueue = OperationQueue()
     
     // Baseline orientation stored as a unit quaternion (immune to gimbal lock)
     @Published public private(set) var baselineQuaternion: simd_quatd?
@@ -31,8 +30,6 @@ public final class HeadphonePostureTracker: NSObject, ObservableObject, @uncheck
     
     public override init() {
         super.init()
-        processingQueue.name = "com.archiboltmusk.headphoneMotion"
-        processingQueue.maxConcurrentOperationCount = 1
     }
     
     public func startTracking() {

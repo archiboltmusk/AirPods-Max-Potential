@@ -50,7 +50,6 @@ public final class PostureFitGatekeeper: NSObject, ObservableObject, CMHeadphone
     public static let shared = PostureFitGatekeeper()
     
     private let motionManager = CMHeadphoneMotionManager()
-    private let processingQueue = OperationQueue()
     
     // Saved permanent ear-fit profiles keyed by CMDeviceMotion.SensorLocation.rawValue
     @Published public var profiles: [Int: AnatomicalEarProfile] = [:]
@@ -74,8 +73,6 @@ public final class PostureFitGatekeeper: NSObject, ObservableObject, CMHeadphone
         self.profiles = savedProfiles.isEmpty ? PermanentPostureEngine.shared.profiles : savedProfiles
         super.init()
         
-        processingQueue.name = "com.posture.fitGatekeeper"
-        processingQueue.maxConcurrentOperationCount = 1
         motionManager.delegate = self
         
         configureAudioSessionObserver()

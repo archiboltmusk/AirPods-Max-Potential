@@ -47,7 +47,6 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     public static let shared = MotionManager()
     
     private let motionManager = CMHeadphoneMotionManager()
-    private let motionQueue = OperationQueue()
     private let defaults = UserDefaults.standard
     
     // --- Live Sensor Telemetry (AirPods Pro 2 IMU Suite) ---
@@ -182,10 +181,6 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     
     public override init() {
         super.init()
-        
-        motionQueue.name = "com.airpodsiq.motionqueue"
-        motionQueue.qualityOfService = .userInteractive
-        motionQueue.maxConcurrentOperationCount = 1
         
         motionManager.delegate = self
         loadPreferences()
