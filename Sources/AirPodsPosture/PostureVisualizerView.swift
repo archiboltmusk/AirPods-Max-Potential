@@ -5,6 +5,7 @@ public struct PostureVisualizerView: View {
     @ObservedObject var audioMonitor = AudioEnvironmentMonitor.shared
     
     enum VisualizerRigMode: String, CaseIterable, Identifiable {
+        case hergeCompanion = "Ligne Claire Avatar"
         case humanFace = "3D Human Face & AirPods"
         case anatomical = "Metal Anatomical Rig"
         case agamemnon = "Agamemnon Odyssey"
@@ -12,6 +13,7 @@ public struct PostureVisualizerView: View {
         var id: String { rawValue }
         var icon: String {
             switch self {
+            case .hergeCompanion: return "person.crop.artzone"
             case .humanFace: return "face.smiling"
             case .anatomical: return "cube.transparent.fill"
             case .agamemnon: return "shield.lefthalf.filled"
@@ -20,7 +22,7 @@ public struct PostureVisualizerView: View {
         }
     }
     
-    @State private var selectedRigMode: VisualizerRigMode = .humanFace
+    @State private var selectedRigMode: VisualizerRigMode = .hergeCompanion
     
     public init(motion: MotionManager) {
         self.motion = motion
@@ -135,6 +137,50 @@ public struct PostureVisualizerView: View {
             
             // Dynamic 3D Rig Rendering based on selectedRigMode
             switch selectedRigMode {
+            case .hergeCompanion:
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color.green.opacity(0.35), Color.teal.opacity(0.15), .clear],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1.5
+                                )
+                        )
+                        .shadow(color: Color.green.opacity(0.15), radius: 15)
+                    
+                    HergePostureAvatarView(
+                        pitch: motion.deltaPitch,
+                        roll: motion.deltaRoll,
+                        postureScore: motion.postureScore
+                    )
+                    .padding(16)
+                    
+                    VStack {
+                        HStack {
+                            HStack(spacing: 6) {
+                                Image(systemName: "person.crop.artzone")
+                                    .foregroundColor(.green)
+                                Text("Ligne Claire Companion Avatar (AirPosture-Inspired)")
+                                    .font(.caption2.bold())
+                                    .foregroundColor(.primary)
+                            }
+                            Spacer()
+                            Text(motion.postureScore >= 80 ? "Heroic Upright Stance" : "Slouching Spinal Curve")
+                                .font(.caption2.bold())
+                                .foregroundColor(motion.postureScore >= 80 ? .green : .red)
+                        }
+                        .padding(14)
+                        Spacer()
+                    }
+                }
+                .frame(height: 270)
+                
             case .humanFace:
                 ZStack {
                     RoundedRectangle(cornerRadius: 18)
