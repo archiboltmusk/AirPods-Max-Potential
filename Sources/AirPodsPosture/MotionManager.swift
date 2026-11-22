@@ -662,6 +662,15 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         ProceduralBinauralSoundscapeEngine.shared.updatePostureModulation(postureScore: postureScore)
         FaceTimeHeadReactionsManager.shared.checkReactionGestures(pitch: deltaPitch, roll: deltaRoll, yaw: deltaYaw)
         StudentStudySuiteEngine.shared.processStudyGestures(pitch: deltaPitch, roll: deltaRoll)
+        
+        // Next-Gen Upgrades:
+        CervicalSpineTorqueEngine.shared.updateLivePitch(deltaPitch)
+        GhostDimmingBiofeedbackManager.shared.updatePostureState(
+            isSlouching: postureState == .slouching,
+            warningProgress: warningProgress
+        )
+        SpatialElevationSoundstageEngine.shared.updateCervicalElevation(pitch: deltaPitch)
+        StemForceGestureInterceptor.shared.processKinematicStream(pitch: deltaPitch, rotRateY: rotRateY)
     }
     
     private func detectGestures(pitch: Double, yaw: Double) {

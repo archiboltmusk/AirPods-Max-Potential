@@ -1,4 +1,5 @@
 import SwiftUI
+import AirPodsCore
 
 /// AirPodsIQ: Complete Gold-Standard Architecture.
 /// Organizes all 16 specialized hardware suites, clinical labs, ecosystem bridges,
@@ -9,6 +10,8 @@ public struct ContentView: View {
     @ObservedObject var breakTimer = ErgonomicBreakTimer.shared
     @ObservedObject var glance = GlanceAndLockAutoCalibrator.shared
     @ObservedObject var companion = FloatingMiniDeskCompanionManager.shared
+    @ObservedObject var torqueEngine = CervicalSpineTorqueEngine.shared
+    @ObservedObject var physioReport = ClinicalPhysioReportExporter.shared
     
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
     @State private var selectedTab: TabItem = .posture
@@ -271,6 +274,94 @@ public struct ContentView: View {
                                     .foregroundColor(.secondary)
                                 }
                                 .padding(.horizontal, 4)
+                                
+                                // Kapandji Cervical Spine Torque & Biomechanical Disc Load Card
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "scalemass.fill")
+                                                .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 15.0 ? .red : .green)
+                                            Text("Cervical Spine Torque & C5–C7 Disc Compression")
+                                                .font(.system(size: 13, weight: .bold))
+                                                .foregroundColor(.primary)
+                                        }
+                                        Spacer()
+                                        Text(torqueEngine.currentLoad.discCompressionRisk.rawValue)
+                                            .font(.caption2.bold())
+                                            .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 15.0 ? .orange : .green)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(Color(NSColor.controlBackgroundColor))
+                                            .clipShape(Capsule())
+                                    }
+                                    
+                                    HStack(spacing: 16) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                                Text(String(format: "%.1f", torqueEngine.currentLoad.effectiveLoadLbs))
+                                                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                                                    .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 15.0 ? .orange : .primary)
+                                                Text("lbs")
+                                                    .font(.caption.bold())
+                                                    .foregroundColor(.secondary)
+                                                Text("(\(String(format: "%.1f", torqueEngine.currentLoad.effectiveLoadKg)) kg)")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            Text("Effective Neck Load")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        
+                                        Divider().frame(height: 36)
+                                        
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("+\(Int(torqueEngine.currentLoad.extraTorqueOverheadLbs)) lbs")
+                                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                                .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 0 ? .red : .green)
+                                            Text("Extra Slouch Shear")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        
+                                        Divider().frame(height: 36)
+                                        
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("\(Int(torqueEngine.cumulativeDayTorquePoundHours))")
+                                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                                .foregroundColor(.primary)
+                                            Text("Cumulative lb-hours")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        // 1-Click Clinical PDF Report Exporter
+                                        Button(action: {
+                                            _ = physioReport.generateClinicalReportPDF()
+                                        }) {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "doc.text.fill")
+                                                    .foregroundColor(.blue)
+                                                Text("Export Physio PDF")
+                                                    .font(.system(size: 11, weight: .bold))
+                                            }
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 6)
+                                            .background(Color.blue.opacity(0.12))
+                                            .cornerRadius(8)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    
+                                    Text(torqueEngine.reliefCallToAction)
+                                        .font(.caption)
+                                        .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 10.0 ? .orange : .secondary)
+                                }
+                                .padding(14)
+                                .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
+                                .cornerRadius(14)
                             }
                             .padding(20)
                         }

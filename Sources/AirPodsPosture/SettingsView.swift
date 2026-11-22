@@ -19,6 +19,9 @@ public struct SettingsView: View {
     @ObservedObject var haptics = SyntheticEarHapticEngine.shared
     @ObservedObject var watchBridge = AppleWatchBridgeManager.shared
     @ObservedObject var smartDesk = SmartDeskBLEController.shared
+    @ObservedObject var ghostDimming = GhostDimmingBiofeedbackManager.shared
+    @ObservedObject var spatialElevation = SpatialElevationSoundstageEngine.shared
+    @ObservedObject var stemGesture = StemForceGestureInterceptor.shared
     
     @AppStorage("appVisualTheme") var appVisualTheme: String = "humanCinema"
     
@@ -139,6 +142,21 @@ public struct SettingsView: View {
                 
                 Toggle("Synthetic Ear Haptics (Directional Clicks)", isOn: $haptics.isHapticAudioEnabled)
                 Text("Delivers localized directional tactile acoustic micro-clicks in the ear corresponding to slouch direction.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Ghost Dimming (Subconscious Screen Dimming)", isOn: $ghostDimming.isGhostDimmingEnabled)
+                Text("Subtle visual biofeedback: When slouched for > 20s, screen dims by 20%. The instant you sit tall, screen glides back to 100% brightness.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("Spatial Elevation Soundstage (Audio Tied to Spine)", isOn: $spatialElevation.isSpatialElevationEnabled)
+                Text("Music elevation drops to chest level during a slouch; sitting upright lifts audio back to eye level.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Toggle("AirPods Stem Force Squeeze Shortcuts", isOn: $stemGesture.isStemControlEnabled)
+                Text("Double-squeeze earbud stem or double-nod to calibrate baseline; triple-squeeze to snooze 15 minutes.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
