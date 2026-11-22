@@ -80,36 +80,34 @@ public final class PermanentPostureEngine: ObservableObject, @unchecked Sendable
     
     // MARK: - Factory Defaults
     
-    /// Pre-seeds standard factory anatomical profiles for AirPods Pro in typical ears.
-    /// In an average ear canal, the AirPod stem angles ~25° downward-forward.
-    /// This ensures zero-latency instantaneous accuracy on Frame 1 even before the user does any setup.
+    /// Pre-seeds clean, canonical orthonormal anatomical profiles for AirPods in typical ears.
+    /// In an average ear canal, the AirPod stem points downward with a slight ~15° sagittal forward angle.
+    /// This ensures zero-latency instantaneous accuracy on Frame 1 with ZERO cross-axis roll leakage.
     private func ensureFactoryDefaultProfiles() {
         if profiles.isEmpty {
-            // Standard Left AirPod profile
-            let leftUp = simd_normalize(SIMD3<Double>(0.15, 0.42, 0.89))
-            let leftRight = simd_normalize(SIMD3<Double>(0.92, -0.25, 0.0))
-            let leftForward = simd_normalize(simd_cross(leftRight, leftUp))
-            let leftProfile = AnatomicalEarProfile(
-                up: leftUp,
-                forward: leftForward,
-                right: simd_normalize(simd_cross(leftUp, leftForward)),
+            let stemTiltRad = 15.0 * .pi / 180.0
+            let defaultUp = simd_normalize(SIMD3<Double>(0.0, cos(stemTiltRad), -sin(stemTiltRad)))
+            let defaultRight = SIMD3<Double>(1.0, 0.0, 0.0)
+            let defaultForward = simd_normalize(simd_cross(defaultRight, defaultUp))
+            let finalRight = simd_normalize(simd_cross(defaultUp, defaultForward))
+            
+            let standardLeft = AnatomicalEarProfile(
+                up: defaultUp,
+                forward: defaultForward,
+                right: finalRight,
                 isCustomLearned: false
             )
             
-            // Standard Right AirPod profile (mirrored lateral axis)
-            let rightUp = simd_normalize(SIMD3<Double>(-0.15, 0.42, 0.89))
-            let rightRight = simd_normalize(SIMD3<Double>(0.92, 0.25, 0.0))
-            let rightForward = simd_normalize(simd_cross(rightRight, rightUp))
-            let rightProfile = AnatomicalEarProfile(
-                up: rightUp,
-                forward: rightForward,
-                right: simd_normalize(simd_cross(rightUp, rightForward)),
+            let standardRight = AnatomicalEarProfile(
+                up: defaultUp,
+                forward: defaultForward,
+                right: finalRight,
                 isCustomLearned: false
             )
             
-            profiles[1] = leftProfile // .headphoneLeft
-            profiles[2] = rightProfile // .headphoneRight
-            profiles[0] = leftProfile // fallback
+            profiles[1] = standardLeft
+            profiles[2] = standardRight
+            profiles[0] = standardLeft
             persistProfiles()
         }
     }
@@ -348,31 +346,94 @@ public final class PermanentPostureEngine: ObservableObject, @unchecked Sendable
         }
     }
     
+    // MARK: - Orthonormal Basis Construction
+    
+    /// Constructs a mathematically pure, orthonormal skull basis from upright gravity.
+    /// Completely eliminates cross-axis leakage between pitch and roll.
+    public func createOrthonormalProfile(
+        uprightGravity: SIMD3<Double>,
+        lateralHint: SIMD3<Double>? = nil
+    ) -> AnatomicalEarProfile {
+        let up = simd_normalize(-uprightGravity)
+        
+        // In CoreMotion for AirPods, the X-axis (1, 0, 0) is the nominal ear-to-ear lateral axis.
+        var rightCand = lateralHint ?? SIMD3<Double>(1.0, 0.0, 0.0)
+        
+        // If the lateral hint happens to be collinear with up, fallback to X or Z
+        if abs(simd_dot(simd_normalize(rightCand), up)) > 0.85 {
+            rightCand = SIMD3<Double>(1.0, 0.0, 0.0)
+            if abs(simd_dot(rightCand, up)) > 0.85 {
+                rightCand = SIMD3<Double>(0.0, 0.0, 1.0)
+            }
+        }
+        
+        // 1. Gram-Schmidt projection of lateral axis onto the horizontal plane
+        let projectedRight = simd_normalize(rightCand - simd_dot(rightCand, up) * up)
+        
+        // 2. Forward axis is perpendicular to both Right and Up: right x up = forward
+        let forward = simd_normalize(simd_cross(projectedRight, up))
+        
+        // 3. Right axis is strictly orthogonal to both Up and Forward: up x forward = right
+        let finalRight = simd_normalize(simd_cross(up, forward))
+        
+        return AnatomicalEarProfile(
+            up: up,
+            forward: forward,
+            right: finalRight,
+            lastCalibratedDate: Date(),
+            adaptationCount: 0,
+            isCustomLearned: true
+        )
+    }
+    
+    /// Calibrates the permanent anatomical profile with live upright gravity.
+    public func calibrateWithUprightGravity(
+        _ uprightGravity: SIMD3<Double>,
+        sensorLocation: Int = 1
+    ) {
+        let profile = createOrthonormalProfile(uprightGravity: uprightGravity)
+        let loc = (sensorLocation == 1 || sensorLocation == 2) ? sensorLocation : 1
+        profiles[loc] = profile
+        profiles[0] = profile
+        persistProfiles()
+    }
+    
     // MARK: - Direct Calibration Override
     
     /// Manual override to save profile for a specific location immediately
     public func savePermanentProfile(
         for locationRawValue: Int,
         uprightGravity: SIMD3<Double>,
-        nodAngularVelocitySample: SIMD3<Double>
+        nodAngularVelocitySample: SIMD3<Double>? = nil
     ) {
-        let up = simd_normalize(-uprightGravity)
-        let rightAxis = simd_normalize(nodAngularVelocitySample)
-        let forward = simd_normalize(simd_cross(rightAxis, up))
-        let orthogonalRight = simd_normalize(simd_cross(up, forward))
-        
-        let profile = AnatomicalEarProfile(
-            up: up,
-            forward: forward,
-            right: orthogonalRight,
-            lastCalibratedDate: Date(),
-            adaptationCount: 0,
-            isCustomLearned: true
+        let profile = createOrthonormalProfile(
+            uprightGravity: uprightGravity,
+            lateralHint: nodAngularVelocitySample
         )
         
         profiles[locationRawValue] = profile
         profiles[0] = profile
         persistProfiles()
+    }
+    
+    // MARK: - Profile Sanity Validation
+    
+    /// Verifies that a stored profile has clean orthonormality and non-inverted lateral axes.
+    public func isProfileValid(_ p: AnatomicalEarProfile) -> Bool {
+        let dotUF = abs(simd_dot(p.up, p.forward))
+        let dotUR = abs(simd_dot(p.up, p.right))
+        let dotFR = abs(simd_dot(p.forward, p.right))
+        
+        if dotUF > 0.05 || dotUR > 0.05 || dotFR > 0.05 {
+            return false
+        }
+        
+        // In CoreMotion AirPods space, the lateral axis MUST NOT be predominantly vertical
+        if abs(p.right.y) > 0.6 || abs(p.right.x) < 0.4 {
+            return false
+        }
+        
+        return true
     }
     
     // MARK: - Persistence & Disk Storage
@@ -400,18 +461,33 @@ public final class PermanentPostureEngine: ObservableObject, @unchecked Sendable
     }
     
     private func loadProfiles() {
+        var loadedProfiles: [Int: AnatomicalEarProfile]? = nil
         if let data = UserDefaults.standard.data(forKey: storageKey),
            let decoded = try? JSONDecoder().decode([Int: AnatomicalEarProfile].self, from: data) {
-            self.profiles = decoded
-            return
+            loadedProfiles = decoded
+        } else {
+            let fileURL = getDiskStorageURL()
+            if let data = try? Data(contentsOf: fileURL),
+               let decoded = try? JSONDecoder().decode([Int: AnatomicalEarProfile].self, from: data) {
+                loadedProfiles = decoded
+            }
         }
         
-        // Try loading from disk backup if UserDefaults was reset
-        let fileURL = getDiskStorageURL()
-        if let data = try? Data(contentsOf: fileURL),
-           let decoded = try? JSONDecoder().decode([Int: AnatomicalEarProfile].self, from: data) {
-            self.profiles = decoded
+        if let loaded = loadedProfiles {
+            var validProfiles: [Int: AnatomicalEarProfile] = [:]
+            for (key, prof) in loaded {
+                if isProfileValid(prof) {
+                    validProfiles[key] = prof
+                }
+            }
+            if !validProfiles.isEmpty {
+                self.profiles = validProfiles
+                return
+            }
         }
+        
+        self.profiles.removeAll()
+        ensureFactoryDefaultProfiles()
     }
     
     private func getDiskStorageURL() -> URL {

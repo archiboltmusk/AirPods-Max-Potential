@@ -134,6 +134,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             savePreferences()
         }
     }
+    @Published public var activeSensorLocationRaw: Int = 1
     @Published public var muteInMeetings: Bool = true
     @Published public var autoDriftCorrection: Bool = false
     @Published public var batterySaverMode: Bool = false
@@ -308,16 +309,16 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         isInterlockActive = false
         calibrationInterlockAlert = nil
         let currentQuat = simd_quatd(ix: quatX, iy: quatY, iz: quatZ, r: quatW)
-        let currentGravity = (gravityX != 0 || gravityY != 0 || gravityZ != 0) ? SIMD3<Double>(gravityX, gravityY, gravityZ) : nil
+        let currentGravity = (gravityX != 0 || gravityY != 0 || gravityZ != 0) ? SIMD3<Double>(gravityX, gravityY, gravityZ) : SIMD3<Double>(0, -1, 0)
         _ = TrueNorthCalibrationEngine.shared.calibrateInstant(quat: currentQuat, gravity: currentGravity)
-        PermanentPostureEngine.shared.savePermanentProfile(
-            for: 1,
-            uprightGravity: currentGravity ?? SIMD3<Double>(gravityX, gravityY, gravityZ),
-            nodAngularVelocitySample: SIMD3<Double>(0, 1.0, 0)
+        PermanentPostureEngine.shared.calibrateWithUprightGravity(
+            currentGravity,
+            sensorLocation: activeSensorLocationRaw
         )
         qBaseline = currentQuat
         isCalibrated = true
         deltaPitch = 0
+        deltaRoll = 0
         deltaRoll = 0
         deltaYaw = 0
         postureState = isSnoozed ? .snoozed : .optimal
@@ -366,6 +367,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         guard AdaptiveSleepDutyCycle.shared.shouldProcessSampleInDutyCycle() else { return }
         
         let now = Date()
+        self.activeSensorLocationRaw = sensorLocation
         packetCount += 1
         lastPacketDate = now
         isConnected = true

@@ -45,6 +45,27 @@ import simd
     #expect(isAdapting == false)
 }
 
+@Test func testHeadGoingBackPitchPurity() async throws {
+    let engine = await PermanentPostureEngine()
+    let profile = await engine.profiles[1]!
+    
+    // Simulate tilting head backwards by 25 degrees (looking up at ceiling / cervical extension)
+    let angleRad = 25.0 * .pi / 180.0
+    let backwardG = -profile.up * cos(angleRad) + profile.forward * sin(angleRad)
+    
+    let result = await engine.evaluate(
+        gravity: backwardG,
+        rotRate: SIMD3<Double>(0, 0, 0),
+        userAccel: SIMD3<Double>(0, 0, 0),
+        sensorLocation: 1
+    )
+    
+    // Pitch must be -25 degrees (negative = looking up/extension)
+    #expect(abs(result.pitchDeg - (-25.0)) < 0.1)
+    // Roll MUST BE EXACTLY 0.0° - ZERO cross-axis deflection to left or right!
+    #expect(abs(result.rollDeg) < 0.01)
+}
+
 @Test func testSkullBasisOrthonormality() async throws {
     let engine = await PermanentPostureEngine()
     for (_, profile) in await engine.profiles {
