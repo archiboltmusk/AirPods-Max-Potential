@@ -38,11 +38,9 @@ public final class HeadphonePostureTracker: NSObject, ObservableObject, @uncheck
     public func startTracking() {
         guard motionManager.isDeviceMotionAvailable else { return }
         
-        motionManager.startDeviceMotionUpdates(to: processingQueue) { [weak self] motion, error in
+        motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in
             guard let self, let motion, error == nil else { return }
-            Task { @MainActor [weak self] in
-                self?.process(motion: motion)
-            }
+            self.process(motion: motion)
         }
     }
     

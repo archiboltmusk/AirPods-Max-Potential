@@ -91,11 +91,9 @@ public final class PostureFitGatekeeper: NSObject, ObservableObject, CMHeadphone
         }
         #endif
         
-        motionManager.startDeviceMotionUpdates(to: processingQueue) { [weak self] motion, error in
+        motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in
             guard let self, let motion, error == nil else { return }
-            Task { @MainActor [weak self] in
-                self?.evaluateFrame(motion)
-            }
+            self.evaluateFrame(motion)
         }
     }
     

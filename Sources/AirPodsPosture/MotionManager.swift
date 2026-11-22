@@ -247,13 +247,12 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         isTracking = true
         AppNapPowerAssertionManager.shared.acquireSleepTrackingAssertion()
         
-        // 1. Direct CoreMotion setup
+        // 1. Direct CoreMotion setup (Delivered directly to OperationQueue.main to eliminate cross-actor SIGTRAP assertions)
         if motionManager.isDeviceMotionAvailable && !motionManager.isDeviceMotionActive {
-            motionManager.startDeviceMotionUpdates(to: motionQueue) { [weak self] motion, error in
+            motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in
+                guard let self = self else { return }
                 if let error = error {
-                    Task { @MainActor in
-                        self?.lastErrorMessage = error.localizedDescription
-                    }
+                    self.lastErrorMessage = error.localizedDescription
                     return
                 }
                 guard let m = motion else { return }
@@ -265,17 +264,15 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
                 let grav = SIMD3<Double>(m.gravity.x, m.gravity.y, m.gravity.z)
                 let locRaw = m.sensorLocation.rawValue
                 
-                Task { @MainActor in
-                    self?.processIncomingSample(
-                        quat: quat,
-                        gyro: gyro,
-                        accel: accel,
-                        gravity: grav,
-                        pps: 50,
-                        source: "Direct CoreMotion",
-                        sensorLocation: locRaw
-                    )
-                }
+                self.processIncomingSample(
+                    quat: quat,
+                    gyro: gyro,
+                    accel: accel,
+                    gravity: grav,
+                    pps: 50,
+                    source: "Direct CoreMotion",
+                    sensorLocation: locRaw
+                )
             }
         }
     }
