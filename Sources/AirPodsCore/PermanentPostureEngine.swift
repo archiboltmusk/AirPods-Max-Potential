@@ -354,7 +354,19 @@ public final class PermanentPostureEngine: ObservableObject, @unchecked Sendable
         uprightGravity: SIMD3<Double>,
         lateralHint: SIMD3<Double>? = nil
     ) -> AnatomicalEarProfile {
-        let up = simd_normalize(-uprightGravity)
+        // Enforce physical reality: In a human ear, the AirPod stem points downward,
+        // so gravity MUST have a negative Y component (gravity.y <= -0.4).
+        // If gravity was sampled while AirPods were flat on a desk or tilted (gravity.y > -0.4),
+        // fallback to standard anatomical upright gravity so an inverted basis is NEVER constructed.
+        let sanitizedGravity: SIMD3<Double>
+        if uprightGravity.y > -0.4 {
+            let stemTiltRad = 15.0 * .pi / 180.0
+            sanitizedGravity = SIMD3<Double>(0.0, -cos(stemTiltRad), sin(stemTiltRad))
+        } else {
+            sanitizedGravity = uprightGravity
+        }
+        
+        let up = simd_normalize(-sanitizedGravity)
         
         // In CoreMotion for AirPods, the X-axis (1, 0, 0) is the nominal ear-to-ear lateral axis.
         var rightCand = lateralHint ?? SIMD3<Double>(1.0, 0.0, 0.0)
@@ -430,6 +442,11 @@ public final class PermanentPostureEngine: ObservableObject, @unchecked Sendable
         
         // In CoreMotion AirPods space, the lateral axis MUST NOT be predominantly vertical
         if abs(p.right.y) > 0.6 || abs(p.right.x) < 0.4 {
+            return false
+        }
+        
+        // Crucial: In human ears, the AirPod stem points downward, so UP must have positive Y (up.y > 0.5)
+        if p.up.y < 0.5 {
             return false
         }
         

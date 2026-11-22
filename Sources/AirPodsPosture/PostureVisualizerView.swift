@@ -171,9 +171,9 @@ public struct PostureVisualizerView: View {
                                     .foregroundColor(.primary)
                             }
                             Spacer()
-                            Text(motion.postureScore >= 80 ? "Optimal Neutral Alignment" : "Slouched Neck Flexion")
+                            Text(AirPodsWearStateSentinel.shared.isRestingOnNeck ? "Resting on Neck" : (motion.postureScore >= 80 ? "Optimal Neutral Alignment" : "Slouched Neck Flexion"))
                                 .font(.caption2.bold())
-                                .foregroundColor(motion.postureScore >= 80 ? .green : .orange)
+                                .foregroundColor(AirPodsWearStateSentinel.shared.isRestingOnNeck ? .blue : (motion.postureScore >= 80 ? .green : .orange))
                         }
                         .padding(14)
                         Spacer()

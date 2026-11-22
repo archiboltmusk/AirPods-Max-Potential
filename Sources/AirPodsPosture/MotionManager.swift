@@ -284,19 +284,15 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     
     @discardableResult
     public func calibrateCurrentPosture(force: Bool = false) -> Bool {
-        // Evaluate raw anatomical orientation relative to gravity/world
-        let rawEuler = QuaternionMath.euler(from: simd_quatd(ix: quatX, iy: quatY, iz: quatZ, r: quatW))
-        let currentPitch = rawEuler.pitch
-        let currentRoll = rawEuler.roll
+        // In-ear orientation requires gravity pulling downwards along stem (gravity.y <= -0.4)
+        let currentGravity = (gravityX != 0 || gravityY != 0 || gravityZ != 0) ? SIMD3<Double>(gravityX, gravityY, gravityZ) : SIMD3<Double>(0, -0.966, 0.259)
         
-        // Strict Slouch-Proof Interlock:
-        // Prevent user from calibrating in a slouch (head down < -6.5° or tilted back > +10° or rolled > 6°)
-        if !force && (currentPitch < -6.5 || currentPitch > 10.0 || abs(currentRoll) > 6.0) {
-            let direction = currentPitch < -6.5 ? "looking down (\(Int(currentPitch))°)" : (currentPitch > 10.0 ? "tilted backward (\(Int(currentPitch))°)" : "tilted sideways (\(Int(currentRoll))°)")
+        // Strict Slouch-Proof Interlock: Reject only if AirPods are demonstrably not in ears
+        if !force && currentGravity.y > -0.4 {
             isInterlockActive = true
-            calibrationInterlockAlert = "⚠️ Slouch-Proof Interlock: Rejected calibration while head is \(direction). Please sit upright with eyes level."
+            calibrationInterlockAlert = "⚠️ AirPods not in ear: please seat AirPods upright before calibrating."
             SyntheticEarHapticEngine.shared.playGentleDoubleTap()
-            DynamicIslandNotchHaloManager.shared.triggerExpansion(message: "Calibration Blocked: Sit Upright (Chin Level)", autoDismissSeconds: 4.5)
+            DynamicIslandNotchHaloManager.shared.triggerExpansion(message: "Calibration Blocked: Wear AirPods in Ear", autoDismissSeconds: 4.5)
             
             // Auto-clear alert after 5 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
@@ -309,7 +305,6 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         isInterlockActive = false
         calibrationInterlockAlert = nil
         let currentQuat = simd_quatd(ix: quatX, iy: quatY, iz: quatZ, r: quatW)
-        let currentGravity = (gravityX != 0 || gravityY != 0 || gravityZ != 0) ? SIMD3<Double>(gravityX, gravityY, gravityZ) : SIMD3<Double>(0, -1, 0)
         _ = TrueNorthCalibrationEngine.shared.calibrateInstant(quat: currentQuat, gravity: currentGravity)
         PermanentPostureEngine.shared.calibrateWithUprightGravity(
             currentGravity,
@@ -317,10 +312,10 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         )
         qBaseline = currentQuat
         isCalibrated = true
-        deltaPitch = 0
-        deltaRoll = 0
-        deltaRoll = 0
-        deltaYaw = 0
+        deltaPitch = 0.0
+        deltaRoll = 0.0
+        deltaYaw = 0.0
+        postureScore = 100
         postureState = isSnoozed ? .snoozed : .optimal
         warningStartTime = nil
         warningProgress = 0.0
@@ -527,7 +522,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         
         // If AirPods are resting flat on the collarbone / neck, suspend posture alerting
         if AirPodsWearStateSentinel.shared.isRestingOnNeck {
-            postureState = .optimal
+            postureState = .snoozed
             warningProgress = 0.0
             warningStartTime = nil
             TieredPostureEscalationEngine.shared.updateSlouchDuration(isCompromised: false, deltaPitch: 0, deltaRoll: 0)

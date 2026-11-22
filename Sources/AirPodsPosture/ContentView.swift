@@ -225,7 +225,7 @@ public struct ContentView: View {
                                 // Action Strip
                                 HStack(spacing: 12) {
                                     Button(action: {
-                                        motion.calibrateCurrentPosture()
+                                        motion.calibrateCurrentPosture(force: true)
                                     }) {
                                         Label("Calibrate Upright", systemImage: "scope")
                                             .font(.headline)
@@ -475,7 +475,7 @@ public struct ContentView: View {
                         .help("Float Posture Buddy on Desktop")
                         
                         Button(action: {
-                            motion.calibrateCurrentPosture()
+                            motion.calibrateCurrentPosture(force: true)
                         }) {
                             Image(systemName: "scope")
                         }
