@@ -33,6 +33,39 @@ public struct PostureTabContentView: View {
                     .cornerRadius(8)
                 }
                 
+                // Supported Hardware Guidance
+                if !motion.isConnected && !motion.isSimulated {
+                    HStack(spacing: 12) {
+                        Image(systemName: "headphones")
+                            .font(.title3)
+                            .foregroundColor(.cyan)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Connect AirPods Pro, Max, or AirPods 3/4")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.primary)
+                            Text("Spatial head tracking automatically begins when motion-enabled AirPods are worn in ear.")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Button(action: {
+                            motion.toggleSimulation()
+                        }) {
+                            Text("Try Demo")
+                                .font(.system(size: 10, weight: .bold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Color.cyan.opacity(0.15))
+                                .foregroundColor(.cyan)
+                                .cornerRadius(6)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    .padding(10)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(10)
+                }
+                
                 // Hero Posture Visualizer with CRED Standard Obsidian styling
                 PostureVisualizerView(motion: motion)
                 
