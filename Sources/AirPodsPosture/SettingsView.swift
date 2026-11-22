@@ -354,8 +354,9 @@ public struct SettingsView: View {
                 }
                 
                 Picker("App Visual Canvas Theme", selection: $appVisualTheme) {
-                    Text("Warm Human Cinema (Film Grain)").tag("humanCinema")
-                    Text("Cupertino Metal (Plasma Flow)").tag("cupertino")
+                    Text("CRED Obsidian Noir").tag("credStandard")
+                    Text("Warm Human Cinema").tag("humanCinema")
+                    Text("Cupertino Metal").tag("cupertino")
                 }
                 .pickerStyle(.segmented)
                 

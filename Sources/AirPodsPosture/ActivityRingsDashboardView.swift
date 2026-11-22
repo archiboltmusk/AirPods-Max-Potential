@@ -11,104 +11,129 @@ public struct ActivityRingsDashboardView: View {
         self.romScore = romScore
     }
     
+    private var postureProgress: CGFloat {
+        CGFloat(max(0.0, min(1.0, postureScore / 100.0)))
+    }
+    
+    private var hydrationProgress: CGFloat {
+        CGFloat(max(0.0, min(1.0, Double(hydrationGlasses) / 8.0)))
+    }
+    
+    private var romProgress: CGFloat {
+        CGFloat(max(0.0, min(1.0, romScore / 100.0)))
+    }
+
     public var body: some View {
         HStack(spacing: 24) {
-            // Concentric Activity Rings
+            // Concentric Dials
             ZStack {
-                // Background Track Rings
                 Circle()
-                    .stroke(Color.green.opacity(0.18), lineWidth: 14)
-                    .frame(width: 130, height: 130)
+                    .stroke(Color.black.opacity(0.8), lineWidth: 12)
+                    .frame(width: 124, height: 124)
                 Circle()
-                    .stroke(Color.cyan.opacity(0.18), lineWidth: 14)
-                    .frame(width: 98, height: 98)
+                    .stroke(Color.black.opacity(0.8), lineWidth: 12)
+                    .frame(width: 94, height: 94)
                 Circle()
-                    .stroke(Color.purple.opacity(0.18), lineWidth: 14)
-                    .frame(width: 66, height: 66)
+                    .stroke(Color.black.opacity(0.8), lineWidth: 12)
+                    .frame(width: 64, height: 64)
                 
-                // Outer Ring: Posture Score %
                 Circle()
-                    .trim(from: 0, to: CGFloat(min(1.0, postureScore / 100.0)))
+                    .trim(from: 0, to: postureProgress)
                     .stroke(
-                        AngularGradient(colors: [.green, .mint], center: .center),
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round)
+                        AngularGradient(
+                            colors: [CREDPalette.emeraldPlasma, CREDPalette.electricCyan, CREDPalette.emeraldPlasma],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
-                    .frame(width: 130, height: 130)
-                    .shadow(color: .green.opacity(0.4), radius: 4)
+                    .frame(width: 124, height: 124)
+                    .shadow(color: CREDPalette.emeraldPlasma.opacity(0.4), radius: 4)
                 
-                // Middle Ring: Hydration (Glasses / 8)
                 Circle()
-                    .trim(from: 0, to: CGFloat(min(1.0, Double(hydrationGlasses) / 8.0)))
+                    .trim(from: 0, to: hydrationProgress)
                     .stroke(
-                        AngularGradient(colors: [.blue, .cyan], center: .center),
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round)
+                        AngularGradient(
+                            colors: [CREDPalette.electricCyan, Color.blue, CREDPalette.electricCyan],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
-                    .frame(width: 98, height: 98)
-                    .shadow(color: .cyan.opacity(0.4), radius: 4)
+                    .frame(width: 94, height: 94)
+                    .shadow(color: CREDPalette.electricCyan.opacity(0.4), radius: 4)
                 
-                // Inner Ring: Cervical ROM Mobility %
                 Circle()
-                    .trim(from: 0, to: CGFloat(min(1.0, romScore / 100.0)))
+                    .trim(from: 0, to: romProgress)
                     .stroke(
-                        AngularGradient(colors: [.purple, .pink], center: .center),
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round)
+                        AngularGradient(
+                            colors: [CREDPalette.champagneGold, Color.orange, CREDPalette.champagneGold],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
-                    .frame(width: 66, height: 66)
-                    .shadow(color: .purple.opacity(0.4), radius: 4)
+                    .frame(width: 64, height: 64)
+                    .shadow(color: CREDPalette.champagneGold.opacity(0.4), radius: 4)
             }
-            .frame(width: 140, height: 140)
+            .frame(width: 136, height: 136)
             
-            // Legend & Real-Time Statistics
-            VStack(alignment: .leading, spacing: 10) {
-                // Posture Ring Legend
-                HStack(spacing: 8) {
-                    Circle().fill(Color.green).frame(width: 10, height: 10)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Posture Quality")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text("\(Int(postureScore))% Optimal Alignment")
-                            .font(.caption.bold())
-                    }
-                }
-                
-                // Hydration Ring Legend
-                HStack(spacing: 8) {
-                    Circle().fill(Color.cyan).frame(width: 10, height: 10)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Kinematic Hydration")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text("\(hydrationGlasses) of 8 Glasses Ingested")
-                            .font(.caption.bold())
-                    }
-                }
-                
-                // Cervical ROM Legend
-                HStack(spacing: 8) {
-                    Circle().fill(Color.purple).frame(width: 10, height: 10)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Cervical Spine Mobility")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text("\(Int(romScore))% Mobility Index")
-                            .font(.caption.bold())
-                    }
-                }
+            // Telemetry Legend
+            VStack(alignment: .leading, spacing: 12) {
+                CREDTelemetryLegendRow(
+                    color: CREDPalette.emeraldPlasma,
+                    title: "POSTURE QUALITY QUOTIENT",
+                    value: "\(Int(postureScore))% OPTIMAL NEUTRAL"
+                )
+                CREDTelemetryLegendRow(
+                    color: CREDPalette.electricCyan,
+                    title: "KINEMATIC HYDRATION CADENCE",
+                    value: "\(hydrationGlasses) OF 8 INGESTION QUOTA"
+                )
+                CREDTelemetryLegendRow(
+                    color: CREDPalette.champagneGold,
+                    title: "CERVICAL SPINE MOBILITY INDEX",
+                    value: "\(Int(romScore))% FULL RANGE OF MOTION"
+                )
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(18)
-        .background(
+        .padding(14)
+        .background(CREDPalette.cardSurface)
+        .cornerRadius(16)
+        .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(LinearGradient(colors: [.white.opacity(0.2), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
-                )
+                .stroke(CREDPalette.specularRimStroke, lineWidth: 1)
         )
+    }
+}
+
+public struct CREDTelemetryLegendRow: View {
+    public let color: Color
+    public let title: String
+    public let value: String
+    
+    public init(color: Color, title: String, value: String) {
+        self.color = color
+        self.title = title
+        self.value = value
+    }
+    
+    public var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(color)
+                .frame(width: 7, height: 7)
+                .shadow(color: color.opacity(0.7), radius: 3)
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(CREDPalette.phantomGray)
+                Text(value)
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                    .foregroundColor(CREDPalette.platinumWhite)
+            }
+        }
     }
 }

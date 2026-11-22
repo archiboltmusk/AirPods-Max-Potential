@@ -382,9 +382,12 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         let qRel = QuaternionMath.relativeOrientation(baseline: qBaseline, current: quat)
         let relEuler = QuaternionMath.euler(from: qRel)
         
-        deltaPitch = relEuler.pitch
-        deltaRoll = relEuler.roll
-        deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
+        // Update Euler angles at 30Hz or on meaningful angle change (>0.1°) to keep Mac CPU < 4%
+        if packetCount % 2 == 0 || abs(relEuler.pitch - deltaPitch) > 0.10 {
+            deltaPitch = relEuler.pitch
+            deltaRoll = relEuler.roll
+            deltaYaw = AutoZeroDriftCompensator.shared.compensatedYaw(relEuler.yaw)
+        }
         
         // 2. Throttle auxiliary telemetry and secondary analyzers to 10Hz to keep Mac cool (CPU < 5%)
         let isThrottledTick = (packetCount % 6 == 0)

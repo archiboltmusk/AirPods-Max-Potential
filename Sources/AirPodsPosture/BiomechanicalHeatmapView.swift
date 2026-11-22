@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 public struct HourlySpineSample: Identifiable {
     public let id = UUID()
@@ -27,70 +28,80 @@ public struct BiomechanicalHeatmapView: View {
     
     public init() {}
     
+    private func cellColor(for score: Int) -> Color {
+        if score >= 85 { return CREDPalette.emeraldPlasma }
+        if score >= 70 { return CREDPalette.champagneGold }
+        return CREDPalette.moltenRuby
+    }
+    
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Image(systemName: "clock.arrow.circlepath")
-                    .foregroundColor(.teal)
-                Text("24-Hour Biomechanical Timeline Scrub Bar")
-                    .font(.headline)
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .foregroundColor(CREDPalette.champagneGold)
+                        .font(.system(size: 11, weight: .bold))
+                    Text("24-HOUR BIOMECHANICAL SCRUB BAR")
+                        .font(.system(size: 9.5, weight: .black, design: .monospaced))
+                        .foregroundColor(CREDPalette.platinumWhite)
+                }
                 Spacer()
-                Text("Interactive Workday Replay")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Text("INTERACTIVE REPLAY")
+                    .font(.system(size: 8.5, weight: .black, design: .monospaced))
+                    .foregroundColor(CREDPalette.phantomGray)
             }
             
             // Heatmap Matrix Cells
             HStack(spacing: 6) {
                 ForEach(0..<hours.count, id: \.self) { idx in
                     let sample = hours[idx]
-                    VStack(spacing: 4) {
+                    let isSelected = selectedIndex == idx
+                    let color = cellColor(for: sample.score)
+                    
+                    VStack(spacing: 5) {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(sample.score >= 85 ? Color.green : (sample.score >= 70 ? Color.orange : Color.red))
-                            .frame(height: 38)
+                            .fill(color)
+                            .frame(height: 36)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 6)
-                                    .stroke(selectedIndex == idx ? Color.white : Color.clear, lineWidth: 2)
+                                    .stroke(isSelected ? Color.white : Color.clear, lineWidth: 1.5)
                             )
+                            .shadow(color: isSelected ? color.opacity(0.8) : Color.clear, radius: 6)
                             .onTapGesture {
                                 selectedIndex = idx
+                                NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
                                 MotionManager.shared.playFeedbackSound("Tink")
                             }
                         
                         Text(sample.hourLabel)
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(selectedIndex == idx ? .primary : .secondary)
+                            .font(.system(size: 8.5, weight: isSelected ? .bold : .medium, design: .monospaced))
+                            .foregroundColor(isSelected ? CREDPalette.platinumWhite : CREDPalette.phantomGray)
                     }
                 }
             }
             
             // Reconstructed Snapshot Detail Card
             let currentSample = hours[selectedIndex]
+            let detailColor = cellColor(for: currentSample.score)
+            
             HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(currentSample.hourLabel) Spine Snapshot")
-                        .font(.caption.bold())
-                        .foregroundColor(.primary)
-                    Text("Spine Health: \(currentSample.score)% • Diagnosis: \(currentSample.dominantSlouchType)")
-                        .font(.caption2)
-                        .foregroundColor(currentSample.score >= 80 ? .green : .orange)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(currentSample.hourLabel.uppercased()) CERVICAL SNAPSHOT")
+                        .font(.system(size: 9.5, weight: .black, design: .monospaced))
+                        .foregroundColor(CREDPalette.platinumWhite)
+                    Text("SPINE HEALTH: \(currentSample.score)% · \(currentSample.dominantSlouchType.uppercased())")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(detailColor)
                 }
                 Spacer()
-                Image(systemName: currentSample.score >= 80 ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                    .foregroundColor(currentSample.score >= 80 ? .green : .orange)
+                Image(systemName: currentSample.score >= 80 ? "shield.checkmark.fill" : "exclamationmark.triangle.fill")
+                    .foregroundColor(detailColor)
+                    .font(.system(size: 14))
             }
             .padding(12)
-            .background(Color.secondary.opacity(0.08))
-            .cornerRadius(10)
+            .credInsetTrough(cornerRadius: 10)
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(LinearGradient(colors: [.white.opacity(0.18), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
-                )
-        )
+        .credCard(cornerRadius: 18, elevation: 10)
     }
 }
