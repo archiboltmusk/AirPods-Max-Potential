@@ -282,28 +282,58 @@ public struct AirPodsProSensorsView: View {
                     }
                 }
                 
-                // Section 4: Live Kinematic Accelerometers & Gyroscopes
+                // Section 4: Live Head Orientation & Kinematics
+                SensorSectionBox(
+                    title: "Live Head Orientation & Euler Kinematics",
+                    icon: "angle",
+                    subtitle: "Continuous real-time cervical posture angles computed from CoreMotion 6-DOF sensor fusion"
+                ) {
+                    VStack(spacing: 12) {
+                        HStack(spacing: 12) {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(motion.packetsPerSecond > 0 ? Color.green : Color.orange)
+                                    .frame(width: 8, height: 8)
+                                Text(motion.packetsPerSecond > 0 ? "\(motion.packetsPerSecond) Hz Active Streaming" : "Awaiting Movement")
+                                    .font(.caption.bold())
+                                    .foregroundColor(motion.packetsPerSecond > 0 ? .green : .secondary)
+                            }
+                            Spacer()
+                            Text("Frames Ingested: \(motion.packetCount)")
+                                .font(.caption2.monospaced())
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.bottom, 2)
+                        
+                        AxisBarView(label: "Pitch (Slouch / Look Up)", value: motion.deltaPitch, unit: "°", range: -35.0...35.0, color: .orange)
+                        AxisBarView(label: "Roll (Lateral Ear Tilt)", value: motion.deltaRoll, unit: "°", range: -25.0...25.0, color: .cyan)
+                        AxisBarView(label: "Yaw (Compass Turn)", value: motion.deltaYaw, unit: "°", range: -45.0...45.0, color: .purple)
+                    }
+                }
+                
+                // Section 5: Dynamic Linear Acceleration
                 SensorSectionBox(
                     title: "User Dynamic Acceleration (g units)",
                     icon: "speedometer",
                     subtitle: "Instantaneous dynamic linear acceleration isolating user head motion from Earth gravity"
                 ) {
                     VStack(spacing: 10) {
-                        AxisBarView(label: "X (Lateral)", value: motion.userAccelX, unit: "g", range: -1.0...1.0, color: .green)
-                        AxisBarView(label: "Y (Vertical)", value: motion.userAccelY, unit: "g", range: -1.0...1.0, color: .blue)
-                        AxisBarView(label: "Z (Sagittal)", value: motion.userAccelZ, unit: "g", range: -1.0...1.0, color: .orange)
+                        AxisBarView(label: "X (Lateral)", value: motion.userAccelX, unit: "g", range: -0.30...0.30, color: .green)
+                        AxisBarView(label: "Y (Vertical)", value: motion.userAccelY, unit: "g", range: -0.30...0.30, color: .blue)
+                        AxisBarView(label: "Z (Sagittal)", value: motion.userAccelZ, unit: "g", range: -0.30...0.30, color: .orange)
                     }
                 }
                 
+                // Section 6: Angular Velocity
                 SensorSectionBox(
                     title: "Rotation Rate / Gyroscope (deg/s)",
                     icon: "gyroscope",
                     subtitle: "Cervical angular velocity computed directly from AirPods H2 DSP"
                 ) {
                     VStack(spacing: 10) {
-                        AxisBarView(label: "Pitch Rate (Up/Down)", value: motion.rotRateX, unit: "°/s", range: -180.0...180.0, color: .purple)
-                        AxisBarView(label: "Roll Rate (Tilt)", value: motion.rotRateY, unit: "°/s", range: -180.0...180.0, color: .pink)
-                        AxisBarView(label: "Yaw Rate (Turn)", value: motion.rotRateZ, unit: "°/s", range: -180.0...180.0, color: .indigo)
+                        AxisBarView(label: "Pitch Rate (Up/Down)", value: motion.rotRateX, unit: "°/s", range: -45.0...45.0, color: .purple)
+                        AxisBarView(label: "Roll Rate (Tilt)", value: motion.rotRateY, unit: "°/s", range: -45.0...45.0, color: .pink)
+                        AxisBarView(label: "Yaw Rate (Turn)", value: motion.rotRateZ, unit: "°/s", range: -45.0...45.0, color: .indigo)
                     }
                 }
                 
