@@ -19,7 +19,7 @@ public final class SpatialElevationSoundstageEngine: ObservableObject {
     private var playerNode: AVAudioPlayerNode?
     
     private init() {
-        setup3DAudioEnvironment()
+        // Audio environment initialized on demand only to prevent coreaudiod power assertions
     }
     
     private func setup3DAudioEnvironment() {

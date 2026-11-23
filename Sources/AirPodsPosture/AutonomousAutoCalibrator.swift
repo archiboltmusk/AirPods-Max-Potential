@@ -2,18 +2,18 @@ import Foundation
 import simd
 import AirPodsCore
 
+/// Autonomous Continuous Gravitational Auto-Alignment Engine.
+/// Silently micro-converges baseline orientation when the user is upright and still,
+/// preventing accumulated drift and eliminating the need for manual button clicks.
 @MainActor
 public final class AutonomousAutoCalibrator: ObservableObject {
     public static let shared = AutonomousAutoCalibrator()
     
     @Published public var isAutonomousCalibrationEnabled: Bool = true
-    @Published public var calibrationConfidence: Double = 0.95 // 0.0 to 1.0
-    @Published public var autoCalibrationStatus: String = "Statistical Gaze Estimator Active"
+    @Published public var calibrationConfidence: Double = 1.0 // 0.0 to 1.0
+    @Published public var autoCalibrationStatus: String = "Gravitational Upright Horizon Active"
     @Published public var lastAutoCalibratedTime: Date?
     
-    // Rolling buffer of pitch samples during calm stillness (rotRate < 4 deg/s)
-    private var calmPitchHistory: [Double] = []
-    private var calmRollHistory: [Double] = []
     private var sampleCount: Int = 0
     
     private init() {}
@@ -22,80 +22,85 @@ public final class AutonomousAutoCalibrator: ObservableObject {
         currentQuat: simd_quatd,
         gravity: SIMD3<Double>?,
         gyroVariance: Double,
-        userEnergy: Double
+        userEnergy: Double,
+        deltaPitch: Double,
+        deltaRoll: Double
     ) {
         guard isAutonomousCalibrationEnabled else { return }
         
-        // 1. Earth Gravity Vector Validation
-        // If gravity vector is available and user is still (userEnergy < 0.02g and gyroVariance < 4.0 deg/s)
-        if userEnergy < 0.02 && gyroVariance < 4.0 {
-            let euler = QuaternionMath.euler(from: currentQuat)
-            
-            calmPitchHistory.append(euler.pitch)
-            calmRollHistory.append(euler.roll)
-            
-            // Keep rolling 200 samples (~3-4 seconds of calm focus)
-            if calmPitchHistory.count > 200 {
-                calmPitchHistory.removeFirst()
-                calmRollHistory.removeFirst()
-            }
-            
-            sampleCount += 1
-            
-            // 2. Statistical Peak Mode (Kernel Density Mode)
-            // Every 120 samples of calm stillness, evaluate statistical cluster
-            if sampleCount % 120 == 0 && calmPitchHistory.count >= 100 {
-                evaluateAndAdjustBaseline(currentQuat: currentQuat, gravity: gravity)
-            }
-        }
-    }
-    
-    private func evaluateAndAdjustBaseline(currentQuat: simd_quatd, gravity: SIMD3<Double>?) {
-        guard !calmPitchHistory.isEmpty else { return }
+        sampleCount += 1
         
-        // Calculate median and standard deviation to eliminate outliers (e.g. looking down at keyboard)
-        let sortedPitches = calmPitchHistory.sorted()
-        let medianPitch = sortedPitches[sortedPitches.count / 2]
-        
-        let sortedRolls = calmRollHistory.sorted()
-        let medianRoll = sortedRolls[sortedRolls.count / 2]
-        
-        // Guard against calibrating into an intentional slouch:
-        // Only adapt baseline if median pitch is strictly within true anatomical upright bounds (-6.0° to +7.0°)
-        guard medianPitch > -6.0 && medianPitch < 7.0 && abs(medianRoll) < 5.0 else {
-            autoCalibrationStatus = "Slouch Detected (\(Int(medianPitch))°): Baseline Held to True Upright"
+        // 1. Earth Gravity Vector & Stillness Validation
+        guard userEnergy < 0.03 && gyroVariance < 2.5 else {
             return
         }
         
-        // If gravity is available, check anatomical ear insertion tilt
-        if let g = gravity {
-            // Earth gravity standard on vertical desk sitting: g.y should be near 0, g.z should be near -1.0
-            let gravityTilt = asin(max(-1.0, min(1.0, g.y))) * 180.0 / .pi
-            if abs(gravityTilt) < 18.0 {
-                calibrationConfidence = min(1.0, calibrationConfidence + 0.02)
+        var isPhysicallyUpright = false
+        if let g = gravity, g.z <= -0.50 {
+            // Earth gravity projected to anatomical skull vertical
+            let gravPitch = atan2(-g.y, -g.z) * 180.0 / .pi
+            let gravRoll = -atan2(g.x, -g.z) * 180.0 / .pi
+            
+            // True physiological upright range for desk focus
+            if gravPitch >= -7.0 && gravPitch <= 7.5 && abs(gravRoll) <= 5.5 {
+                isPhysicallyUpright = true
+                calibrationConfidence = min(1.0, calibrationConfidence + 0.01)
+            }
+        } else {
+            // Fallback for simulation / gyro mode
+            if deltaPitch >= -7.0 && deltaPitch <= 7.5 && abs(deltaRoll) <= 5.5 {
+                isPhysicallyUpright = true
             }
         }
         
-        // Slerp current baseline toward statistical median gaze mode
+        guard isPhysicallyUpright else {
+            autoCalibrationStatus = "Baseline Held Rigid to Gravitational Horizon"
+            return
+        }
+        
         let motion = MotionManager.shared
+        
+        // If uncalibrated, lock immediately on verified upright pose
         if !motion.isCalibrated {
-            motion.qBaseline = currentQuat
-            motion.isCalibrated = true
+            motion.calibrateCurrentPosture(force: false, isSilentAuto: true)
             lastAutoCalibratedTime = Date()
             autoCalibrationStatus = "🟢 Auto-Locked: Aligned to True Earth Gravity"
-            SyntheticEarHapticEngine.shared.playSuccessChirp()
-        } else if abs(medianPitch) < 2.5 && calibrationConfidence >= 0.95 {
-            // Micro-trim only when verified in physiological upright deadband
-            motion.qBaseline = simd_slerp(motion.qBaseline, currentQuat, 0.0005)
+            return
+        }
+        
+        // Continuous micro-slerp: for small offsets (0.2° to 3.5°), smoothly nudge baseline to true neutral
+        let pitchError = abs(deltaPitch)
+        let rollError = abs(deltaRoll)
+        
+        if (pitchError > 0.25 || rollError > 0.25) && pitchError <= 3.5 && rollError <= 3.0 {
+            // Smoothly converge at 10Hz (factor 0.04 converges ~90% in 1.5s)
+            motion.qBaseline = simd_slerp(motion.qBaseline, currentQuat, 0.04)
             lastAutoCalibratedTime = Date()
-            autoCalibrationStatus = "🟢 Slouch-Proof Auto-Centered (Gravity Confidence: \(Int(calibrationConfidence * 100))%)"
-        } else {
-            autoCalibrationStatus = "Baseline Held Rigid to Gravitational Horizon"
+            autoCalibrationStatus = "🟢 Continuous Auto-Zero Active (Confidence: \(Int(calibrationConfidence * 100))%)"
+        } else if pitchError <= 0.25 && rollError <= 0.25 {
+            autoCalibrationStatus = "🟢 Posture Locked: Optimal Horizon"
         }
     }
     
+    /// Backward-compatible overload
+    public func processIncomingSample(
+        currentQuat: simd_quatd,
+        gravity: SIMD3<Double>?,
+        gyroVariance: Double,
+        userEnergy: Double
+    ) {
+        processIncomingSample(
+            currentQuat: currentQuat,
+            gravity: gravity,
+            gyroVariance: gyroVariance,
+            userEnergy: userEnergy,
+            deltaPitch: MotionManager.shared.deltaPitch,
+            deltaRoll: MotionManager.shared.deltaRoll
+        )
+    }
+    
     public func triggerInstantDoubleNodCalibration() {
-        let success = MotionManager.shared.calibrateCurrentPosture()
+        let success = MotionManager.shared.calibrateCurrentPosture(force: false, isSilentAuto: false)
         if success {
             lastAutoCalibratedTime = Date()
             calibrationConfidence = 1.0

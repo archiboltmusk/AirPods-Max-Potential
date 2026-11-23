@@ -18,11 +18,13 @@ public final class HydrationTracker: ObservableObject {
     private var timer: Timer? = nil
     
     private init() {
-        timer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+        let t = Timer.scheduledTimer(withTimeInterval: 120.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkHydrationReminder()
             }
         }
+        t.tolerance = 60.0
+        timer = t
     }
     
     public func update(pitch: Double, roll: Double) {

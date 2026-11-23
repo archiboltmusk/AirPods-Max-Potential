@@ -20,16 +20,19 @@ public final class HardwareClamshellSentinel: ObservableObject {
     
     private init() {
         evaluateTopology()
-        startMonitoring()
-    }
-    
-    public func startMonitoring() {
-        checkTimer?.invalidate()
-        checkTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.evaluateTopology()
             }
         }
+    }
+    
+    public func startMonitoring() {
+        evaluateTopology()
     }
     
     public func stopMonitoring() {

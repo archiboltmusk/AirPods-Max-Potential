@@ -10,7 +10,9 @@ public struct ContentView: View {
     @ObservedObject var fitSentinel = AirPodsInsertionFitSentinel.shared
     
     @AppStorage("appVisualTheme") var appVisualTheme: String = "credStandard"
+    @AppStorage("hasCompletedADAOnboarding") var hasCompletedADAOnboarding: Bool = false
     @State private var selectedTab: TabItem = .posture
+    @State private var isShowingOnboardingSheet: Bool = false
     
     public enum TabItem: String, CaseIterable, Identifiable {
         case posture = "Posture Monitor"
@@ -43,54 +45,74 @@ public struct ContentView: View {
             CREDPalette.canvasBg
                 .ignoresSafeArea()
             
-            NavigationSplitView {
-                VStack(spacing: 0) {
-                    List(selection: $selectedTab) {
-                        Section("AIRPODS POSTURE") {
-                            sidebarRow(.posture)
-                            sidebarRow(.rhythm)
-                            sidebarRow(.settings)
-                        }
-                    }
-                    .listStyle(.sidebar)
-                    
-                    Divider()
-                        .opacity(0.4)
-                    
-                    // Sidebar Footer: Live Hardware Connection Indicator
-                    SidebarConnectionFooterView()
-                }
-                .navigationTitle("AirPods Posture")
-                .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
-            } detail: {
-                Group {
-                    switch selectedTab {
-                    case .posture:
-                        PostureTabContentView()
-                    case .rhythm:
-                        DailyRhythmView()
-                    case .settings:
-                        SettingsView(motion: motion)
+            if !hasCompletedADAOnboarding {
+                ADAOnboardingView {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                        hasCompletedADAOnboarding = true
                     }
                 }
-                .navigationTitle(selectedTab.rawValue)
-                .toolbar {
-                    ToolbarItemGroup(placement: .primaryAction) {
-                        Button(action: {
-                            companion.toggleCompanion()
-                        }) {
-                            Image(systemName: "person.crop.artzone")
-                                .foregroundColor(companion.isCompanionVisible ? CREDPalette.emeraldPlasma : .secondary)
+                .transition(.asymmetric(
+                    insertion: .opacity,
+                    removal: .opacity.combined(with: .scale(scale: 0.96))
+                ))
+            } else {
+                NavigationSplitView {
+                    VStack(spacing: 0) {
+                        List(selection: $selectedTab) {
+                            Section("AIRPODS POSTURE") {
+                                sidebarRow(.posture)
+                                sidebarRow(.rhythm)
+                                sidebarRow(.settings)
+                            }
                         }
-                        .help("Float Posture Buddy on Desktop")
+                        .listStyle(.sidebar)
                         
-                        Button(action: {
-                            _ = motion.calibrateCurrentPosture(force: true)
-                        }) {
-                            Image(systemName: "scope")
+                        Divider()
+                            .opacity(0.4)
+                        
+                        // Sidebar Footer: Live Hardware Connection Indicator
+                        SidebarConnectionFooterView()
+                    }
+                    .navigationTitle("AirPods Posture")
+                    .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
+                } detail: {
+                    Group {
+                        switch selectedTab {
+                        case .posture:
+                            PostureTabContentView()
+                        case .rhythm:
+                            DailyRhythmView()
+                        case .settings:
+                            SettingsView(motion: motion)
                         }
-                        .disabled(!motion.isConnected)
-                        .help("Calibrate neutral upright (⌘⇧C)")
+                    }
+                    .navigationTitle(selectedTab.rawValue)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .primaryAction) {
+                            Button(action: {
+                                isShowingOnboardingSheet = true
+                            }) {
+                                Image(systemName: "sparkles")
+                                    .foregroundColor(CREDPalette.emeraldPlasma)
+                            }
+                            .help("Apple Design Award Onboarding Tour")
+                            
+                            Button(action: {
+                                companion.toggleCompanion()
+                            }) {
+                                Image(systemName: "person.crop.artzone")
+                                    .foregroundColor(companion.isCompanionVisible ? CREDPalette.emeraldPlasma : .secondary)
+                            }
+                            .help("Float Posture Buddy on Desktop")
+                            
+                            Button(action: {
+                                _ = motion.calibrateCurrentPosture(force: true)
+                            }) {
+                                Image(systemName: "scope")
+                            }
+                            .disabled(!motion.isConnected)
+                            .help("Calibrate neutral upright (⌘⇧C)")
+                        }
                     }
                 }
             }

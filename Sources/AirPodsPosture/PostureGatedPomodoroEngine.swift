@@ -19,30 +19,38 @@ public final class PostureGatedPomodoroEngine: ObservableObject {
     private var timer: Timer?
     
     private init() {
-        startEngineLoop()
+        // Zero idle background timers
     }
     
     private func startEngineLoop() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        timer?.invalidate()
+        let t = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.tick()
             }
         }
+        t.tolerance = 0.5
+        timer = t
     }
     
     public func startSession() {
         self.isRunning = true
         self.isPosturePaused = false
+        startEngineLoop()
         SyntheticEarHapticEngine.shared.playSuccessChirp()
     }
     
     public func pauseSession() {
         self.isRunning = false
+        timer?.invalidate()
+        timer = nil
     }
     
     public func resetSession() {
         self.isRunning = false
         self.isPosturePaused = false
+        timer?.invalidate()
+        timer = nil
         self.secondsRemaining = sessionDurationMinutes * 60.0
     }
     

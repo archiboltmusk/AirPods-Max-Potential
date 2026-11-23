@@ -21,15 +21,7 @@ public final class NoiseDosimeterEngine: ObservableObject {
     private var sampleTimer: Timer?
     
     private init() {
-        startSampling()
-    }
-    
-    private func startSampling() {
-        sampleTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.evaluateNoiseDose()
-            }
-        }
+        // Zero background timers: computed on-demand
     }
     
     private func evaluateNoiseDose() {

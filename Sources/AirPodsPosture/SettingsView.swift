@@ -37,6 +37,26 @@ public struct SettingsView: View {
     
     public var body: some View {
         Form {
+            // 0. ADA Onboarding Tour
+            Section(header: Text("Apple Design Award Experience").font(.headline)) {
+                Button(action: {
+                    UserDefaults.standard.set(false, forKey: "hasCompletedADAOnboarding")
+                }) {
+                    HStack {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(CREDPalette.emeraldPlasma)
+                        Text("Replay 3-Screen Onboarding Tour")
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Text("Launch")
+                            .foregroundColor(.secondary)
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            
             // 1. Software Updates
             Section(header: Text("Software Updates & Release Channel").font(.headline)) {
                 SoftwareUpdateCardView()
@@ -246,7 +266,7 @@ public struct SettingsView: View {
             
             // 4. Audio, Haptics & Biofeedback
             Section(header: Text("Audio, Haptics & Biofeedback").font(.headline)) {
-                Toggle("Sound Alert on Slouching", isOn: $motion.soundAlertsEnabled)
+                Toggle("Audible Posture Reminders", isOn: $motion.soundAlertsEnabled)
                 
                 if motion.soundAlertsEnabled {
                     Picker("Alert Chime", selection: $motion.alertSoundName) {

@@ -34,11 +34,16 @@ public final class TypingFlowStateGatingManager: ObservableObject {
     }
     
     private func startIDEWatcher() {
-        appCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.inspectFrontmostApp()
             }
         }
+        inspectFrontmostApp()
     }
     
     private func inspectFrontmostApp() {

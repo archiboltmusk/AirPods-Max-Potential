@@ -13,7 +13,6 @@ public final class AudioDeviceManager: ObservableObject {
     
     private init() {
         refreshDevices()
-        startMonitoring()
     }
     
     public func startMonitoring() {

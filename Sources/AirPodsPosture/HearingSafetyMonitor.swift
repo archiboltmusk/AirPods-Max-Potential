@@ -14,11 +14,7 @@ public final class HearingSafetyMonitor: ObservableObject {
     
     private init() {
         queryVolume()
-        timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.queryVolume()
-            }
-        }
+        // Zero continuous AppleScript polling timers to preserve battery
     }
     
     public func queryVolume() {

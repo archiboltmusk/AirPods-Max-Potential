@@ -12,11 +12,7 @@ public final class SpatialSoundstageManager: ObservableObject {
     private var timer: Timer? = nil
     
     private init() {
-        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.updatePan()
-            }
-        }
+        // Zero continuous timers; updated on demand when enabled
     }
     
     private func updatePan() {

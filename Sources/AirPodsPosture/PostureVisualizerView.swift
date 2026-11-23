@@ -24,6 +24,7 @@ public struct PostureVisualizerView: View {
     }
     
     @State private var selectedRigMode: VisualizerRigMode = .hergeCompanion
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     
     public init(motion: MotionManager) {
         self.motion = motion
@@ -480,6 +481,8 @@ public struct CREDAxisMeterCard: View {
         }
         .padding(14)
         .credInsetTrough(cornerRadius: 14)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(String(format: "%+.1f", value)) degrees, \(description)")
         .frame(maxWidth: .infinity)
     }
 }

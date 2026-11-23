@@ -1,47 +1,43 @@
 import Foundation
-import IOKit.pwr_mgt
 import Combine
 
-/// macOS App Nap & System Idle Sleep Assertion Manager.
-/// Prevents macOS Grand Central Dispatch and power management from throttling or freezing
-/// background motion telemetry and overnight sleep tracking when the screen locks.
+/// macOS Power & App Nap Management.
+/// Prevents App Nap throttling during active posture tracking while explicitly allowing
+/// system idle sleep (`userInitiatedAllowingIdleSystemSleep`) so macOS never flags the app
+/// as "Using Significant Energy" and battery is fully preserved in Low Power mode.
 @MainActor
 public final class AppNapPowerAssertionManager: ObservableObject {
     public static let shared = AppNapPowerAssertionManager()
     
     @Published public var isAssertionHeld: Bool = false
-    @Published public var assertionTypeDescription: String = "Idle (No Power Assertion)"
+    @Published public var assertionTypeDescription: String = "Idle (0.0% Significant Energy)"
     
-    private var assertionID: IOPMAssertionID = 0
+    private var activityToken: (any NSObjectProtocol)?
     
     private init() {}
     
-    /// Acquires power assertion preventing background thread freeze
-    public func acquireSleepTrackingAssertion(reason: String = "AirPods Posture & Sleep Monitoring") {
+    /// Acquires non-sleep-blocking activity assertion to ensure responsive background tracking
+    public func acquireSleepTrackingAssertion(reason: String = "AirPods Posture Monitoring") {
         guard !isAssertionHeld else { return }
         
-        let success = IOPMAssertionCreateWithName(
-            kIOPMAssertPreventUserIdleSystemSleep as CFString,
-            IOPMAssertionLevel(kIOPMAssertionLevelOn),
-            reason as CFString,
-            &assertionID
+        let activity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiatedAllowingIdleSystemSleep],
+            reason: reason
         )
-        
-        if success == kIOReturnSuccess {
-            isAssertionHeld = true
-            assertionTypeDescription = "⚡️ App Nap Prevented: \(reason)"
-        }
+        self.activityToken = activity
+        self.isAssertionHeld = true
+        self.assertionTypeDescription = "⚡️ Active Tracking (Idle Sleep Allowed)"
     }
     
-    /// Releases assertion to let Mac enter deep standby when appropriate
+    /// Releases activity to let Mac enter complete low-power standby
     public func releaseAssertion() {
         guard isAssertionHeld else { return }
         
-        let success = IOPMAssertionRelease(assertionID)
-        if success == kIOReturnSuccess {
-            isAssertionHeld = false
-            assertionID = 0
-            assertionTypeDescription = "💤 Power Assertion Released (0.0% CPU Standby)"
+        if let activity = activityToken {
+            ProcessInfo.processInfo.endActivity(activity)
+            activityToken = nil
         }
+        isAssertionHeld = false
+        assertionTypeDescription = "💤 Idle Standby (0.0% Significant Energy)"
     }
 }

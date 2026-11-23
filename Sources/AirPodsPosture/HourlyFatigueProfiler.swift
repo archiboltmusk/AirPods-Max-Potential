@@ -146,11 +146,13 @@ public final class HourlyFatigueProfiler: ObservableObject {
     }
 
     private func startPeriodicSave() {
-        saveTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+        let timer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.saveToday()
             }
         }
+        timer.tolerance = 60.0
+        saveTimer = timer
     }
 
     // MARK: - CSV Export

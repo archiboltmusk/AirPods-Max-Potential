@@ -40,7 +40,6 @@ public final class AirPodsInsertionFitSentinel: NSObject, ObservableObject, CMHe
         super.init()
         checkAudioRouting()
         setupAudioNotifications()
-        startContinuityWatchdog()
     }
     
     // MARK: - 1. Programmatic Audio Route & Ear Detection Verification

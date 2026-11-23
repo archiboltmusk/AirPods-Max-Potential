@@ -29,15 +29,7 @@ public final class StandUpSquadLANManager: ObservableObject {
     private var broadcastTimer: Timer?
     
     private init() {
-        startLocalBroadcast()
-    }
-    
-    private func startLocalBroadcast() {
-        broadcastTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.recalculateSquadStats()
-            }
-        }
+        // Zero continuous timers; stats evaluated on user interaction
     }
     
     private func recalculateSquadStats() {

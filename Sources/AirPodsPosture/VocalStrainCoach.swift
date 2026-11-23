@@ -28,8 +28,7 @@ public final class VocalStrainCoach: ObservableObject {
     private var continuousMicTimer: Timer?
     
     private init() {
-        startMicPolling()
-        startSpeakingDurationTracker()
+        // Zero continuous timers; evaluated on-demand
     }
     
     private func startSpeakingDurationTracker() {

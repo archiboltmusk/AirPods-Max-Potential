@@ -23,6 +23,8 @@ public struct PostureTabContentView: View {
                     .credCard(cornerRadius: 16, elevation: 6)
                 }
 
+                PostureVisualizerView(motion: motion)
+
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Today")
                         .font(.title3.weight(.semibold))
@@ -31,6 +33,8 @@ public struct PostureTabContentView: View {
                         metric("Drift events", value: "\(motion.slouchEventCount)")
                     }
                 }
+
+                BiomechanicalHeatmapView()
 
                 Menu("More actions") {
                     Button(companion.isCompanionVisible ? "Hide Posture Buddy" : "Show Posture Buddy") {
@@ -113,8 +117,8 @@ public struct PostureTabContentView: View {
 
     private var statusTitle: String {
         if motion.isSimulated { return "Demo mode" }
-        if !motion.isConnected { return "Connect your AirPods" }
         if !motion.isTracking { return "Tracking stopped" }
+        if !motion.isConnected { return "Connect your AirPods" }
         if !motion.isCalibrated { return "Set your baseline" }
         if motion.isSnoozed { return "Reminders snoozed" }
         return "Tracking head angle"
@@ -122,8 +126,8 @@ public struct PostureTabContentView: View {
 
     private var statusDetail: String {
         if motion.isSimulated { return "The displayed angles are simulated." }
-        if !motion.isConnected { return "Wear your AirPods and connect them to this Mac." }
         if !motion.isTracking { return "Start tracking to resume live head-angle feedback." }
+        if !motion.isConnected { return "Wear your AirPods and connect them to this Mac." }
         if !motion.isCalibrated { return "Look where you normally work and hold still while you calibrate." }
         if motion.isSnoozed { return "You can resume reminders whenever you’re ready." }
         return "Your head angle is measured relative to your calibrated position."
@@ -134,11 +138,14 @@ public struct PostureTabContentView: View {
         if motion.isSimulated {
             Button("Exit demo") { motion.toggleSimulation() }
                 .buttonStyle(.borderedProminent)
-        } else if motion.isConnected {
-            if !motion.isTracking {
-                Button("Start tracking") { motion.startTracking() }
-                    .buttonStyle(.borderedProminent)
-            } else if !motion.isCalibrated {
+        } else if !motion.isTracking {
+            Button("Start tracking") { motion.startTracking() }
+                .buttonStyle(.borderedProminent)
+        } else if !motion.isConnected {
+            Button("Try demo") { motion.toggleSimulation() }
+                .buttonStyle(.bordered)
+        } else {
+            if !motion.isCalibrated {
                 Button("Calibrate") { calibrate() }
                     .buttonStyle(.borderedProminent)
             } else if motion.isSnoozed {

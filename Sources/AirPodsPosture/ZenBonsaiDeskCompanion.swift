@@ -14,15 +14,7 @@ public final class ZenBonsaiDeskCompanion: ObservableObject {
     private var timer: Timer? = nil
     
     private init() {
-        startLoop()
-    }
-    
-    private func startLoop() {
-        timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.evaluateBonsai()
-            }
-        }
+        // Evaluated on posture events rather than running continuous timers
     }
     
     private func evaluateBonsai() {

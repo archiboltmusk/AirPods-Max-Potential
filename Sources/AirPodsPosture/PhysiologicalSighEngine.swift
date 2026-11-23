@@ -31,7 +31,7 @@ public final class PhysiologicalSighEngine: ObservableObject {
     private var audioEngine: AVAudioEngine?
     
     private init() {
-        startStressMonitor()
+        // Zero persistent timers; evaluated on-demand
     }
     
     private func startStressMonitor() {
