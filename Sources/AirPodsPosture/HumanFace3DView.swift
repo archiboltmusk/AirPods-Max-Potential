@@ -1,6 +1,5 @@
 import SwiftUI
 import SceneKit
-import ModelIO
 import simd
 
 public enum EarwearStyle: String, CaseIterable, Identifiable {
@@ -266,9 +265,7 @@ public struct HumanFace3DView: NSViewRepresentable {
         guard let url = Bundle.main.url(forResource: "human_head", withExtension: "obj")
                 ?? Bundle.module.url(forResource: "human_head", withExtension: "obj") else { return nil }
 
-        let asset = MDLAsset(url: url)
-        let meshes = asset.childObjects(of: MDLMesh.self).compactMap { $0 as? MDLMesh }
-        guard !meshes.isEmpty else { return nil }
+        guard let scene = try? SCNScene(url: url, options: nil) else { return nil }
 
         let ceramic = SCNMaterial()
         ceramic.lightingModel = .physicallyBased
@@ -278,13 +275,17 @@ public struct HumanFace3DView: NSViewRepresentable {
         ceramic.shaderModifiers = [.surface: facialDetailShader]
 
         let bust = SCNNode()
-        for mesh in meshes {
-            mesh.addNormals(withAttributeNamed: MDLVertexAttributeNormal, creaseThreshold: 0.5)
-            let geometry = SCNGeometry(mdlMesh: mesh)
+        for child in scene.rootNode.childNodes {
+            bust.addChildNode(child)
+        }
+        var hasGeometry = false
+        bust.enumerateChildNodes { node, _ in
+            guard let geometry = node.geometry else { return }
+            hasGeometry = true
             geometry.subdivisionLevel = 1
             geometry.materials = Array(repeating: ceramic, count: max(1, geometry.geometryElementCount))
-            bust.addChildNode(SCNNode(geometry: geometry))
         }
+        guard hasGeometry else { return nil }
         bust.scale = SCNVector3(x: 0.28, y: 0.28, z: 0.28)
         return bust
     }
