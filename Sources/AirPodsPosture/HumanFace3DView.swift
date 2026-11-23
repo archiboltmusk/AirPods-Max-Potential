@@ -1,5 +1,6 @@
 import SwiftUI
 import SceneKit
+import simd
 
 public enum EarwearStyle: String, CaseIterable, Identifiable {
     case airPodsPro = "AirPods Pro"
@@ -23,6 +24,7 @@ public struct HumanFace3DView: NSViewRepresentable {
     public let yaw: Double
     public let postureScore: Int
     public let earwearStyle: EarwearStyle
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     public init(
         pitch: Double,
@@ -43,6 +45,7 @@ public struct HumanFace3DView: NSViewRepresentable {
         let scene = SCNScene()
         scnView.scene = scene
         scnView.backgroundColor = .clear
+        scene.background.contents = NSColor.clear
         scnView.antialiasingMode = .multisampling4X
         scnView.autoenablesDefaultLighting = false
         scnView.allowsCameraControl = false
@@ -51,8 +54,9 @@ public struct HumanFace3DView: NSViewRepresentable {
         let cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
         cameraNode.camera?.fieldOfView = 34
-        cameraNode.position = SCNVector3(x: 0, y: 0.15, z: 7.2)
+        cameraNode.position = SCNVector3(x: 0, y: 0.15, z: 5.8)
         scene.rootNode.addChildNode(cameraNode)
+        scnView.pointOfView = cameraNode
         
         // 2. Cinematic Apple Keynote 3-Point Lighting Rig
         let keyLight = SCNNode()
@@ -88,67 +92,26 @@ public struct HumanFace3DView: NSViewRepresentable {
         ambientLight.light?.color = NSColor(red: 0.35, green: 0.34, blue: 0.35, alpha: 1.0)
         scene.rootNode.addChildNode(ambientLight)
         
-        // 3. Studio Ground Pedestal (Grounded Physical Pedestal, NOT a floating halo)
-        let pedestalNode = SCNNode()
-        pedestalNode.name = "pedestalNode"
-        let discGeo = SCNCylinder(radius: 1.35, height: 0.03)
-        let discMat = SCNMaterial()
-        discMat.lightingModel = .physicallyBased
-        discMat.diffuse.contents = NSColor(white: 0.15, alpha: 0.8)
-        discMat.metalness.contents = 0.85
-        discMat.roughness.contents = 0.25
-        discGeo.materials = [discMat]
-        pedestalNode.geometry = discGeo
-        pedestalNode.position = SCNVector3(x: 0, y: -1.22, z: 0)
-        scene.rootNode.addChildNode(pedestalNode)
-        
-        // 4. Human Head Assembly Root
         let headAssembly = SCNNode()
         headAssembly.name = "humanHeadAssembly"
-        
-        // Load the anatomically sculpted human head OBJ model
-        var loadedMeshNode: SCNNode? = nil
-        let bundleResourceURL = Bundle.main.url(forResource: "human_head", withExtension: "obj")
-        let fallbackPath = "/Users/anupam/.gemini/antigravity/scratch/AirPodsMaxPotential/Sources/AirPodsPosture/Resources/human_head.obj"
-        let fallbackURL = URL(fileURLWithPath: fallbackPath)
-        let targetURL = bundleResourceURL ?? (FileManager.default.fileExists(atPath: fallbackPath) ? fallbackURL : nil)
-        
-        if let url = targetURL, let headScene = try? SCNScene(url: url, options: [.checkConsistency: false]) {
-            let container = SCNNode()
-            for child in headScene.rootNode.childNodes {
-                container.addChildNode(child)
-            }
-            
-            // Apply Studio Ceramic / Silicone Skin Shader
-            container.enumerateHierarchy { (node, _) in
-                if let geo = node.geometry {
-                    let skinMat = SCNMaterial()
-                    skinMat.lightingModel = .physicallyBased
-                    skinMat.diffuse.contents = NSColor(red: 0.89, green: 0.86, blue: 0.82, alpha: 1.0)
-                    skinMat.roughness.contents = 0.45
-                    skinMat.metalness.contents = 0.08
-                    geo.materials = [skinMat]
-                }
-            }
-            
-            // Normalize scale and center: scale = 0.28 places head span perfectly in viewport
-            container.scale = SCNVector3(x: 0.28, y: 0.28, z: 0.28)
-            container.position = SCNVector3(x: 0, y: 0, z: 0)
-            loadedMeshNode = container
-        }
-        
-        if let meshNode = loadedMeshNode {
-            headAssembly.addChildNode(meshNode)
+        // Keep the rotational center near the base of the skull.
+        headAssembly.pivot = SCNMatrix4MakeTranslation(0, -0.24, -0.10)
+        headAssembly.position = SCNVector3(x: 0, y: -0.24, z: -0.10)
+
+        if let bust = Self.makeBust() {
+            headAssembly.addChildNode(bust)
         } else {
-            let fallbackHead = SCNNode(geometry: SCNSphere(radius: 1.0))
-            fallbackHead.geometry?.firstMaterial?.diffuse.contents = NSColor(red: 0.89, green: 0.86, blue: 0.82, alpha: 1.0)
-            headAssembly.addChildNode(fallbackHead)
+            let icon = SCNText(string: "3D model unavailable", extrusionDepth: 0)
+            icon.font = NSFont.systemFont(ofSize: 12)
+            icon.firstMaterial?.diffuse.contents = NSColor.white
+            let label = SCNNode(geometry: icon)
+            let (minimum, maximum) = label.boundingBox
+            label.pivot = SCNMatrix4MakeTranslation((minimum.x + maximum.x) / 2, 0, 0)
+            label.scale = SCNVector3(x: 0.02, y: 0.02, z: 0.02)
+            scene.rootNode.addChildNode(label)
+            return scnView
         }
-        
-        // 5. Build Earwear Nodes with Precision Anatomical Ear Alignment
-        // Left ear concha center: X = -0.445, Y = 0.265, Z = 0.055
-        // Right ear concha center: X = 0.405, Y = 0.265, Z = 0.055
-        
+
         // --- AIRPODS PRO 2 RIG ---
         let airPodsProNode = SCNNode()
         airPodsProNode.name = "airPodsProRig"
@@ -202,12 +165,12 @@ public struct HumanFace3DView: NSViewRepresentable {
         }
         
         let leftPro = createAirPodPro(isLeft: true)
-        leftPro.position = SCNVector3(x: -0.445, y: 0.265, z: 0.055)
+        leftPro.position = SCNVector3(x: -0.485, y: 0.32, z: 0.05)
         leftPro.eulerAngles = SCNVector3(x: 0.26, y: -0.16, z: 0.18)
         airPodsProNode.addChildNode(leftPro)
         
         let rightPro = createAirPodPro(isLeft: false)
-        rightPro.position = SCNVector3(x: 0.405, y: 0.265, z: 0.055)
+        rightPro.position = SCNVector3(x: 0.445, y: 0.32, z: 0.03)
         rightPro.eulerAngles = SCNVector3(x: 0.26, y: 0.16, z: -0.18)
         airPodsProNode.addChildNode(rightPro)
         
@@ -239,9 +202,8 @@ public struct HumanFace3DView: NSViewRepresentable {
             let cup = SCNNode()
             
             // Outer anodized aluminum ear cup
-            let shell = SCNNode(geometry: SCNCylinder(radius: 0.125, height: 0.055))
+            let shell = SCNNode(geometry: SCNBox(width: 0.073, height: 0.36, length: 0.28, chamferRadius: 0.036))
             shell.geometry?.materials = [aluminumCupMat]
-            shell.eulerAngles = SCNVector3(x: 0, y: 0, z: .pi / 2.0)
             cup.addChildNode(shell)
             
             // Inner fabric cushion ring (facing ear concha)
@@ -249,6 +211,7 @@ public struct HumanFace3DView: NSViewRepresentable {
             cushion.geometry?.materials = [cushionMat]
             cushion.position = SCNVector3(x: isLeft ? 0.028 : -0.028, y: 0, z: 0)
             cushion.eulerAngles = SCNVector3(x: 0, y: 0, z: .pi / 2.0)
+            cushion.scale = SCNVector3(x: 1.40, y: 1, z: 1.05)
             cup.addChildNode(cushion)
             
             // Telescopic stainless steel extension stem
@@ -261,24 +224,32 @@ public struct HumanFace3DView: NSViewRepresentable {
         }
         
         let leftMaxCup = createMaxCup(isLeft: true)
-        leftMaxCup.position = SCNVector3(x: -0.475, y: 0.268, z: 0.02)
+        leftMaxCup.position = SCNVector3(x: -0.552, y: 0.35, z: 0.005)
         leftMaxCup.eulerAngles = SCNVector3(x: 0.12, y: 0.06, z: -0.08)
         airPodsMaxNode.addChildNode(leftMaxCup)
         
         let rightMaxCup = createMaxCup(isLeft: false)
-        rightMaxCup.position = SCNVector3(x: 0.435, y: 0.268, z: 0.02)
+        rightMaxCup.position = SCNVector3(x: 0.512, y: 0.35, z: -0.015)
         rightMaxCup.eulerAngles = SCNVector3(x: 0.12, y: -0.06, z: 0.08)
         airPodsMaxNode.addChildNode(rightMaxCup)
         
-        // Stainless steel arched canopy headband spanning over the skull crown (Y = 1.12)
-        let archGeo = SCNTorus(ringRadius: 0.62, pipeRadius: 0.022)
-        archGeo.materials = [headbandSteelMat]
-        let archNode = SCNNode(geometry: archGeo)
-        archNode.position = SCNVector3(x: -0.02, y: 0.68, z: 0.01)
-        archNode.eulerAngles = SCNVector3(x: 0.10, y: 0, z: 0)
-        archNode.scale = SCNVector3(x: 0.76, y: 0.74, z: 0.76)
-        airPodsMaxNode.addChildNode(archNode)
-        
+        // Build an open arch that follows the crown and ends at the ear cups.
+        let bandSegments = 32
+        for index in 0..<bandSegments {
+            func point(at step: Int) -> SIMD3<Float> {
+                let angle = Float(step) * .pi / Float(bandSegments)
+                return SIMD3(-0.02 + 0.532 * cos(angle), 0.46 + 0.73 * sin(angle), -0.045)
+            }
+            let start = point(at: index)
+            let end = point(at: index + 1)
+            let segmentGeometry = SCNCapsule(capRadius: 0.023, height: CGFloat(simd_length(end - start)) + 0.046)
+            segmentGeometry.firstMaterial = headbandSteelMat
+            let segment = SCNNode(geometry: segmentGeometry)
+            segment.simdPosition = (start + end) / 2
+            segment.simdOrientation = simd_quatf(from: SIMD3(0, 1, 0), to: simd_normalize(end - start))
+            airPodsMaxNode.addChildNode(segment)
+        }
+
         headAssembly.addChildNode(airPodsMaxNode)
         
         // Configure initial earwear visibility
@@ -289,18 +260,81 @@ public struct HumanFace3DView: NSViewRepresentable {
         return scnView
     }
     
+    private static func makeBust() -> SCNNode? {
+        // The signed app copies resources into Contents/Resources. SwiftPM uses its own bundle.
+        guard let url = Bundle.main.url(forResource: "human_head", withExtension: "obj")
+                ?? Bundle.module.url(forResource: "human_head", withExtension: "obj") else { return nil }
+
+        guard let scene = try? SCNScene(url: url, options: nil) else { return nil }
+
+        let ceramic = SCNMaterial()
+        ceramic.lightingModel = .physicallyBased
+        ceramic.diffuse.contents = NSColor(red: 0.89, green: 0.86, blue: 0.82, alpha: 1)
+        ceramic.roughness.contents = 0.58
+        ceramic.metalness.contents = 0.0
+        ceramic.shaderModifiers = [.surface: facialDetailShader]
+
+        let bust = SCNNode()
+        for child in scene.rootNode.childNodes {
+            bust.addChildNode(child)
+        }
+        var hasGeometry = false
+        bust.enumerateChildNodes { node, _ in
+            guard let geometry = node.geometry else { return }
+            hasGeometry = true
+            geometry.subdivisionLevel = 1
+            geometry.materials = Array(repeating: ceramic, count: max(1, geometry.elementCount))
+        }
+        guard hasGeometry else { return nil }
+        bust.scale = SCNVector3(x: 0.28, y: 0.28, z: 0.28)
+        return bust
+    }
+
+    // Coordinates match the bundled sculpt before the view scales or rotates it.
+    // Keep the tint in model space so it tracks the facial landmarks from every angle.
+    private static let facialDetailShader = """
+        #pragma body
+        vec3 facePosition = (u_inverseModelTransform * u_inverseViewTransform
+                             * vec4(_surface.position, 1.0)).xyz;
+        float front = smoothstep(1.30, 1.90, facePosition.z);
+        float centerX = facePosition.x + 0.08;
+        float eyeX = abs(centerX) - 0.60;
+
+        vec2 socket = vec2(eyeX / 0.40, (facePosition.y - 1.75) / 0.27);
+        float socketTone = exp(-dot(socket, socket) * 1.5);
+        float lidHeight = 1.73 - 0.52 * eyeX * eyeX;
+        vec2 eyelid = vec2(eyeX / 0.30, (facePosition.y - lidHeight) / 0.055);
+        float lidTone = exp(-dot(eyelid, eyelid) * 1.4);
+
+        vec2 cheek = vec2((abs(centerX) - 0.83) / 0.40, (facePosition.y - 1.38) / 0.30);
+        float cheekTone = exp(-dot(cheek, cheek) * 1.3);
+        vec2 nose = vec2(centerX / 0.25, (facePosition.y - 1.08) / 0.22);
+        float noseTone = exp(-dot(nose, nose) * 1.4);
+
+        float lipHeight = 0.46 - 0.38 * centerX * centerX;
+        vec2 lips = vec2(centerX / 0.41, (facePosition.y - lipHeight) / 0.14);
+        float lipTone = exp(-dot(lips, lips) * 1.5);
+        float lipCrease = exp(-pow(abs(facePosition.y - lipHeight - 0.02) / 0.032, 2.0))
+                         * exp(-pow(abs(centerX) / 0.35, 4.0));
+
+        vec3 warmTint = vec3(0.015, -0.049, -0.058) * (cheekTone + noseTone * 0.7)
+                      + vec3(0.006, -0.095, -0.088) * lipTone;
+        float creaseShade = socketTone * 0.032 + lidTone * 0.055 + lipCrease * 0.077;
+        _surface.diffuse.rgb = clamp(_surface.diffuse.rgb + front * (warmTint - vec3(creaseShade)), 0.0, 1.0);
+        """
+
     public func updateNSView(_ nsView: SCNView, context: Context) {
         guard let scene = nsView.scene,
               let headAssembly = scene.rootNode.childNode(withName: "humanHeadAssembly", recursively: false) else { return }
         
         // 1. Instantaneous 60fps Apple Spatial Tracking (Zero Lag)
         SCNTransaction.begin()
-        SCNTransaction.animationDuration = 0.016 // 16ms = 60Hz single-frame sync
+        SCNTransaction.animationDuration = reduceMotion ? 0 : 0.016
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .linear)
         
-        let pRad = CGFloat(pitch * .pi / 180.0)
-        let rRad = CGFloat(roll * .pi / 180.0)
-        let yRad = CGFloat(yaw * .pi / 180.0)
+        let pRad = CGFloat((pitch.isFinite ? pitch : 0) * .pi / 180.0)
+        let rRad = CGFloat((roll.isFinite ? roll : 0) * .pi / 180.0)
+        let yRad = CGFloat((yaw.isFinite ? yaw : 0) * .pi / 180.0)
         
         // Natural 1-to-1 Mirror Reflection Mode (like looking directly into a vanity mirror):
         // • Pitch: Tilting head back (looking up) tilts reflection up/back; slouching tilts down.
