@@ -266,7 +266,7 @@ public struct SettingsView: View {
             
             // 4. Audio, Haptics & Biofeedback
             Section(header: Text("Audio, Haptics & Biofeedback").font(.headline)) {
-                Toggle("Sound Alert on Slouching", isOn: $motion.soundAlertsEnabled)
+                Toggle("Audible Posture Reminders", isOn: $motion.soundAlertsEnabled)
                 
                 if motion.soundAlertsEnabled {
                     Picker("Alert Chime", selection: $motion.alertSoundName) {
