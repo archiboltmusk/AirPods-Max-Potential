@@ -283,7 +283,7 @@ public struct HumanFace3DView: NSViewRepresentable {
             guard let geometry = node.geometry else { return }
             hasGeometry = true
             geometry.subdivisionLevel = 1
-            geometry.materials = Array(repeating: ceramic, count: max(1, geometry.geometryElementCount))
+            geometry.materials = Array(repeating: ceramic, count: max(1, geometry.elementCount))
         }
         guard hasGeometry else { return nil }
         bust.scale = SCNVector3(x: 0.28, y: 0.28, z: 0.28)
