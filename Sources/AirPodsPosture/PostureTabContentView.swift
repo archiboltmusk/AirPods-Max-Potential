@@ -2,297 +2,168 @@ import SwiftUI
 import AirPodsCore
 
 public struct PostureTabContentView: View {
-    @ObservedObject var motion = MotionManager.shared
-    @ObservedObject var glance = GlanceAndLockAutoCalibrator.shared
-    @ObservedObject var companion = FloatingMiniDeskCompanionManager.shared
-    @ObservedObject var torqueEngine = CervicalSpineTorqueEngine.shared
-    @ObservedObject var physioReport = ClinicalPhysioReportExporter.shared
-    @ObservedObject var zupt = AnteriorZUPTKinematicEngine.shared
-    @ObservedObject var fitSentinel = AirPodsInsertionFitSentinel.shared
-    
+    @ObservedObject private var motion = MotionManager.shared
+    @ObservedObject private var companion = FloatingMiniDeskCompanionManager.shared
+    @ObservedObject private var fitSentinel = AirPodsInsertionFitSentinel.shared
+    @State private var showsResetConfirmation = false
+
     public init() {}
-    
+
     public var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
-                // "Glance & Lock" Autonomous Auto-Calibrate Pill
-                if glance.glanceLockHoldProgress > 0 && glance.glanceLockHoldProgress < 1.0 {
-                    HStack(spacing: 8) {
-                        Image(systemName: "sparkles")
-                            .foregroundColor(.cyan)
-                        Text("Auto-Aligning Posture in \(Int(ceil((1.0 - glance.glanceLockHoldProgress) * 2.0)))s...")
-                            .font(.caption.bold())
-                            .foregroundColor(.cyan)
-                        ProgressView(value: glance.glanceLockHoldProgress, total: 1.0)
-                            .progressViewStyle(.linear)
-                            .tint(.cyan)
-                            .frame(width: 80)
+            VStack(alignment: .leading, spacing: 24) {
+                sessionCard
+
+                if motion.isConnected && motion.isCalibrated && motion.isTracking {
+                    HStack(spacing: 16) {
+                        metric("Forward / back", value: angle(motion.deltaPitch))
+                        metric("Side tilt", value: angle(motion.deltaRoll))
                     }
-                    .padding(8)
-                    .background(Color.cyan.opacity(0.12))
-                    .cornerRadius(8)
+                    .padding(20)
+                    .credCard(cornerRadius: 16, elevation: 6)
                 }
-                
-                // Supported Hardware Guidance
-                if !motion.isConnected && !motion.isSimulated {
-                    HStack(spacing: 12) {
-                        Image(systemName: "headphones")
-                            .font(.title3)
-                            .foregroundColor(.cyan)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Connect AirPods Pro, Max, or AirPods 3/4")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.primary)
-                            Text("Spatial head tracking automatically begins when motion-enabled AirPods are worn in ear.")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Button(action: {
-                            motion.toggleSimulation()
-                        }) {
-                            Text("Try Demo")
-                                .font(.system(size: 10, weight: .bold))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Color.cyan.opacity(0.15))
-                                .foregroundColor(.cyan)
-                                .cornerRadius(6)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                    .padding(10)
-                    .background(Color.white.opacity(0.04))
-                    .cornerRadius(10)
-                }
-                
-                // Hero Posture Visualizer with CRED Standard Obsidian styling
+
                 PostureVisualizerView(motion: motion)
-                
-                // Biomechanical Daily Heatmap
-                BiomechanicalHeatmapView()
-                
-                // Slouch-Proof Interlock Warning
-                if let interlock = motion.calibrationInterlockAlert {
-                    HStack(spacing: 8) {
-                        Image(systemName: "hand.raised.fill")
-                            .foregroundColor(.yellow)
-                        Text(interlock)
-                            .font(.caption.bold())
-                            .foregroundColor(.yellow)
-                        Spacer()
-                        Button("Dismiss") {
-                            motion.calibrationInterlockAlert = nil
-                        }
-                        .buttonStyle(.borderless)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Today")
+                        .font(.title3.weight(.semibold))
+                    HStack(spacing: 16) {
+                        metric("Tracked", value: "\(Int(motion.secondsTracked / 60)) min")
+                        metric("Drift events", value: "\(motion.slouchEventCount)")
                     }
-                    .padding(10)
-                    .background(Color.yellow.opacity(0.12))
-                    .cornerRadius(10)
                 }
-                
-                // Action Strip
-                HStack(spacing: 12) {
-                    CREDTactileButton(action: {
-                        _ = motion.calibrateCurrentPosture(force: true)
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "scope")
-                                .foregroundColor(CREDPalette.champagneGold)
-                            Text("CALIBRATE UPRIGHT")
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                .foregroundColor(CREDPalette.platinumWhite)
-                        }
-                    }
-                    .disabled(!motion.isConnected)
-                    
-                    Button(action: {
+
+                BiomechanicalHeatmapView()
+
+                Menu("More actions") {
+                    Button(companion.isCompanionVisible ? "Hide Posture Buddy" : "Show Posture Buddy") {
                         companion.toggleCompanion()
-                    }) {
-                        Label(companion.isCompanionVisible ? "Hide Mascot" : "Float Posture Buddy", systemImage: "person.crop.artzone")
                     }
-                    .buttonStyle(.bordered)
-                    
-                    // Snooze Menu
-                    if motion.isSnoozed {
-                        Button(action: { motion.clearSnooze() }) {
-                            Label("Clear Snooze", systemImage: "play.circle")
-                        }
-                        .buttonStyle(.bordered)
-                    } else {
-                        Menu {
-                            Button("Snooze 5 mins") { motion.snooze(minutes: 5) }
-                            Button("Snooze 15 mins") { motion.snooze(minutes: 15) }
-                            Button("Snooze 30 mins") { motion.snooze(minutes: 30) }
-                        } label: {
-                            Label("Snooze", systemImage: "moon.zzz")
-                        }
+                    Button("AirPods fit guide") {
+                        fitSentinel.isFitGuidePresented = true
                     }
-                    
-                    Button(action: {
-                        motion.toggleSimulation()
-                    }) {
-                        Label(motion.isSimulated ? "Exit Demo" : "Try Demo", systemImage: "wand.and.stars")
+                    Button("Reset today’s stats", role: .destructive) {
+                        showsResetConfirmation = true
                     }
-                    .buttonStyle(.bordered)
-                    
+                }
+                .fixedSize()
+            }
+            .padding(24)
+            .frame(maxWidth: 960)
+            .frame(maxWidth: .infinity)
+        }
+        .confirmationDialog("Reset today’s stats?", isPresented: $showsResetConfirmation) {
+            Button("Reset stats", role: .destructive) {
+                motion.secondsTracked = 0
+                motion.secondsGoodPosture = 0
+                motion.secondsSlouching = 0
+                motion.slouchEventCount = 0
+            }
+        } message: {
+            Text("This clears the current tracking totals and drift count.")
+        }
+    }
+
+    private func angle(_ degrees: Double) -> String {
+        guard degrees.isFinite else { return "Unavailable" }
+        return String(format: "%+.1f°", degrees)
+    }
+
+    private func metric(_ title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.title3.weight(.semibold).monospacedDigit())
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var sessionCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(statusTitle)
+                        .font(.title2.weight(.semibold))
+                    Text(statusDetail)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 8)
+                sessionAction
+            }
+
+            if let interlock = motion.calibrationInterlockAlert {
+                HStack(alignment: .firstTextBaseline) {
+                    Label(interlock, systemImage: "exclamationmark.triangle")
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer()
-                    
-                    Button("Reset Today's Stats") {
-                        motion.secondsTracked = 0
-                        motion.secondsGoodPosture = 0
-                        motion.secondsSlouching = 0
-                        motion.slouchEventCount = 0
+                    Button("Dismiss") {
+                        motion.calibrationInterlockAlert = nil
                     }
                     .buttonStyle(.borderless)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
                 }
-                .padding(.horizontal, 4)
-                
-                // Kapandji Cervical Spine Torque & Biomechanical Disc Load Card
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        HStack(spacing: 6) {
-                            Image(systemName: "scalemass.fill")
-                                .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 15.0 ? CREDPalette.moltenRuby : CREDPalette.emeraldPlasma)
-                            Text("CERVICAL SPINE TORQUE & C5–C7 DISC COMPRESSION")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
-                                .foregroundColor(CREDPalette.platinumWhite)
-                        }
-                        Spacer()
-                        Text(torqueEngine.currentLoad.discCompressionRisk.rawValue.uppercased())
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 15.0 ? CREDPalette.champagneGold : CREDPalette.emeraldPlasma)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(CREDPalette.insetTrough)
-                            .clipShape(Capsule())
-                    }
-                    
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                Text(String(format: "%.1f", torqueEngine.currentLoad.effectiveLoadLbs))
-                                    .font(.system(size: 22, weight: .heavy, design: .monospaced))
-                                    .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 15.0 ? CREDPalette.champagneGold : CREDPalette.platinumWhite)
-                                Text("LBS")
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                    .foregroundColor(CREDPalette.phantomGray)
-                                Text("(\(String(format: "%.1f", torqueEngine.currentLoad.effectiveLoadKg)) kg)")
-                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                    .foregroundColor(CREDPalette.phantomGray)
-                            }
-                            Text("EFFECTIVE NECK LOAD")
-                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                                .foregroundColor(CREDPalette.phantomGray)
-                        }
-                        
-                        Divider().frame(height: 36)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("+\(Int(torqueEngine.currentLoad.extraTorqueOverheadLbs)) LBS")
-                                .font(.system(size: 16, weight: .bold, design: .monospaced))
-                                .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 0 ? CREDPalette.moltenRuby : CREDPalette.emeraldPlasma)
-                            Text("EXTRA SLOUCH SHEAR")
-                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                                .foregroundColor(CREDPalette.phantomGray)
-                        }
-                        
-                        Divider().frame(height: 36)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(Int(torqueEngine.cumulativeDayTorquePoundHours))")
-                                .font(.system(size: 16, weight: .bold, design: .monospaced))
-                                .foregroundColor(CREDPalette.platinumWhite)
-                            Text("CUMULATIVE LB-HOURS")
-                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                                .foregroundColor(CREDPalette.phantomGray)
-                        }
-                        
-                        Divider().frame(height: 36)
-                        
-                        // ZUPT Anterior Translation (Tech Neck Detector)
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                Text(String(format: "%+.1f", zupt.anteriorDisplacementCm))
-                                    .font(.system(size: 16, weight: .bold, design: .monospaced))
-                                    .foregroundColor(zupt.isTechNeckDetected ? CREDPalette.champagneGold : CREDPalette.emeraldPlasma)
-                                Text("CM")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundColor(CREDPalette.phantomGray)
-                            }
-                            Text(zupt.isTechNeckDetected ? "TECH NECK POKE" : "CHIN FORWARD")
-                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                                .foregroundColor(zupt.isTechNeckDetected ? CREDPalette.champagneGold : CREDPalette.phantomGray)
-                        }
-                        
-                        Spacer()
-                        
-                        // 1-Click Clinical PDF Report Exporter
-                        Button(action: {
-                            _ = physioReport.generateClinicalReportPDF()
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "doc.text.fill")
-                                    .foregroundColor(CREDPalette.electricCyan)
-                                Text("EXPORT PHYSIO PDF")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundColor(CREDPalette.platinumWhite)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(CREDPalette.insetTrough)
-                            .cornerRadius(8)
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(CREDPalette.specularRimStroke, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    
-                    HStack {
-                        Text(zupt.statusDescription.uppercased())
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(zupt.currentPattern == .optimal ? CREDPalette.emeraldPlasma : CREDPalette.champagneGold)
-                        Spacer()
-                        Text(zupt.activityMode == .walkingActive ? "🚶‍♂️ WALKING ACTIVE (\(String(format: "%.1f", zupt.stepCadenceHz)) Hz)" : "💻 DESK SITTING MODE")
-                            .font(.system(size: 9, weight: .medium, design: .monospaced))
-                            .foregroundColor(CREDPalette.phantomGray)
-                    }
-                    
-                    Text(torqueEngine.reliefCallToAction)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(torqueEngine.currentLoad.extraTorqueOverheadLbs > 10.0 ? CREDPalette.champagneGold : CREDPalette.phantomGray)
-                    
-                    Divider()
-                    
-                    HStack {
-                        HStack(spacing: 5) {
-                            Circle().fill(CREDPalette.emeraldPlasma).frame(width: 6, height: 6)
-                            Text("PERMANENT EAR-FIT HORIZON")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
-                                .foregroundColor(CREDPalette.emeraldPlasma)
-                        }
-                        Spacer()
-                        Button(action: {
-                            fitSentinel.isFitGuidePresented = true
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: fitSentinel.isProperlySeated ? "ear.badge.checkmark" : "ear.trianglebadge.exclamationmark")
-                                    .foregroundColor(fitSentinel.isProperlySeated ? CREDPalette.emeraldPlasma : CREDPalette.champagneGold)
-                                Text("\(fitSentinel.fitQualityScore)% SEAL")
-                                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                                    .foregroundColor(fitSentinel.isProperlySeated ? CREDPalette.emeraldPlasma : CREDPalette.champagneGold)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(16)
-                .credCard(cornerRadius: 16, elevation: 6)
+                .font(.callout)
+                .foregroundStyle(CREDPalette.champagneGold)
             }
-            .padding(20)
         }
+        .padding(20)
+        .credCard(cornerRadius: 16, elevation: 6)
+    }
+
+    private var statusTitle: String {
+        if motion.isSimulated { return "Demo mode" }
+        if !motion.isTracking { return "Tracking stopped" }
+        if !motion.isConnected { return "Connect your AirPods" }
+        if !motion.isCalibrated { return "Set your baseline" }
+        if motion.isSnoozed { return "Reminders snoozed" }
+        return "Tracking head angle"
+    }
+
+    private var statusDetail: String {
+        if motion.isSimulated { return "The displayed angles are simulated." }
+        if !motion.isTracking { return "Start tracking to resume live head-angle feedback." }
+        if !motion.isConnected { return "Wear your AirPods and connect them to this Mac." }
+        if !motion.isCalibrated { return "Look where you normally work and hold still while you calibrate." }
+        if motion.isSnoozed { return "You can resume reminders whenever you’re ready." }
+        return "Your head angle is measured relative to your calibrated position."
+    }
+
+    @ViewBuilder
+    private var sessionAction: some View {
+        if motion.isSimulated {
+            Button("Exit demo") { motion.toggleSimulation() }
+                .buttonStyle(.borderedProminent)
+        } else if !motion.isTracking {
+            Button("Start tracking") { motion.startTracking() }
+                .buttonStyle(.borderedProminent)
+        } else if !motion.isConnected {
+            Button("Try demo") { motion.toggleSimulation() }
+                .buttonStyle(.bordered)
+        } else {
+            if !motion.isCalibrated {
+                Button("Calibrate") { calibrate() }
+                    .buttonStyle(.borderedProminent)
+            } else if motion.isSnoozed {
+                Button("Resume reminders") { motion.clearSnooze() }
+                    .buttonStyle(.borderedProminent)
+            } else {
+                Menu("Session actions") {
+                    Button("Recalibrate") { calibrate() }
+                    Button("Snooze reminders for 5 minutes") { motion.snooze(minutes: 5) }
+                    Button("Snooze reminders for 15 minutes") { motion.snooze(minutes: 15) }
+                    Button("Snooze reminders for 30 minutes") { motion.snooze(minutes: 30) }
+                }
+                .fixedSize()
+            }
+        }
+    }
+
+    private func calibrate() {
+        _ = motion.calibrateCurrentPosture()
     }
 }
