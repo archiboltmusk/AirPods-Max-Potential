@@ -67,6 +67,8 @@ public struct MiniCompanionContentView: View {
     @ObservedObject var motion = MotionManager.shared
     @ObservedObject var companion = FloatingMiniDeskCompanionManager.shared
     
+    @AppStorage("postureFaceEarwear") private var earwearStyle: EarwearStyle = .airPodsPro
+
     private var rimColor: Color {
         if motion.postureScore >= 80 {
             return .cyan
@@ -102,10 +104,12 @@ public struct MiniCompanionContentView: View {
                     pitch: motion.deltaPitch,
                     roll: motion.deltaRoll,
                     yaw: motion.deltaYaw,
-                    postureScore: motion.postureScore
+                    postureScore: motion.postureScore,
+                    earwearStyle: earwearStyle
                 )
                 .frame(width: 130, height: 130)
                 .clipShape(Circle())
+                .accessibilityHidden(true)
                 
                 // Bottom Score Badge
                 VStack {

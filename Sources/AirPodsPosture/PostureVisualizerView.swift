@@ -23,7 +23,8 @@ public struct PostureVisualizerView: View {
         }
     }
     
-    @State private var selectedRigMode: VisualizerRigMode = .hergeCompanion
+    @AppStorage("postureVisualizerRig") private var selectedRigMode: VisualizerRigMode = .humanFace
+    @AppStorage("postureFaceEarwear") private var earwearStyle: EarwearStyle = .airPodsPro
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     
     public init(motion: MotionManager) {
@@ -245,8 +246,10 @@ public struct PostureVisualizerView: View {
                                 pitch: motion.deltaPitch,
                                 roll: motion.deltaRoll,
                                 yaw: motion.deltaYaw,
-                                postureScore: motion.postureScore
+                                postureScore: motion.postureScore,
+                                earwearStyle: earwearStyle
                             )
+                            .accessibilityHidden(true)
                         case .agamemnon:
                             AgamemnonOdysseySpineView(
                                 pitch: motion.deltaPitch,
@@ -314,6 +317,15 @@ public struct PostureVisualizerView: View {
             }
             .frame(height: 300)
             
+            if selectedRigMode == .humanFace {
+                Picker("Face appearance", selection: $earwearStyle) {
+                    ForEach(EarwearStyle.allCases) { style in
+                        Label(style.rawValue, systemImage: style.icon).tag(style)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
             // MARK: - CRED Rig Mode Switcher (Sunken Dock)
             HStack(spacing: 6) {
                 ForEach(VisualizerRigMode.allCases) { mode in

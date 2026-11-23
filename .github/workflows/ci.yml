@@ -39,5 +39,6 @@ jobs:
           test -d AirPodsPosture.app
           test -f AirPodsPosture.app/Contents/MacOS/AirPodsPosture
           test -f AirPodsPosture.app/Contents/Info.plist
+          test -s AirPodsPosture.app/Contents/Resources/human_head.obj
           codesign --verify --verbose AirPodsPosture.app
           echo "✅ Application bundle passed all integrity and codesign checks!"
