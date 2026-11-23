@@ -45,7 +45,7 @@ public final class TieredPostureEscalationEngine: ObservableObject {
     }
     
     /// Evaluates slouch duration and triggers the appropriate graduated tier
-    public func updateSlouchDuration(isCompromised: Bool, deltaPitch: Double, deltaRoll: Double) {
+    public func updateSlouchDuration(isCompromised: Bool, deltaPitch: Double, deltaRoll: Double, allowsAudio: @autoclosure () -> Bool = false) {
         let now = Date()
         
         if isCompromised {
@@ -55,23 +55,24 @@ public final class TieredPostureEscalationEngine: ObservableObject {
             escalationTimeSeconds = now.timeIntervalSince(slouchStartTime!)
             
             if escalationTimeSeconds >= 60.0 {
-                transitionTo(tier: .tier3_AudioChime, pitch: deltaPitch, roll: deltaRoll)
+                transitionTo(tier: .tier3_AudioChime, pitch: deltaPitch, roll: deltaRoll, allowsAudio: allowsAudio)
             } else if escalationTimeSeconds >= 30.0 {
-                transitionTo(tier: .tier2_SpatialShift, pitch: deltaPitch, roll: deltaRoll)
+                transitionTo(tier: .tier2_SpatialShift, pitch: deltaPitch, roll: deltaRoll, allowsAudio: allowsAudio)
             } else if escalationTimeSeconds >= 15.0 {
-                transitionTo(tier: .tier1_VisualOnly, pitch: deltaPitch, roll: deltaRoll)
+                transitionTo(tier: .tier1_VisualOnly, pitch: deltaPitch, roll: deltaRoll, allowsAudio: allowsAudio)
             } else {
                 currentTier = .optimal
             }
-        } else {
+        } else if slouchStartTime != nil {
             slouchStartTime = nil
             escalationTimeSeconds = 0.0
             currentTier = .optimal
             lastTierTriggered = .optimal
+            statusMessage = "Escalation Engine Ready"
         }
     }
     
-    private func transitionTo(tier: EscalationTier, pitch: Double, roll: Double) {
+    private func transitionTo(tier: EscalationTier, pitch: Double, roll: Double, allowsAudio: () -> Bool) {
         currentTier = tier
         guard tier != lastTierTriggered else { return }
         lastTierTriggered = tier
@@ -85,13 +86,15 @@ public final class TieredPostureEscalationEngine: ObservableObject {
             
         case .tier2_SpatialShift:
             statusMessage = "Tier 2: Subtle Spatial Panning Shift"
-            SyntheticEarHapticEngine.shared.playGentleDoubleTap()
+            if allowsAudio() {
+                SyntheticEarHapticEngine.shared.playDirectionalPostureCue(pitch: pitch, roll: roll)
+            } else {
+                SyntheticEarHapticEngine.shared.performTrackpadHaptic()
+            }
             
         case .tier3_AudioChime:
             statusMessage = "Tier 3: Posture Alert Triggered"
-            let inCall = CallActivitySentinel.shared.shouldSuppressAudioCue()
-            
-            if isOutputMuted || inCall {
+            if isOutputMuted || !allowsAudio() {
                 // Audio is muted or user is in a meeting; fallback to macOS notification banner
                 fallbackNotificationsSentCount += 1
                 NotificationManager.shared.sendSlouchNotification(pitch: pitch, roll: roll)

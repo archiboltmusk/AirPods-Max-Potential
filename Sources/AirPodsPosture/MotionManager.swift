@@ -219,13 +219,14 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     
     public func snooze(minutes: Double) {
         snoozeUntil = Date().addingTimeInterval(minutes * 60.0)
+        resetPostureReminder()
         postureState = .snoozed
         playFeedbackSound("Pop")
     }
     
     public func clearSnooze() {
         snoozeUntil = nil
-        postureState = .optimal
+        postureState = isTracking && isConnected ? .optimal : .disconnected
         playFeedbackSound("Pop")
     }
     
@@ -277,6 +278,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             motionManager.stopDeviceMotionUpdates()
         }
         isTracking = false
+        resetPostureReminder()
         AppNapPowerAssertionManager.shared.releaseAssertion()
         postureState = .disconnected
     }
@@ -316,8 +318,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         deltaYaw = 0.0
         postureScore = 100
         postureState = isSnoozed ? .snoozed : .optimal
-        warningStartTime = nil
-        warningProgress = 0.0
+        resetPostureReminder()
         savePreferences()
         
         if isSilentAuto {
@@ -337,6 +338,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     }
     
     public func toggleSimulation() {
+        resetPostureReminder()
         isSimulated.toggle()
         if isSimulated {
             motionManager.stopDeviceMotionUpdates()
@@ -362,10 +364,14 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         source: String,
         sensorLocation: Int = 1
     ) {
-        guard !isSimulated else { return }
+        guard isTracking, !isSimulated else { return }
         guard AdaptiveSleepDutyCycle.shared.shouldProcessSampleInDutyCycle() else { return }
         
         let now = Date()
+        if let lastPacketDate, now.timeIntervalSince(lastPacketDate) > 5.0 {
+            resetPostureReminder()
+            postureState = .disconnected
+        }
         self.activeSensorLocationRaw = sensorLocation
         packetCount += 1
         lastPacketDate = now
@@ -525,7 +531,18 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         evaluatePosture()
     }
     
+    private func resetPostureReminder() {
+        warningStartTime = nil
+        warningProgress = 0
+        uprightRecoveryStartTime = nil
+        isRecoveringHysteresis = false
+        TieredPostureEscalationEngine.shared.updateSlouchDuration(
+            isCompromised: false, deltaPitch: 0, deltaRoll: 0
+        )
+    }
+
     private func evaluatePosture() {
+        guard isTracking else { return }
         detectGestures(pitch: deltaPitch, yaw: deltaYaw)
         
         // 1. Calculate live posture score on every frame (reactive and smooth)
@@ -541,9 +558,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         // 2. Collarbone neck-rest / Snooze check
         if AirPodsWearStateSentinel.shared.isRestingOnNeck || isSnoozed {
             postureState = .snoozed
-            warningProgress = 0.0
-            warningStartTime = nil
-            TieredPostureEscalationEngine.shared.updateSlouchDuration(isCompromised: false, deltaPitch: 0, deltaRoll: 0)
+            resetPostureReminder()
         } else {
             let effectivePitchThreshold = pitchThreshold
             let isPitchBad = pitchDeviation > effectivePitchThreshold
@@ -552,7 +567,8 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
             TieredPostureEscalationEngine.shared.updateSlouchDuration(
                 isCompromised: isPitchBad || isRollBad,
                 deltaPitch: deltaPitch,
-                deltaRoll: deltaRoll
+                deltaRoll: deltaRoll,
+                allowsAudio: canPlayPostureAudio
             )
             
             if isPitchBad || isRollBad {
@@ -570,16 +586,13 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
                     if postureState != .slouching {
                         if !TypingFlowStateGatingManager.shared.shouldSuppressAlertForFlow() {
                             slouchEventCount += 1
+                            postureState = .slouching
                             triggerSlouchAlert()
-                            SyntheticEarHapticEngine.shared.playDirectionalPostureCue(pitch: deltaPitch, roll: deltaRoll, pitchThreshold: pitchThreshold, rollThreshold: rollThreshold)
                         }
                         DynamicIslandNotchHaloManager.shared.updatePosture(postureState: .slouching, deltaPitch: deltaPitch)
                     }
                     postureState = .slouching
                 } else {
-                    if postureState == .optimal {
-                        SyntheticEarHapticEngine.shared.playDirectionalPostureCue(pitch: deltaPitch, roll: deltaRoll, pitchThreshold: pitchThreshold, rollThreshold: rollThreshold)
-                    }
                     postureState = .warning
                 }
             } else {
@@ -710,19 +723,25 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
         }
     }
     
+    private var canPlayPostureAudio: Bool {
+        soundAlertsEnabled
+            && !CallActivitySentinel.shared.shouldSuppressAudioCue()
+            && !(muteInMeetings && AudioEnvironmentMonitor.shared.isMicrophoneInUse)
+    }
+
     public func triggerSlouchAlert() {
+        guard isTracking, isConnected, !isSnoozed,
+              !AirPodsWearStateSentinel.shared.isRestingOnNeck,
+              postureState == .slouching else { return }
+        guard isSimulated || lastPacketDate.map({ Date().timeIntervalSince($0) <= 5 }) == true else { return }
         NotificationManager.shared.sendSlouchNotification(pitch: deltaPitch, roll: deltaRoll)
-        SystemAudioVoiceAlertEngine.shared.triggerSlouchNudge(pitchDeviation: deltaPitch)
         HourlyFatigueProfiler.shared.recordAlert()
-        
-        guard soundAlertsEnabled else { return }
-        if CallActivitySentinel.shared.shouldSuppressAudioCue() {
+
+        guard canPlayPostureAudio else {
+            SyntheticEarHapticEngine.shared.performTrackpadHaptic()
             return
         }
-        if muteInMeetings && AudioEnvironmentMonitor.shared.isMicrophoneInUse {
-            return
-        }
-        
+
         let now = Date()
         if let lastSound = lastAlertSoundTime, now.timeIntervalSince(lastSound) < 12.0 {
             return
@@ -752,6 +771,11 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
                 // If no packets in 5 seconds while tracking, attempt non-blocking CoreMotion recovery
                 if let last = self.lastPacketDate, Date().timeIntervalSince(last) > 5.0 {
                     self.packetsPerSecond = 0
+                    if self.isConnected {
+                        self.isConnected = false
+                        self.postureState = .disconnected
+                        self.resetPostureReminder()
+                    }
                     if self.motionManager.isDeviceMotionAvailable && !self.motionManager.isDeviceMotionActive {
                         self.startTracking()
                     }
@@ -830,8 +854,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     
     nonisolated public func headphoneMotionManagerDidConnect(_ manager: CMHeadphoneMotionManager) {
         Task { @MainActor in
-            self.isConnected = true
-            self.startTracking()
+            if self.isTracking { self.startTracking() }
             AirPodsInsertionFitSentinel.shared.headphoneMotionManagerDidConnect(manager)
             PostureFitGatekeeper.shared.headphoneMotionManagerDidConnect(manager)
             AirPodsInCaseLifecycleManager.shared.handleAirPodsRemovedFromCase()
@@ -842,6 +865,7 @@ public final class MotionManager: NSObject, ObservableObject, CMHeadphoneMotionM
     nonisolated public func headphoneMotionManagerDidDisconnect(_ manager: CMHeadphoneMotionManager) {
         Task { @MainActor in
             self.isConnected = false
+            self.resetPostureReminder()
             self.postureState = .disconnected
             AirPodsInsertionFitSentinel.shared.headphoneMotionManagerDidDisconnect(manager)
             PostureFitGatekeeper.shared.headphoneMotionManagerDidDisconnect(manager)

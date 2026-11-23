@@ -43,22 +43,12 @@ public final class SystemAudioVoiceAlertEngine: ObservableObject {
         speakCue(voiceCuePhrase)
     }
 
-    public func triggerSlouchNudge(pitchDeviation: Double) {
+    public func speakSlouchReminder() {
+        guard isVoiceCueEnabled else { return }
         let now = Date()
         guard now.timeIntervalSince(lastAlertTime) >= alertCooldownSeconds else { return }
         lastAlertTime = now
-
-        if isSoundEnabled {
-            sound?.stop()
-            sound?.play()
-        }
-
-        if isVoiceCueEnabled {
-            speakCue(voiceCuePhrase)
-        }
-
-        // Also trigger synthetic ear-canal haptic micro-click
-        SyntheticEarHapticEngine.shared.playTapticClick()
+        speakCue(voiceCuePhrase)
     }
 
     private func speakCue(_ text: String) {
