@@ -275,17 +275,52 @@ public struct HumanFace3DView: NSViewRepresentable {
         ceramic.diffuse.contents = NSColor(red: 0.89, green: 0.86, blue: 0.82, alpha: 1)
         ceramic.roughness.contents = 0.58
         ceramic.metalness.contents = 0.0
+        ceramic.shaderModifiers = [.surface: facialDetailShader]
 
         let bust = SCNNode()
         for mesh in meshes {
             mesh.addNormals(withAttributeNamed: MDLVertexAttributeNormal, creaseThreshold: 0.5)
             let geometry = SCNGeometry(mdlMesh: mesh)
+            geometry.subdivisionLevel = 1
             geometry.materials = Array(repeating: ceramic, count: max(1, geometry.geometryElementCount))
             bust.addChildNode(SCNNode(geometry: geometry))
         }
         bust.scale = SCNVector3(x: 0.28, y: 0.28, z: 0.28)
         return bust
     }
+
+    // Coordinates match the bundled sculpt before the view scales or rotates it.
+    // Keep the tint in model space so it tracks the facial landmarks from every angle.
+    private static let facialDetailShader = """
+        #pragma body
+        vec3 facePosition = (u_inverseModelTransform * u_inverseViewTransform
+                             * vec4(_surface.position, 1.0)).xyz;
+        float front = smoothstep(1.30, 1.90, facePosition.z);
+        float centerX = facePosition.x + 0.08;
+        float eyeX = abs(centerX) - 0.60;
+
+        vec2 socket = vec2(eyeX / 0.40, (facePosition.y - 1.75) / 0.27);
+        float socketTone = exp(-dot(socket, socket) * 1.5);
+        float lidHeight = 1.73 - 0.52 * eyeX * eyeX;
+        vec2 eyelid = vec2(eyeX / 0.30, (facePosition.y - lidHeight) / 0.055);
+        float lidTone = exp(-dot(eyelid, eyelid) * 1.4);
+
+        vec2 cheek = vec2((abs(centerX) - 0.83) / 0.40, (facePosition.y - 1.38) / 0.30);
+        float cheekTone = exp(-dot(cheek, cheek) * 1.3);
+        vec2 nose = vec2(centerX / 0.25, (facePosition.y - 1.08) / 0.22);
+        float noseTone = exp(-dot(nose, nose) * 1.4);
+
+        float lipHeight = 0.46 - 0.38 * centerX * centerX;
+        vec2 lips = vec2(centerX / 0.41, (facePosition.y - lipHeight) / 0.14);
+        float lipTone = exp(-dot(lips, lips) * 1.5);
+        float lipCrease = exp(-pow(abs(facePosition.y - lipHeight - 0.02) / 0.032, 2.0))
+                         * exp(-pow(abs(centerX) / 0.35, 4.0));
+
+        vec3 warmTint = vec3(0.015, -0.049, -0.058) * (cheekTone + noseTone * 0.7)
+                      + vec3(0.006, -0.095, -0.088) * lipTone;
+        float creaseShade = socketTone * 0.032 + lidTone * 0.055 + lipCrease * 0.077;
+        _surface.diffuse.rgb = clamp(_surface.diffuse.rgb + front * (warmTint - vec3(creaseShade)), 0.0, 1.0);
+        """
 
     public func updateNSView(_ nsView: SCNView, context: Context) {
         guard let scene = nsView.scene,
